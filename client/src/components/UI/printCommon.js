@@ -7,7 +7,8 @@ export const INVOICE_CSS = `
 body { font-family: Arial, sans-serif; font-size: 12px; color: #000; background: #fff; margin: 0; padding: 0; }
 .invoice-card { width: 100%; margin: 0; border: 1px solid #000; padding: 0; }
 .invoice-card table { width: 100%; border-collapse: collapse; }
-.invoice-card table th, .invoice-card table td { border: 1px solid #000; padding: 5px 6px; white-space: normal; word-break: break-word; }
+.invoice-card table th, .invoice-card table td { border: 1px solid #000; padding: 5px 6px; white-space: nowrap; }
+.invoice-card table td.wide { white-space: normal; word-break: break-word; min-width: 150px; }
 .invoice-card table th { background-color: #f0f0f0; font-weight: bold; }
 .invoice-card td, .invoice-card th { vertical-align: top; word-break: break-word; white-space: normal; }
 .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px; }
