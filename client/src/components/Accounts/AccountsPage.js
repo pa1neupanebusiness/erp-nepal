@@ -911,8 +911,31 @@ function BalanceSheet() {
 
   const openDrill = (title, items) => {
     if (!items || items.length === 0) return;
+    const parentPrefixes = { '103': '10300', '201': '20100', '203': '20300' };
+    const grouped = new Map();
+    const others = [];
+    items.forEach(item => {
+      if (item.code) {
+        const prefix = item.code.slice(0, 3);
+        if (parentPrefixes[prefix]) {
+          const parentCode = parentPrefixes[prefix];
+          if (!grouped.has(parentCode)) {
+            grouped.set(parentCode, { code: parentCode, name: '', balance: 0, _id: item._id, children: [] });
+          }
+          const g = grouped.get(parentCode);
+          g.balance += item.balance || 0;
+          g.children.push(item);
+          if (!g.name) g.name = item.name.replace(/ -.*/, '');
+        } else {
+          others.push(item);
+        }
+      } else {
+        others.push(item);
+      }
+    });
+    const result = [...others, ...Array.from(grouped.values())].sort((a, b) => (a.code || '').localeCompare(b.code || ''));
     setDrillTitle(title);
-    setDrillItems(items);
+    setDrillItems(result);
   };
 
   if (loading) return <div className="page-container"><p>Loading...</p></div>;
@@ -991,8 +1014,16 @@ function BalanceSheet() {
           rows={drillItems}
           onRowClick={async (row) => {
             if (!row?._id) return;
-            setDrillItems(null);
-            await openLedger(row._id);
+            if (row.children && row.children.length > 0) {
+              setDrillItems(null);
+              setTimeout(() => {
+                setDrillTitle(row.name);
+                setDrillItems(row.children);
+              }, 100);
+            } else {
+              setDrillItems(null);
+              await openLedger(row._id);
+            }
           }}
           onClose={() => setDrillItems(null)}
         />

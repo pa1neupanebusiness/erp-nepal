@@ -315,11 +315,12 @@ router.get('/ledger/:accountId', protect, async (req, res) => {
   const account = await Account.findOne({ _id: req.params.accountId, ...req.companyFilter });
   if (!account) return res.status(404).json({ message: 'Account not found' });
 
-  // For parent accounts (10300 AR, 20100 AP), include all sub-accounts (103**, 201**)
+  // For parent accounts, include all sub-accounts (e.g., 103** for AR, 201** for AP, 203** for TDS)
   let accountIds = [account._id];
-  const isParentAccount = ['10300', '20100'].includes(account.code);
-  if (isParentAccount) {
-    const subAccounts = await Account.find({ code: { $regex: `^${account.code.slice(0, 3)}` }, ...req.companyFilter });
+  const parentCodePrefix = account.code.slice(0, 3);
+  const hasSubAccounts = ['103', '201', '203'].includes(parentCodePrefix);
+  if (hasSubAccounts) {
+    const subAccounts = await Account.find({ code: { $regex: `^${parentCodePrefix}` }, ...req.companyFilter });
     accountIds = subAccounts.map(a => a._id);
   }
 
