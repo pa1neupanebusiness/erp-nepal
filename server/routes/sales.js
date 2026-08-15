@@ -133,7 +133,7 @@ async function postSaleJournalEntry(sale, items, req, { customerDoc, customerPan
 
   if (hasCustomer && customerAr) {
     const saleLines = [
-      { account: customerAr._id, debit: sale.dueAmount, credit: 0 },
+      { account: customerAr._id, debit: sale.grandTotal, credit: 0 },
       { account: salesAccount._id, debit: 0, credit: sale.grandTotal + (sale.discount || 0) - effectiveTaxTotal },
     ];
     if (effectiveTaxTotal > 0 && vatAccount) saleLines.push({ account: vatAccount._id, debit: 0, credit: effectiveTaxTotal });
@@ -171,15 +171,15 @@ async function postSaleJournalEntry(sale, items, req, { customerDoc, customerPan
         });
       }
     } else if (sale.paymentMethod !== 'credit') {
-      paidTotal = sale.grandTotal;
+      paidTotal = sale.amountPaid || sale.grandTotal;
       const payLines = [];
       if (sale.paymentMethod === 'qr' || sale.paymentMethod === 'bank') {
-        payLines.push({ account: bankAccount._id, debit: sale.grandTotal, credit: 0, bank: sale.bank || null });
-        if (sale.bank) await adjustBankBalance(sale.bank, sale.grandTotal, req.companyFilter).catch(() => {});
+        payLines.push({ account: bankAccount._id, debit: sale.amountPaid || sale.grandTotal, credit: 0, bank: sale.bank || null });
+        if (sale.bank) await adjustBankBalance(sale.bank, sale.amountPaid || sale.grandTotal, req.companyFilter).catch(() => {});
       } else {
-        payLines.push({ account: cashAccount._id, debit: sale.grandTotal, credit: 0 });
+        payLines.push({ account: cashAccount._id, debit: sale.amountPaid || sale.grandTotal, credit: 0 });
       }
-      payLines.push({ account: customerAr._id, debit: 0, credit: sale.grandTotal });
+      payLines.push({ account: customerAr._id, debit: 0, credit: sale.amountPaid || sale.grandTotal });
       await postJournalEntryAtomic({
         companyId: req.companyId, date: jeDate, reference: sale.invoiceNumber,
         description: `Payment received - ${sale.paymentMethod} for ${sale.invoiceNumber}`,
