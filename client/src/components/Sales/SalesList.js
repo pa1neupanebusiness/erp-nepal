@@ -102,7 +102,7 @@ export default function SalesList() {
               <tr><th>Invoice</th><th>Date</th><th>Customer</th><th>Items</th><th>Subtotal</th><th>Discount</th><th>Payment</th><th>Amount</th><th>Paid</th><th>Due</th><th>Status</th><th>Cashier</th><th>Actions</th></tr>
             </thead>
             <tbody>
-              {items.map(s => (
+              {items.filter(s => !search || (s.customer?.name || '').toLowerCase().includes(search.toLowerCase()) || (s.invoiceNumber || '').toLowerCase().includes(search.toLowerCase())).map(s => (
                 <tr key={s._id} style={{ cursor: 'pointer' }} onClick={() => setDetail(s)}>
                   <td>{s.invoiceNumber}{s.emiData?.exchangeEnabled && <span className="badge badge-warning" style={{ marginLeft: '0.35rem' }}>Exchange</span>}</td>
                   <td>{new Date(s.createdAt).toLocaleDateString('en-IN')}</td>

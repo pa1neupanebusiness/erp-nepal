@@ -284,13 +284,13 @@ export default function Purchases() {
                 <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: '0.75rem', marginTop: '0.75rem', background: '#f8fafc' }}>
                   {(supplierPayForm.splits || []).map((sp, idx) => (
                     <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
-                      <select value={sp.method} onChange={e => { const next = [...(supplierPayForm.splits || [])]; next[idx] = { ...next[idx], method: e.target.value, bank: '' }; setSupplierPayForm({ ...supplierPayForm, splits: next }); }} style={{ ...input, flex: 1, width: 'auto' }}>
+                      <select value={sp.method} onChange={e => { const next = [...(supplierPayForm.splits || [])]; next[idx] = { ...next[idx], method: e.target.value, bank: '' }; setSupplierPayForm({ ...supplierPayForm, splits: next }); }} style={{ flex: 1, width: 'auto', padding: '0.4rem', borderRadius: 6, border: '1px solid #cbd5e1' }}>
                         <option value="cash">Cash</option>
                         <option value="bank">Bank</option>
                       </select>
-                      <input type="number" value={sp.amount || ''} onChange={e => { const next = [...(supplierPayForm.splits || [])]; next[idx] = { ...next[idx], amount: parseFloat(e.target.value) || 0 }; setSupplierPayForm({ ...supplierPayForm, splits: next }); }} placeholder="Amount" style={{ ...input, flex: 1, width: 'auto', textAlign: 'right' }} />
+                      <input type="number" value={sp.amount || ''} onChange={e => { const next = [...(supplierPayForm.splits || [])]; next[idx] = { ...next[idx], amount: parseFloat(e.target.value) || 0 }; setSupplierPayForm({ ...supplierPayForm, splits: next }); }} placeholder="Amount" style={{ flex: 1, width: 'auto', textAlign: 'right', padding: '0.4rem', borderRadius: 6, border: '1px solid #cbd5e1' }} />
                       {sp.method === 'bank' && (
-                        <select value={sp.bank} onChange={e => { const next = [...(supplierPayForm.splits || [])]; next[idx] = { ...next[idx], bank: e.target.value }; setSupplierPayForm({ ...supplierPayForm, splits: next }); }} style={{ ...input, flex: 1, width: 'auto' }}>
+                        <select value={sp.bank} onChange={e => { const next = [...(supplierPayForm.splits || [])]; next[idx] = { ...next[idx], bank: e.target.value }; setSupplierPayForm({ ...supplierPayForm, splits: next }); }} style={{ flex: 1, width: 'auto', padding: '0.4rem', borderRadius: 6, border: '1px solid #cbd5e1' }}>
                           <option value="">-- Bank --</option>
                           {banks.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
                         </select>
