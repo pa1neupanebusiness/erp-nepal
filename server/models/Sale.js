@@ -33,6 +33,8 @@ const saleSchema = new mongoose.Schema({
   cashier: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   status: { type: String, enum: ['completed', 'refunded', 'cancelled'], default: 'completed' },
   refundRemark: { type: String },
+  creditNoteNumber: { type: String },
+  creditNoteDate: { type: Date },
   invoiceDate: { type: Date },
   notes: { type: String },
   images: [{ type: String }],

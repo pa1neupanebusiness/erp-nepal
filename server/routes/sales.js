@@ -43,6 +43,24 @@ async function generateInvoice(companyId) {
   throw new Error('Could not generate a unique invoice number');
 }
 
+async function generateCreditNote(companyId) {
+  if (!companyId) throw new Error('No company assigned to this account');
+  const fy = getBSFiscalYear().label;
+  for (let i = 0; i < 10; i++) {
+    const company = await Company.findOneAndUpdate(
+      { _id: companyId },
+      { $inc: { creditNoteCounter: 1 } },
+      { new: true }
+    );
+    if (!company) throw new Error('No company assigned to this account');
+    const num = String(company.creditNoteCounter).padStart(3, '0');
+    const cnNo = `CN-${fy}-${num}`;
+    const exists = await Sale.exists({ creditNoteNumber: cnNo, company: companyId });
+    if (!exists) return cnNo;
+  }
+  throw new Error('Could not generate a unique credit note number');
+}
+
 async function postSaleJournalEntry(sale, items, req, { customerDoc, customerPan, source }) {
   const companyDoc = await Company.findOne({ _id: req.companyId }).lean();
   const cashAccount = await Account.findOne({ code: '10100', ...req.companyFilter });
@@ -232,10 +250,10 @@ async function postRefundJournalEntry(sale, req, { remark }) {
   const inventoryAccount = await Account.findOne({ code: '10400', ...req.companyFilter });
   const cogsAccount = await Account.findOne({ code: '50100', ...req.companyFilter });
 
-  let salesReturnAccount = await Account.findOne({ code: '40200', ...req.companyFilter });
+  let salesReturnAccount = await Account.findOne({ code: '40300', ...req.companyFilter });
   if (!salesReturnAccount) {
     salesReturnAccount = await Account.create({
-      code: '40200', name: 'Sales Returns & Allowances', type: 'revenue', category: 'contra_revenue',
+      code: '40300', name: 'Sales Returns & Allowances', type: 'revenue', category: 'contra_revenue',
       balance: 0, isSystem: true, company: req.companyId,
     });
   }
@@ -579,10 +597,14 @@ router.post('/refund-by-invoice', protect, adminOnly, async (req, res) => {
   const sale = await Sale.findOne({ invoiceNumber, ...req.companyFilter });
   if (!sale) return res.status(404).json({ message: 'Sale not found' });
   if (sale.status === 'refunded') return res.status(400).json({ message: 'Sale already refunded' });
+  let cnNumber;
+  try { cnNumber = await generateCreditNote(req.companyId); } catch (e) { cnNumber = `CN-${invoiceNumber}`; }
   sale.status = 'refunded';
   sale.refundRemark = remark;
   sale.amountPaid = sale.grandTotal;
   sale.dueAmount = 0;
+  sale.creditNoteNumber = cnNumber;
+  sale.creditNoteDate = new Date();
   await sale.save();
   for (const item of sale.items) {
     const product = await Product.findOne({ _id: item.product, ...req.companyFilter });
@@ -609,10 +631,14 @@ router.post('/:id/refund', protect, adminOnly, async (req, res) => {
   const sale = await Sale.findOne({ _id: req.params.id, ...req.companyFilter });
   if (!sale) return res.status(404).json({ message: 'Sale not found' });
   if (sale.status === 'refunded') return res.status(400).json({ message: 'Sale already refunded' });
+  let cnNumber;
+  try { cnNumber = await generateCreditNote(req.companyId); } catch (e) { cnNumber = `CN-${sale.invoiceNumber}`; }
   sale.status = 'refunded';
   sale.refundRemark = remark;
   sale.amountPaid = sale.grandTotal;
   sale.dueAmount = 0;
+  sale.creditNoteNumber = cnNumber;
+  sale.creditNoteDate = new Date();
   await sale.save();
   for (const item of sale.items) {
     const product = await Product.findOne({ _id: item.product, ...req.companyFilter });

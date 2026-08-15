@@ -25,6 +25,7 @@ const companySchema = new mongoose.Schema({
   voucherCounter: { type: Number, default: 0 },
   receiptCounter: { type: Number, default: 0 },
   paymentOutCounter: { type: Number, default: 0 },
+  creditNoteCounter: { type: Number, default: 0 },
   subscription: { type: String, enum: ['free', 'basic', 'premium'], default: 'free' },
   selectedModule: { type: String, enum: ['inventory', 'accounts', null], default: null, sparse: true },
   dateFormat: { type: String, enum: ['bs', 'ad'], default: 'bs' },

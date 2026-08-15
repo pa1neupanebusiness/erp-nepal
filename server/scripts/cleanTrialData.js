@@ -36,8 +36,8 @@ async function main() {
     stats.push(`${name}: ${r.deletedCount}`);
   }
 
-  await Company.updateMany({}, { $set: { invoiceCounter: 0, emiCounter: 0 } });
-  stats.push('companies: invoice/emi counters reset');
+  await Company.updateMany({}, { $set: { invoiceCounter: 0, emiCounter: 0, creditNoteCounter: 0, purchaseCounter: 0, voucherCounter: 0, receiptCounter: 0, paymentOutCounter: 0 } });
+  stats.push('companies: all counters reset');
 
   console.log(stats.join('\n'));
   await mongoose.disconnect();

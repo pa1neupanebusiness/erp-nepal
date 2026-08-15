@@ -6,6 +6,7 @@ import { useToast } from '../UI/Toast';
 import ConfirmModal from '../UI/ConfirmModal';
 import { printInvoice } from '../POS/PrintInvoice';
 import { printEmiRecord } from '../UI/printEmi';
+import { printCreditNote } from '../UI/printCreditNote';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
 import NepaliDatePicker, { adToBsStr, bsToADStr } from '../UI/NepaliDatePicker';
 
@@ -142,6 +143,9 @@ export default function SalesList() {
       {detail && detail.kind !== 'emi' && detail.items && detail.items.length > 0 && (
         <EntryDetailsModal
           onPrint={() => printInvoice(detail, company)}
+          actions={detail.status === 'refunded' && detail.creditNoteNumber ? (
+            <button className="btn btn-sm btn-secondary" onClick={() => printCreditNote(detail, company)}>Print Credit Note</button>
+          ) : null}
           title={`Sale ${detail.invoiceNumber}`}
           subtitle={`${new Date(detail.createdAt).toLocaleString('en-IN')} | ${detail.customer?.name || 'Walk-in'} | ${detail.paymentMethod}`}
           meta={[
