@@ -15,7 +15,7 @@ body { font-family: Arial, sans-serif; font-size: 12px; color: #000; background:
 .company-title { font-size: 22px; font-weight: bold; text-transform: uppercase; text-align: center; white-space: nowrap; }
 .company-detail { white-space: nowrap; font-size: 11px; line-height: 1.4; }
 .doc-title { font-size: 16px; font-weight: bold; text-align: center; text-transform: uppercase; text-decoration: underline; margin-top: 6px; }
-.meta-grid { display: flex; gap: 12px; margin-bottom: 15px; line-height: 1.5; }
+.meta-grid { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 15px; line-height: 1.5; }
 .meta-grid > div { flex: 0 1 auto; }
 .meta-box { width: 48%; }
 table.data-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }

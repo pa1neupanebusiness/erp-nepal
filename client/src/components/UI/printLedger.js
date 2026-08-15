@@ -85,7 +85,7 @@ export function renderLedgerHtml(ledger, company, opts = {}) {
     .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px; }
     .company-title { font-size: 18px; font-weight: bold; text-transform: uppercase; }
     .report-title { font-size: 14px; font-weight: bold; margin-top: 5px; text-decoration: underline; }
-    .meta-grid { display: flex; gap: 12px; margin-bottom: 12px; line-height: 1.4; }
+    .meta-grid { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 12px; line-height: 1.4; }
     .meta-grid > div { flex: 0 1 auto; }
     table.ledger-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
     table.ledger-table th, table.ledger-table td { border: 1px solid #000; padding: 5px 6px; white-space: nowrap; }
@@ -113,7 +113,7 @@ export function renderLedgerHtml(ledger, company, opts = {}) {
         <strong>Address:</strong> ${escapeHtml(acc.address || '-')}<br>
         <strong>PAN No:</strong> ${escapeHtml(acc.pan || acc.taxId || '-')}
       </div>
-      <div>
+      <div class="text-right">
         <strong>Statement Period:</strong> ${escapeHtml(periodLabel)}<br>
         <strong>Printed On:</strong> ${escapeHtml(bsDateStr(new Date()))}<br>
         <strong>Account Type:</strong> ${escapeHtml(accountTypeLabel || '-')}
