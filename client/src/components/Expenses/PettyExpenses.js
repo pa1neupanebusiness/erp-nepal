@@ -4,6 +4,7 @@ import EntryDetailsModal from '../UI/EntryDetailsModal';
 import NepaliDatePicker, { adToBsStr, bsToADStr } from '../UI/NepaliDatePicker';
 import { useToast } from '../UI/Toast';
 import { printPettyExpense } from '../UI/printPettyExpense';
+import { printHtmlDocument } from '../UI/printCommon';
 import api from '../../api';
 
 export default function PettyExpenses() {
@@ -61,6 +62,10 @@ export default function PettyExpenses() {
         <h1>Petty Expenses (Sano Kharcha)</h1>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <span className="fiscal-badge">Total: {formatNPR(total)}</span>
+          <button className="btn btn-secondary" onClick={() => {
+            const el = document.querySelector('table.table');
+            if (el) printHtmlDocument(el.outerHTML, 'Petty Expenses');
+          }}>Print</button>
           <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>{showForm ? 'Cancel' : 'Add Expense'}</button>
         </div>
       </div>

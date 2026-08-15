@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ConfirmModal from '../UI/ConfirmModal';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
 import api from '../../api';
+import { printEntry } from '../UI/printEntry';
 
 const fmtNPR = (n) => 'Rs. ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -43,7 +44,14 @@ export default function SupplierList() {
     <div>
       <div className="page-header">
         <h1>Suppliers</h1>
-        <button className="btn btn-primary" onClick={() => { setShowForm(!showForm); setEditing(null); setForm({ name: '', contactPerson: '', email: '', phone: '', address: '' }); }}>{showForm ? 'Cancel' : 'Add Supplier'}</button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn btn-secondary" onClick={() => {
+            const rows = items.map(s => ({ Name: s.name, Contact: s.contactPerson || '-', Email: s.email || '-', Phone: s.phone || '-', PAN: s.pan || '-', Address: s.address || '-' }));
+            if (rows.length === 0) return;
+            printEntry({ title: 'Suppliers List', columns: Object.keys(rows[0]).map(k => ({ key: k, label: k })), rows, footer: [{ label: 'Total Suppliers', value: String(rows.length) }] });
+          }}>Print</button>
+          <button className="btn btn-primary" onClick={() => { setShowForm(!showForm); setEditing(null); setForm({ name: '', contactPerson: '', email: '', phone: '', address: '' }); }}>{showForm ? 'Cancel' : 'Add Supplier'}</button>
+        </div>
       </div>
       {showForm && (
         <form onSubmit={handleSubmit} className="card form-card" style={{ maxWidth: 600 }}>

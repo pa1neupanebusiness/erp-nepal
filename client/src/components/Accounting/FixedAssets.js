@@ -4,6 +4,7 @@ import EntryDetailsModal from '../UI/EntryDetailsModal';
 import NepaliDatePicker, { adToBsStr, bsToADStr } from '../UI/NepaliDatePicker';
 import ConfirmModal from '../UI/ConfirmModal';
 import { useToast } from '../UI/Toast';
+import { printHtmlDocument } from '../UI/printCommon';
 import api from '../../api';
 
 const CATEGORIES = [
@@ -153,7 +154,13 @@ export default function FixedAssets() {
     <div>
       <div className="page-header">
         <h1>Fixed Assets</h1>
-        <button className="btn btn-primary" onClick={() => { setShowForm(!showForm); setEditing(null); setForm({ ...emptyForm }); setSelectedProduct(null); setProductQuery(''); }}>{showForm ? 'Cancel' : 'Add Asset'}</button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn btn-secondary" onClick={() => {
+            const el = document.querySelector('.table-responsive table');
+            if (el) printHtmlDocument(el.outerHTML, 'Fixed Assets');
+          }}>Print</button>
+          <button className="btn btn-primary" onClick={() => { setShowForm(!showForm); setEditing(null); setForm({ ...emptyForm }); setSelectedProduct(null); setProductQuery(''); }}>{showForm ? 'Cancel' : 'Add Asset'}</button>
+        </div>
       </div>
 
       {summary && (

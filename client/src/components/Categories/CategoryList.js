@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import ConfirmModal from '../UI/ConfirmModal';
 import api from '../../api';
 import { useToast } from '../UI/Toast';
+import { printEntry } from '../UI/printEntry';
 
 const fmtNPR = (n) => 'Rs. ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -451,7 +452,18 @@ export default function CategoryList() {
     <div>
       <div className="page-header">
         <h1>Categories</h1>
-        <p>Drag categories to reorder. Drag products into any category or sub-category. Use ⇲ Sub / ⇱ Main to convert between levels.</p>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <p style={{ margin: 0, flex: 1 }}>Drag categories to reorder. Drag products into any category or sub-category. Use ⇲ Sub / ⇱ Main to convert between levels.</p>
+          <button className="btn btn-secondary" onClick={() => {
+            const rows = ordered.map(({ cat, depth }) => ({
+              Category: '\u00A0'.repeat(depth * 4) + (depth > 0 ? '↳ ' : '') + cat.name,
+              Type: depth === 0 ? 'Main' : 'Sub',
+              Products: String((productsByCat[String(cat._id)] || []).length),
+            }));
+            if (rows.length === 0) return;
+            printEntry({ title: 'Categories List', columns: Object.keys(rows[0]).map(k => ({ key: k, label: k })), rows, footer: [{ label: 'Total Categories', value: String(rows.length) }] });
+          }}>Print</button>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="card form-card" style={{ maxWidth: 560 }}>

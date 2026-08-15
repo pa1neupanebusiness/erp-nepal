@@ -4,6 +4,7 @@ import EntryDetailsModal from '../UI/EntryDetailsModal';
 import NepaliDatePicker, { adToBsStr, bsToADStr } from '../UI/NepaliDatePicker';
 import ConfirmModal from '../UI/ConfirmModal';
 import { useToast } from '../UI/Toast';
+import { printHtmlDocument } from '../UI/printCommon';
 import api from '../../api';
 
 export default function AccountingExpenses() {
@@ -101,6 +102,10 @@ export default function AccountingExpenses() {
         <h1>Expenses</h1>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           {selectedAccount && <span className="fiscal-badge">Total: {formatNPR(totalExpenses)}</span>}
+          {selectedAccount && <button className="btn btn-sm btn-secondary" onClick={() => {
+            const el = document.querySelector('.table-responsive table') || document.querySelector('table.table');
+            if (el) printHtmlDocument(el.outerHTML, `Expenses - ${selectedAcc?.name || ''}`);
+          }}>Print</button>}
           <button className="btn btn-primary" onClick={() => { setShowForm(!showForm); setForm(f => ({ ...f, account: selectedAccount })); }}>
             {showForm ? 'Cancel' : 'Record Expense'}
           </button>

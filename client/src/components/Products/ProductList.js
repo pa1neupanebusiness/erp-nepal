@@ -3,6 +3,7 @@ import { useToast } from '../UI/Toast';
 import ConfirmModal from '../UI/ConfirmModal';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
 import SearchableSelect from '../UI/SearchableSelect';
+import { printEntry } from '../UI/printEntry';
 import api from '../../api';
 import UploadModal from '../UploadModal';
 
@@ -147,6 +148,10 @@ export default function ProductList() {
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <input className="search-input" placeholder="Search products..." value={search} onChange={e => setSearch(e.target.value)} />
           <button className="btn btn-secondary" onClick={() => setShowUpload(true)}>Excel Import</button>
+          <button className="btn btn-secondary" onClick={() => {
+            const rows = filtered.map(p => ({ SKU: p.sku || '-', Name: p.name, Category: p.category?.name || '-', 'Cost Price': formatNPR(p.costPrice), 'Selling Price': formatNPR(p.sellingPrice), VAT: p.vatEnabled ? `${p.taxRate}% ${p.priceIncludesTax ? 'Incl' : 'Excl'}` : '-', Stock: p.stock }));
+            printEntry({ title: 'Products List', columns: Object.keys(rows[0] || {}).map(k => ({ key: k, label: k })), rows, footer: [{ label: 'Total Products', value: String(filtered.length) }] });
+          }}>Print</button>
           <button className="btn btn-primary" onClick={() => { setShowForm(!showForm); setEditing(null); setForm({ ...emptyForm }); }}>{showForm ? 'Cancel' : 'Add Product'}</button>
         </div>
       </div>
@@ -217,7 +222,7 @@ export default function ProductList() {
         <div className="table-responsive">
           <table className="table">
             <thead>
-              <tr><th style={{ width: 30 }}></th><th>SKU</th><th>Name</th><th>Category</th><th>Cost Price</th><th>Selling Price</th><th>Stock</th><th>Actions</th></tr>
+              <tr><th style={{ width: 30 }}></th><th>SKU</th><th>Name</th><th>Category</th><th>Cost Price</th><th>Selling Price</th><th>VAT</th><th>Stock</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {filtered.map(p => (
@@ -299,6 +304,22 @@ export default function ProductList() {
               { label: 'Total In', value: String(movements.filter(m => m.type === 'in').reduce((s, m) => s + m.quantity, 0)) },
               { label: 'Total Out', value: String(movements.filter(m => m.type !== 'in').reduce((s, m) => s + m.quantity, 0)) },
             ]}
+            onPrint={() => printEntry({ title: p.name, subtitle: `SKU: ${p.sku}`, meta: [
+              { label: 'Stock', value: String(p.stock) },
+              { label: 'Cost Price', value: formatNPR(p.costPrice) },
+              { label: 'Selling Price', value: formatNPR(p.sellingPrice) },
+              { label: 'VAT', value: p.vatEnabled ? `${p.taxRate}% ${p.priceIncludesTax ? 'Incl' : 'Excl'}` : 'Disabled' },
+            ], columns: [
+              { key: 'createdAt', label: 'Date', render: (d) => new Date(d).toLocaleString('en-IN') },
+              { key: 'type', label: 'Type', render: (v) => v === 'in' ? 'In' : 'Out' },
+              { key: 'quantity', label: 'Qty', align: 'right' },
+              { key: 'reference', label: 'Reference' },
+              { key: 'note', label: 'Note' },
+              { key: 'createdBy', label: 'By', render: (v) => v?.name || '-' },
+            ], rows: movements, footer: [
+              { label: 'Total In', value: String(movements.filter(m => m.type === 'in').reduce((s, m) => s + m.quantity, 0)) },
+              { label: 'Total Out', value: String(movements.filter(m => m.type !== 'in').reduce((s, m) => s + m.quantity, 0)) },
+            ] })}
             onClose={() => setDetailsId(null)}
           />
         );

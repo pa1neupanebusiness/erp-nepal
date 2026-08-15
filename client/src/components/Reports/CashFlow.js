@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
+import { printHtmlDocument } from '../UI/printCommon';
 
 export default function CashFlow() {
   const [data, setData] = useState(null);
@@ -17,7 +18,19 @@ export default function CashFlow() {
 
   return (
     <div>
-      <div className="page-header"><h1>Cash Flow Report</h1></div>
+      <div className="page-header">
+        <h1>Cash Flow Report</h1>
+        <button className="btn btn-secondary" onClick={() => {
+          const tables = document.querySelectorAll('.card table.table');
+          if (tables.length > 0) {
+            let html = '<h3>Cash Inflows</h3>';
+            html += tables[0]?.outerHTML || '';
+            html += '<h3 style="margin-top:1rem">Cash Outflows</h3>';
+            html += tables[1]?.outerHTML || '';
+            printHtmlDocument(html, 'Cash Flow Report');
+          }
+        }}>Print</button>
+      </div>
 
       <div className="cards-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '1rem' }}>
         <div className="card" style={{ borderLeft: '4px solid #059669' }}>

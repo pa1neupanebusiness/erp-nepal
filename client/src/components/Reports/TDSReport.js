@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../api';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
 import NepaliDatePicker, { adToBsStr, bsToADStr } from '../UI/NepaliDatePicker';
+import { printHtmlDocument } from '../UI/printCommon';
 import { useToast } from '../UI/Toast';
 
 const taxLabels = {
@@ -103,6 +104,10 @@ export default function TDSReport() {
         <h1>{tax.tds} Report</h1>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <p style={{ margin: 0 }}>Track {tax.tds} deductions and payments</p>
+          <button className="btn btn-sm btn-secondary" onClick={() => {
+            const el = document.querySelector('.card table.table');
+            if (el) printHtmlDocument(el.outerHTML, `${tax.tds} Report`);
+          }}>Print</button>
           {totals.total > 0 && hasAccountsAccess && (
             <button className="btn btn-primary" onClick={() => { setPayForm(f => ({ ...f, amount: String(Math.round(totals.total)) })); setShowPayModal(true); }}>
               Pay {tax.tds} - {formatNPR(totals.total)}

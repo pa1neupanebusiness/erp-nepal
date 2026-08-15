@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ConfirmModal from '../UI/ConfirmModal';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
 import api from '../../api';
+import { printEntry } from '../UI/printEntry';
 
 export default function CustomerList() {
   const [items, setItems] = useState([]);
@@ -53,6 +54,11 @@ export default function CustomerList() {
         <h1>Customers</h1>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <input className="search-input" placeholder="Search customers..." value={search} onChange={e => setSearch(e.target.value)} />
+          <button className="btn btn-secondary" onClick={() => {
+            const rows = filtered.map(c => ({ Name: c.name, Email: c.email || '-', Phone: c.phone || '-', PAN: c.pan || '-', Address: c.address || '-', 'Loyalty Points': String(c.loyaltyPoints || 0) }));
+            if (rows.length === 0) return;
+            printEntry({ title: 'Customers List', columns: Object.keys(rows[0]).map(k => ({ key: k, label: k })), rows, footer: [{ label: 'Total Customers', value: String(rows.length) }] });
+          }}>Print</button>
           <button className="btn btn-primary" onClick={() => { setShowForm(!showForm); setEditing(null); setForm({ name: '', email: '', phone: '', address: '' }); }}>{showForm ? 'Cancel' : 'Add Customer'}</button>
         </div>
       </div>

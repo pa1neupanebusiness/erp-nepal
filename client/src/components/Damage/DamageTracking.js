@@ -4,6 +4,7 @@ import SearchableSelect from '../UI/SearchableSelect';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
 import NepaliDatePicker, { adToBsStr, bsToADStr } from '../UI/NepaliDatePicker';
 import api from '../../api';
+import { printEntry } from '../UI/printEntry';
 
 export default function DamageTracking() {
   const [items, setItems] = useState([]);
@@ -38,7 +39,14 @@ export default function DamageTracking() {
     <div>
       <div className="page-header">
         <h1>Damage & Waste Tracking</h1>
-        <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>{showForm ? 'Cancel' : 'Record Damage'}</button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn btn-secondary" onClick={() => {
+            const rows = items.map(d => ({ Date: adToBsStr(d.date), Product: d.product?.name || '-', Type: d.type, Qty: String(d.quantity), Loss: formatNPR(d.totalLoss), Description: d.description || '-' }));
+            if (rows.length === 0) return;
+            printEntry({ title: 'Damage & Waste Tracking', columns: Object.keys(rows[0]).map(k => ({ key: k, label: k })), rows, footer: [{ label: 'Total Items', value: String(rows.length) }, { label: 'Total Loss', value: formatNPR(items.reduce((s, d) => s + (d.totalLoss || 0), 0)) }] });
+          }}>Print</button>
+          <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>{showForm ? 'Cancel' : 'Record Damage'}</button>
+        </div>
       </div>
 
       {summary && (

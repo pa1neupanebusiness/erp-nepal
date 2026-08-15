@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '../UI/Toast';
 import api from '../../api';
-import DownloadBtn, { PrintBtn } from '../DownloadBtn';
+import DownloadBtn from '../DownloadBtn';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
 import SearchableSelect from '../UI/SearchableSelect';
 import Banks from './Banks';
@@ -100,7 +100,10 @@ function ChartOfAccounts() {
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <DownloadBtn endpoint="accounts" label="PDF" type="pdf" filename="chart_of_accounts" />
-          <PrintBtn endpoint="chart-of-accounts" />
+          <button className="btn btn-sm btn-secondary" onClick={() => {
+            const el = document.getElementById('journal-print-area');
+            if (el) printHtmlDocument(el.outerHTML, 'Chart of Accounts');
+          }}>Print</button>
           {accounts.length > 0 && <button className="btn btn-secondary" onClick={() => setShowBalance(!showBalance)}>
             {showBalance ? 'Cancel' : 'Set Initial Balance'}
           </button>}
@@ -443,7 +446,7 @@ function JournalEntryList() {
           {(startDate || endDate || bankFilter || periodFilter !== 'all') && <button className="btn btn-sm btn-secondary" onClick={clearFilters}>Clear</button>}
           <DownloadBtn endpoint="journal" label="Excel" type="excel" filename="journal_entries" params={{ excludeSource: 'MONTH_END' }} />
           <DownloadBtn endpoint="journal" label="PDF" type="pdf" filename="journal_entries" params={{ excludeSource: 'MONTH_END' }} />
-          <PrintBtn endpoint="journal-entries" />
+          <button className="btn btn-sm btn-secondary" onClick={printJournal}>Print</button>
           <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>{showForm ? 'Cancel' : 'New Entry'}</button>
         </div>
       </div>
@@ -624,11 +627,14 @@ function TrialBalance() {
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <DownloadBtn endpoint="trial-balance" label="Excel" type="excel" filename="trial_balance" />
           <DownloadBtn endpoint="trial-balance" label="PDF" type="pdf" filename="trial_balance" />
-          <PrintBtn endpoint="trial-balance" />
+          <button className="btn btn-sm btn-secondary" onClick={() => {
+            const table = document.querySelector('.trial-balance-table');
+            if (table) printHtmlDocument(table.outerHTML, 'Trial Balance');
+          }}>Print</button>
         </div>
       </div>
       <div className="card">
-        <table className="table">
+        <table className="table trial-balance-table">
           <thead><tr><th>Code</th><th>Account</th><th>Type</th><th>Debit (Rs.)</th><th>Credit (Rs.)</th></tr></thead>
           <tbody>
             {data.filter(a => a.debit > 0 || a.credit > 0).map(a => (
@@ -749,7 +755,10 @@ function IncomeStatement() {
           <span className="fiscal-year">{fyName ? `F.Y. ${fyName}` : 'All Time'}</span>
           <DownloadBtn endpoint="income-statement" label="Excel" type="excel" filename="income_statement" />
           <DownloadBtn endpoint="income-statement" label="PDF" type="pdf" filename="income_statement" />
-          <PrintBtn endpoint="income-statement" />
+          <button className="btn btn-sm btn-secondary" onClick={() => {
+            const el = document.querySelector('.income-table');
+            if (el) printHtmlDocument(el.outerHTML, 'Income Statement');
+          }}>Print</button>
         </div>
       </div>
       <div className="card" style={{ maxWidth: 600 }}>
@@ -925,7 +934,10 @@ function BalanceSheet() {
           <span className="fiscal-year">{fyName ? `FY: ${fyName}` : ''}</span>
           <DownloadBtn endpoint="balance-sheet" label="Excel" type="excel" filename="balance_sheet" />
           <DownloadBtn endpoint="balance-sheet" label="PDF" type="pdf" filename="balance_sheet" />
-          <PrintBtn endpoint="balance-sheet" />
+          <button className="btn btn-sm btn-secondary" onClick={() => {
+            const el = document.querySelector('.income-table');
+            if (el) printHtmlDocument(el.outerHTML, 'Balance Sheet');
+          }}>Print</button>
         </div>
       </div>
       <div className="card" style={{ maxWidth: 650 }}>
@@ -1103,7 +1115,10 @@ function PurchasesView() {
           </div>
           {(startDate || endDate) && <button className="btn btn-sm btn-secondary" onClick={() => { setStartDate(''); setEndDate(''); }}>Clear</button>}
           <DownloadBtn endpoint="purchases" label="PDF" type="pdf" filename="purchases" />
-          <PrintBtn endpoint="purchases" />
+          <button className="btn btn-sm btn-secondary" onClick={() => {
+            const el = document.querySelector('.table-responsive table');
+            if (el) printHtmlDocument(el.outerHTML, 'Purchases');
+          }}>Print</button>
         </div>
       </div>
       <div className="card">

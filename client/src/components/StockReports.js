@@ -3,6 +3,7 @@ import api from '../api';
 import EntryDetailsModal from './UI/EntryDetailsModal';
 import { useToast } from './UI/Toast';
 import NepaliDatePicker, { adToBsStr, bsToADStr } from './UI/NepaliDatePicker';
+import { printEntry } from './UI/printEntry';
 
 const fmtN = (n) => Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtP = (n) => 'Rs. ' + fmtN(n);
@@ -110,6 +111,11 @@ export default function StockReports() {
           </div>
           <button className="btn btn-primary" onClick={load} disabled={loading}>{loading ? 'Loading...' : 'Apply Range'}</button>
           <button className="btn btn-secondary" onClick={() => { setFrom(''); setTo(''); }}>All</button>
+          <button className="btn btn-secondary" onClick={() => {
+            const rows = filtered.map(r => ({ SKU: r.sku, Product: r.name, Category: r.category, Opening: fmtQty(r.opening), 'Stock In': fmtQty(r.stockIn), 'Stock Out': fmtQty(r.stockOut), 'Sales Return': fmtQty(r.salesReturn), 'Purchase Return': fmtQty(r.purchaseReturn), Remaining: fmtQty(r.remaining), 'Min Stock': fmtQty(r.minStock), 'Cost Price': fmtP(r.costPrice), 'Sell Price': fmtP(r.sellingPrice), Status: r.stockLevel }));
+            if (rows.length === 0) return;
+            printEntry({ title: 'Stock & Inventory Overview', columns: Object.keys(rows[0]).map(k => ({ key: k, label: k, align: ['Opening','Stock In','Stock Out','Sales Return','Purchase Return','Remaining','Min Stock','Cost Price','Sell Price'].includes(k) ? 'right' : undefined })), rows, footer: [{ label: 'Total Products', value: String(rows.length) }] });
+          }}>Print</button>
         </div>
       </div>
 

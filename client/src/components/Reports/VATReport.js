@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../api';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
 import NepaliDatePicker, { adToBsStr, bsToADStr } from '../UI/NepaliDatePicker';
+import { printHtmlDocument } from '../UI/printCommon';
 import { useToast } from '../UI/Toast';
 
 const taxLabels = {
@@ -97,6 +98,10 @@ export default function VATReport() {
         <h1>{tax.vat} Report</h1>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <p style={{ margin: 0 }}>Track your {tax.vat} liability and input credits</p>
+          <button className="btn btn-sm btn-secondary" onClick={() => {
+            const el = document.querySelector('.card table.table');
+            if (el) printHtmlDocument(el.outerHTML, `${tax.vat} Report`);
+          }}>Print</button>
           {totals.net > 0 && hasAccountsAccess && (
             <button className="btn btn-primary" onClick={() => { setPayForm(f => ({ ...f, amount: String(Math.round(totals.net)) })); setShowPayModal(true); }}>
               Pay {tax.vat} - {formatNPR(totals.net)}

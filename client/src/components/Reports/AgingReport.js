@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../api';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
 import NepaliDatePicker, { adToBsStr, bsToADStr } from '../UI/NepaliDatePicker';
+import { printHtmlDocument } from '../UI/printCommon';
 import { useToast } from '../UI/Toast';
 
 export default function AgingReport() {
@@ -83,7 +84,13 @@ export default function AgingReport() {
 
   return (
     <div>
-      <div className="page-header"><h1>Aging Report</h1></div>
+      <div className="page-header">
+        <h1>Aging Report</h1>
+        <button className="btn btn-secondary" onClick={() => {
+          const el = document.querySelector('.card table.table');
+          if (el) printHtmlDocument(el.outerHTML, `Aging Report - ${tab === 'receivable' ? 'Receivable' : 'Payable'}`);
+        }}>Print</button>
+      </div>
 
       <div className="tabs">
         <button className={`tab ${tab === 'receivable' ? 'active' : ''}`} onClick={() => setTab('receivable')}>Accounts Receivable - {data?.receivable?.length || 0} items</button>

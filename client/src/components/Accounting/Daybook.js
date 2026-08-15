@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api';
 import { escapeHtml } from '../UI/printEntry';
+import { printHtmlDocument } from '../UI/printCommon';
 import { useToast } from '../UI/Toast';
 import NepaliDatePicker, { adToBsStr, bsToADStr } from '../UI/NepaliDatePicker';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
@@ -113,6 +114,10 @@ export default function Daybook() {
           <p className="text-muted" style={{ margin: '0.25rem 0 0' }}>Chronological ledger with tamper-evident IRD audit trail</p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary" onClick={() => {
+            const el = document.querySelector('.table-responsive table');
+            if (el) printHtmlDocument(el.outerHTML, 'Day Book');
+          }}>Print</button>
           <button className="btn btn-secondary" onClick={verifyChain}>🔐 Verify Chain</button>
           {isDayBookClosed ? <span className="text-muted">📭 Day Book Closed</span> : <button className="btn btn-danger" onClick={() => setIsDayBookClosed(!isDayBookClosed)}>{isDayBookClosed ? 'Open Day Book' : 'Close Day Book'}</button>}
         </div>
