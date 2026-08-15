@@ -106,7 +106,7 @@ export default function PurchaseReturn() {
                     <td>{new Date(p.date).toLocaleDateString('en-IN')}</td>
                     <td>{p.supplier?.name || '-'}</td>
                     <td className="text-right">{fmt(p.total || p.grandTotal)}</td>
-                    <td>{fmt(returnedCount(p))}</td>
+                    <td>{returnedCount(p)}</td>
                     <td><span className={`badge ${p.status === 'returned' ? 'badge-danger' : (p.status === 'partial_return' ? 'badge-warning' : 'badge-success')}`}>{p.status}</span></td>
                     <td>
                       <button className="btn btn-sm btn-danger" onClick={(e) => { e.stopPropagation(); setReturnModal(p); setReturnForm({}); setReturnReason(''); }}>Return Items</button>
