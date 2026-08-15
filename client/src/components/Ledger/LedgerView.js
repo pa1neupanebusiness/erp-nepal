@@ -293,6 +293,7 @@ export default function LedgerView() {
           meta={[
             { label: 'Date', value: formatDate(jeDetail.date) },
             { label: 'Reference', value: jeDetail.reference || '-' },
+            { label: 'Account', value: ledger?.account ? `${ledger.account.code} - ${ledger.account.name}` : '-' },
             { label: 'Fiscal Year', value: jeDetail.fiscalYear || '-' },
             { label: 'Posted By', value: jeDetail.createdBy?.name || '-' },
           ]}
