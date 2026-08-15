@@ -373,9 +373,23 @@ router.post('/', protect, requirePANForLargeTx, async (req, res) => {
   }
   let customerPan = '', customerAddress = '';
   let customerDoc = null;
+  let customerId = null;
   if (customer) {
-    const cust = await Customer.findOne({ _id: customer, ...req.companyFilter });
-    if (cust) { customerPan = cust.pan || ''; customerAddress = cust.address || ''; customerDoc = cust; }
+    // Try to use as ObjectId (24 hex characters)
+    if (typeof customer === 'string' && customer.length === 24) {
+      customerId = customer;
+    }
+    // Try to find customer by ID or name
+    const custQuery = typeof customer === 'string' && customer.length !== 24 
+      ? { name: customer } 
+      : { _id: customer };
+    const cust = await Customer.findOne(custQuery, null, { company: req.companyFilter });
+    if (cust) { 
+      customerId = cust._id.toString(); 
+      customerPan = cust.pan || ''; 
+      customerAddress = cust.address || ''; 
+      customerDoc = cust; 
+    }
   }
 
   let sale;
@@ -393,7 +407,7 @@ router.post('/', protect, requirePANForLargeTx, async (req, res) => {
         items, subtotal, taxTotal, discount, grandTotal,
         amountPaid: totalPaid, dueAmount, paymentStatus, change, paymentMethod,
         paymentSplits: paymentMethod === 'split' ? (paymentSplits || []) : [],
-        customer: customer || null,
+        customer: customerId || null,
         bank: (paymentMethod === 'qr' || paymentMethod === 'bank') ? (bank || null) : null,
         customerPan, customerAddress,
         cashier: req.user._id, company: req.companyId,
@@ -477,11 +491,23 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     if (inclusiveVat !== undefined) sale.inclusiveVat = !!inclusiveVat;
     if (date) sale.invoiceDate = new Date(date);
     if (customer !== undefined) {
-      sale.customer = customer || null;
+      // Convert customer to proper ObjectId
+      let customerId = null;
       if (customer) {
-        const cust = await Customer.findOne({ _id: customer, ...req.companyFilter });
-        if (cust) { sale.customerPan = cust.pan || ''; sale.customerAddress = cust.address || ''; }
+        if (typeof customer === 'string' && customer.length === 24) {
+          customerId = customer;
+        }
+        const custQuery = typeof customer === 'string' && customer.length !== 24
+          ? { name: customer }
+          : { _id: customer };
+        const cust = await Customer.findOne(custQuery, null, { company: req.companyFilter });
+        if (cust) { 
+          customerId = cust._id.toString(); 
+          sale.customerPan = cust.pan || ''; 
+          sale.customerAddress = cust.address || ''; 
+        }
       }
+      sale.customer = customerId || null;
     }
     const editTotalPaid = sale.paymentMethod === 'split' && sale.paymentSplits?.length
       ? sale.paymentSplits.reduce((s, sp) => s + (sp.amount || 0), 0)
