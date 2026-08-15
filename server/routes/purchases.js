@@ -603,17 +603,17 @@ router.post('/standalone-return', protect, adminOnly, async (req, res) => {
       ];
       await postJournalEntryAtomic({
         companyId: req.companyId,
-        date: date ? new Date(date) : new Date(),
+        date: purchase.date ? new Date(purchase.date) : new Date(),
         reference: returnNumber,
         description: `Purchase return ${returnNumber}${reason ? ' - ' + reason : ''}`,
         lines,
         createdBy: req.user._id,
-        fiscalYear: getFiscalYear(new Date()),
+        fiscalYear: getFiscalYear(purchase.date),
         fiscalYearId: req.fiscalYearId || undefined,
-        miti: adToBikramSambat(new Date()),
+        miti: adToBikramSambat(purchase.date),
         companyFilter: req.companyFilter,
         daybook: {
-          date: date ? new Date(date) : new Date(),
+          date: purchase.date ? new Date(purchase.date) : new Date(),
           sourceModule: 'DEBIT_NOTE',
           daybookType: 'PURCHASE_RETURNS',
           documentNumber: returnNumber,

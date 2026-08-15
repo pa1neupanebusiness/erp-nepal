@@ -4,9 +4,15 @@ const { getMiti, writeAuditLog, getLastAuditHash } = require('./irdAudit');
 
 function getFiscalYear(date) {
   const d = new Date(date);
-  const m = d.getMonth() + 1, y = d.getFullYear(), dy = d.getDate();
-  if (m > 7 || (m === 7 && dy >= 16)) return `${y}-${y + 1}`;
-  return `${y - 1}-${y}`;
+  const adYear = d.getFullYear();
+  const m = d.getMonth() + 1, dy = d.getDate();
+  // Nepal BS fiscal year: BS year = AD year + 57, starts mid-April (Baisakh)
+  const bsYear = adYear + 57;
+  // If month is April (4) or later (or April 15+), fiscal year = bsYear : bsYear+1
+  // If month is before April, fiscal year = (bsYear-1) : bsYear
+  // Return last two digits format to match getBSFiscalYear label format
+  const label = (m > 4 || (m === 4 && dy >= 15)) ? `${bsYear}/${bsYear + 1}` : `${bsYear - 1}/${bsYear}`;
+  return label.slice(-5); // Return last 5 chars e.g. "83/84"
 }
 
 async function nextEntryNumbers(companyId, count) {
