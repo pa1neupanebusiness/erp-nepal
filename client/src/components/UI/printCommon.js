@@ -6,13 +6,15 @@ export const INVOICE_CSS = `
 * { box-sizing: border-box; }
 body { font-family: Arial, sans-serif; font-size: 12px; color: #000; background: #fff; margin: 0; padding: 0; }
 .invoice-card { width: 100%; margin: 0; border: 1px solid #000; padding: 0; }
-.invoice-card table { width: 100%; }
+.invoice-card table { width: 100%; border-collapse: collapse; }
+.invoice-card table th, .invoice-card table td { border: 1px solid #000; padding: 5px 6px; white-space: normal; word-break: break-word; }
+.invoice-card table th { background-color: #f0f0f0; font-weight: bold; }
 .invoice-card td, .invoice-card th { vertical-align: top; word-break: break-word; white-space: normal; }
 .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px; }
 .company-title { font-size: 22px; font-weight: bold; text-transform: uppercase; text-align: center; white-space: nowrap; }
 .company-detail { white-space: nowrap; font-size: 11px; line-height: 1.4; }
 .doc-title { font-size: 16px; font-weight: bold; text-align: center; text-transform: uppercase; text-decoration: underline; margin-top: 6px; }
-.meta-grid { display: flex; justify-content: space-between; margin-bottom: 15px; line-height: 1.5; }
+.meta-grid { display: flex; gap: 20px; margin-bottom: 15px; line-height: 1.5; }
 .meta-box { width: 48%; }
 table.data-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
 table.data-table th, table.data-table td { border: 1px solid #000; padding: 6px 8px; text-align: left; }
@@ -33,7 +35,7 @@ table.data-table th { background-color: #f0f0f0; font-weight: bold; }
 .footer-text { font-size: 10px; color: #888; }
 .avoid-break { page-break-inside: avoid; }
 .meta-list { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; margin-bottom: 16px; }
-.meta-item { display: inline-flex; gap: 6px; border-bottom: 1px dotted #ccc; padding: 3px 0; font-size: 12px; white-space: nowrap; }
+.meta-item { display: inline-flex; gap: 6px; border-bottom: 1px dotted #ccc; padding: 3px 0; font-size: 12px; }
 .mlabel { color: #555; }
 .mvalue { font-weight: bold; }
 .emi-meta { margin: 4px 0 14px; line-height: 1.7; font-size: 12px; }

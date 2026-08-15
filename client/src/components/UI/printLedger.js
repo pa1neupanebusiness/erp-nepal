@@ -85,10 +85,11 @@ export function renderLedgerHtml(ledger, company, opts = {}) {
     .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px; }
     .company-title { font-size: 18px; font-weight: bold; text-transform: uppercase; }
     .report-title { font-size: 14px; font-weight: bold; margin-top: 5px; text-decoration: underline; }
-    .meta-grid { display: flex; justify-content: space-between; margin-bottom: 12px; line-height: 1.4; }
-    table.ledger-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-    table.ledger-table th, table.ledger-table td { border: 1px solid #000; padding: 5px 6px; white-space: nowrap; }
+    .meta-grid { display: flex; gap: 20px; margin-bottom: 12px; line-height: 1.4; }
+    table.ledger-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; table-layout: fixed; }
+    table.ledger-table th, table.ledger-table td { border: 1px solid #000; padding: 5px 6px; white-space: normal; word-break: break-word; }
     table.ledger-table th { background-color: #f2f2f2; font-weight: bold; text-align: center; }
+    table.ledger-table td:nth-child(4) { white-space: normal; }
     .text-right { text-align: right; }
     .text-center { text-align: center; }
     .bold { font-weight: bold; }
