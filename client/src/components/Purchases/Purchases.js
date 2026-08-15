@@ -400,19 +400,47 @@ export default function Purchases() {
           {parseFloat(form.paidAmount) > 0 && (
             <div className="form-group" style={{ marginTop: '0.75rem' }}>
               <label>Payment From (choose account)</label>
-              <div className="pay-method-toggle">
-                <button type="button" className={`pay-method-option ${form.paymentMethod !== 'bank' ? 'active' : ''}`} onClick={() => setForm({ ...form, paymentMethod: 'cash', bank: '' })}>
+              <div className="pay-method-toggle" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button type="button" className={`pay-method-option ${form.paymentMethod === 'cash' ? 'active' : ''}`} onClick={() => setForm({ ...form, paymentMethod: 'cash', bank: '', splits: undefined })}>
                   <span className="pay-method-icon">💵</span>
                   <span><strong>Cash (Nagad)</strong><small>Paid from Cash Account</small></span>
                 </button>
-                <button type="button" className={`pay-method-option ${form.paymentMethod === 'bank' ? 'active' : ''}`} data-bank={form.paymentMethod === 'bank'} onClick={() => setForm({ ...form, paymentMethod: 'bank' })}>
+                <button type="button" className={`pay-method-option ${form.paymentMethod === 'bank' ? 'active' : ''}`} data-bank={form.paymentMethod === 'bank'} onClick={() => setForm({ ...form, paymentMethod: 'bank', splits: undefined })}>
                   <span className="pay-method-icon">🏦</span>
                   <span><strong>Bank (Cheque)</strong><small>Paid from Bank Account</small></span>
+                </button>
+                <button type="button" className={`pay-method-option ${form.paymentMethod === 'split' ? 'active' : ''}`} onClick={() => setForm({ ...form, paymentMethod: 'split', bank: '', splits: [{ method: 'cash', amount: parseFloat(form.paidAmount) || 0, bank: '' }] })}>
+                  <span className="pay-method-icon">🔀</span>
+                  <span><strong>Split (Cash + Bank)</strong><small>Multiple payment methods</small></span>
                 </button>
               </div>
               {form.paymentMethod === 'cash' && <div className="form-group" style={{ marginTop: '0.5rem' }}><label>Remarks</label><input value={form.paymentRemarks} onChange={e => setForm({ ...form, paymentRemarks: e.target.value })} placeholder="Payment remarks" /></div>}
               {form.paymentMethod === 'bank' && <div className="form-group" style={{ marginTop: '0.5rem' }}><label>Bank *</label><select value={form.bank} onChange={e => setForm({ ...form, bank: e.target.value })} required><option value="">-- Select Bank --</option>{banks.map(b => <option key={b._id} value={b._id}>{b.name}{b.accountNumber ? ` (${b.accountNumber})` : ''}</option>)}</select></div>}
               {form.paymentMethod === 'bank' && <div className="form-group" style={{ marginTop: '0.5rem' }}><label>Cheque Number *</label><input value={form.chequeNumber} onChange={e => setForm({ ...form, chequeNumber: e.target.value })} required placeholder="Enter cheque number" /></div>}
+              {form.paymentMethod === 'split' && (
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: '0.75rem', marginTop: '0.5rem', background: '#f8fafc' }}>
+                  {(form.splits || []).map((sp, idx) => (
+                    <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <select value={sp.method} onChange={e => { const next = [...(form.splits || [])]; next[idx] = { ...next[idx], method: e.target.value, bank: '' }; setForm({ ...form, splits: next }); }} style={{ flex: 1, padding: '0.5rem', borderRadius: 6, border: '1px solid #cbd5e1' }}>
+                        <option value="cash">Cash</option>
+                        <option value="bank">Bank</option>
+                      </select>
+                      <input type="number" value={sp.amount || ''} onChange={e => { const next = [...(form.splits || [])]; next[idx] = { ...next[idx], amount: parseFloat(e.target.value) || 0 }; setForm({ ...form, splits: next }); }} placeholder="Amount" style={{ flex: 1, padding: '0.5rem', borderRadius: 6, border: '1px solid #cbd5e1', textAlign: 'right' }} />
+                      {sp.method === 'bank' && (
+                        <select value={sp.bank} onChange={e => { const next = [...(form.splits || [])]; next[idx] = { ...next[idx], bank: e.target.value }; setForm({ ...form, splits: next }); }} style={{ flex: 1, padding: '0.5rem', borderRadius: 6, border: '1px solid #cbd5e1' }}>
+                          <option value="">-- Bank --</option>
+                          {banks.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+                        </select>
+                      )}
+                      {(form.splits || []).length > 1 && <button type="button" className="btn btn-sm btn-danger" onClick={() => setForm({ ...form, splits: (form.splits || []).filter((_, i) => i !== idx) })}>&times;</button>}
+                    </div>
+                  ))}
+                  <button type="button" className="btn btn-sm btn-secondary" onClick={() => setForm({ ...form, splits: [...(form.splits || []), { method: 'cash', amount: 0, bank: '' }] })}>+ Add Split</button>
+                  <div style={{ fontSize: '0.85rem', marginTop: '0.5rem', fontWeight: 600, color: Math.abs((form.splits || []).reduce((s, sp) => s + (sp.amount || 0), 0) - parseFloat(form.paidAmount || 0)) < 0.01 ? '#16a34a' : '#dc2626' }}>
+                    Split Total: {formatNPR((form.splits || []).reduce((s, sp) => s + (sp.amount || 0), 0))} / {formatNPR(parseFloat(form.paidAmount || 0))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {vatPct > 0 && (

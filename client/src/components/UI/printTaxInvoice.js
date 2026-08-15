@@ -57,6 +57,7 @@ export function renderTaxInvoiceHtml(sale, company) {
   const afterDiscount = Math.max(0, subTotalGross - discount);
   const taxableAmount = isInclusive ? Math.max(0, afterDiscount - taxTotal) : afterDiscount;
   const discountPct = subTotalGross > 0 ? (discount / subTotalGross) * 100 : 0;
+  const beforeVatSubTotal = isInclusive && vatRate > 0 ? Math.round(subTotalGross / (1 + vatRate / 100) * 100) / 100 : subTotalGross;
 
   const invoiceDate = sale.invoiceDate || sale.createdAt || sale.date;
   const enDate = new Date(invoiceDate).toLocaleDateString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -161,7 +162,7 @@ export function renderTaxInvoiceHtml(sale, company) {
             <table class="summary-table">
               ${discount > 0 ? `<tr>
                 <td class="summary-label">${isInclusive ? 'Total' : 'Gross Amount'}</td>
-                <td class="summary-val">${num(subTotalGross)}</td>
+                <td class="summary-val">${num(isInclusive ? beforeVatSubTotal : subTotalGross)}</td>
               </tr>
               <tr>
                 <td class="summary-label">${discountPct.toFixed(2)}% Discount</td>

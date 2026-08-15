@@ -37,6 +37,8 @@ function adToBikramSambat(adDate) {
     2023: { bsYear: 1965, bsMonth: 3, bsDay: 1 },
     2024: { bsYear: 1966, bsMonth: 3, bsDay: 1 },
     2025: { bsYear: 1967, bsMonth: 3, bsDay: 1 },
+    2026: { bsYear: 1968, bsMonth: 3, bsDay: 1 },
+    2027: { bsYear: 1969, bsMonth: 3, bsDay: 1 },
   };
 
   let bsYear, bsMonth, bsDay;

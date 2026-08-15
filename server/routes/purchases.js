@@ -58,7 +58,7 @@ router.get('/', protect, async (req, res) => {
 });
 
 router.post('/', protect, async (req, res) => {
-  let { type, date, supplier, items, subtotal, discount, vatPercent, inclusiveVat, tax, tdsRate, tds, grandTotal, paidAmount, note, paymentMethod, bank, chequeNumber, paymentRemarks, supplierInvoiceNo, applyTds } = req.body;
+  let { type, date, supplier, items, subtotal, discount, vatPercent, inclusiveVat, tax, tdsRate, tds, grandTotal, paidAmount, note, paymentMethod, bank, chequeNumber, paymentRemarks, supplierInvoiceNo, applyTds, splits } = req.body;
   if (applyTds !== true) { tds = 0; tdsRate = 0; }
   const dueAmount = Math.round(((grandTotal - (tds || 0) - (paidAmount || 0)) + Number.EPSILON) * 100) / 100;
 
@@ -89,6 +89,7 @@ router.post('/', protect, async (req, res) => {
     status: 'received', createdBy: req.user._id, note,
     paymentMethod: paymentMethod || '', chequeNumber: chequeNumber || '', paymentRemarks: paymentRemarks || '',
     bank: paymentMethod === 'bank' ? (bank || null) : null,
+    paymentSplits: paymentMethod === 'split' ? (splits || []).filter(sp => sp.amount > 0) : undefined,
     supplierInvoiceNo: supplierInvoiceNo || '',
     fiscalYear: getFiscalYearLabel(purchaseDate),
     fiscalYearId: req.fiscalYearId || undefined,
