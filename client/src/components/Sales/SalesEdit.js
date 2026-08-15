@@ -21,6 +21,7 @@ export default function SalesEdit() {
   const [rows, setRows] = useState([emptyRow()]);
   const [discountValue, setDiscountValue] = useState(0);
   const [applyVat, setApplyVat] = useState(false);
+  const [inclusiveVat, setInclusiveVat] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [amountPaid, setAmountPaid] = useState('');
   const [notes, setNotes] = useState('');
@@ -35,18 +36,21 @@ export default function SalesEdit() {
       setSale(s);
       setCustomer(s.customer?._id || '');
       setInvoiceDate(s.invoiceDate ? adToBsStr(s.invoiceDate) : adToBsStr(new Date(s.createdAt)));
+      const hasInclusiveItems = (s.items || []).some(i => i.priceIncludesTax || i.product?.priceIncludesTax);
+      const hasTax = (s.taxTotal || 0) > 0;
       setRows(s.items?.map(i => ({
         product: i.product?._id || i.product,
         name: i.product?.name || '',
         sku: i.product?.sku || '',
         qty: i.quantity,
         rate: i.price,
-        taxRate: i.tax > 0 ? 13 : 0,
-        priceIncludesTax: false,
-        vatEnabled: i.tax > 0,
+        taxRate: hasTax ? (i.taxRate || 13) : 0,
+        priceIncludesTax: hasInclusiveItems,
+        vatEnabled: hasTax,
       })) || [emptyRow()]);
       setDiscountValue(s.discount || 0);
-      setApplyVat((s.taxTotal || 0) > 0);
+      setApplyVat(hasTax);
+      setInclusiveVat(hasInclusiveItems);
       setPaymentMethod(s.paymentMethod || 'cash');
       setAmountPaid(String(s.amountPaid || ''));
       setNotes(s.notes || '');
@@ -72,7 +76,14 @@ export default function SalesEdit() {
     if (p) {
       setRows(prev => {
         const copy = [...prev];
-        copy[i] = { ...copy[i], product: p._id, name: p.name, sku: p.sku, rate: p.sellingPrice || 0, taxRate: p.taxRate || 0, vatEnabled: p.vatEnabled || false, priceIncludesTax: p.priceIncludesTax || false };
+        copy[i] = {
+          ...copy[i],
+          product: p._id, name: p.name, sku: p.sku,
+          rate: p.sellingPrice || 0,
+          taxRate: (applyVat || inclusiveVat) ? (p.taxRate || 13) : 0,
+          vatEnabled: (applyVat || inclusiveVat) && (p.vatEnabled !== false),
+          priceIncludesTax: inclusiveVat || p.priceIncludesTax || false,
+        };
         return copy;
       });
     } else {
@@ -80,12 +91,53 @@ export default function SalesEdit() {
     }
   };
 
-  const subtotal = rows.reduce((s, r) => s + (Number(r.qty) || 0) * (Number(r.rate) || 0), 0);
-  const vatTotal = applyVat ? rows.reduce((s, r) => {
-    if (r.vatEnabled) { const base = r.priceIncludesTax ? (Number(r.qty) * Number(r.rate)) / (1 + r.taxRate / 100) : Number(r.qty) * Number(r.rate); return s + base * (r.taxRate / 100); }
-    return s;
-  }, 0) : 0;
-  const grandTotal = subtotal - (Number(discountValue) || 0) + vatTotal;
+  const lineAmount = (r) => (Number(r.qty) || 0) * (Number(r.rate) || 0);
+  const discountedLineTax = (r, discountRatio) => {
+    const discounted = Math.round((lineAmount(r) * (1 - discountRatio)) * 100) / 100;
+    const rate = (applyVat || inclusiveVat) ? (r.taxRate || 13) : 0;
+    if (!rate) return 0;
+    const isInclusive = r.priceIncludesTax || inclusiveVat;
+    const tax = isInclusive ? (discounted * rate) / (100 + rate) : (discounted * rate) / 100;
+    return Math.round(tax * 100) / 100;
+  };
+  const discountedLineBase = (r, discountRatio) => {
+    const discounted = Math.round((lineAmount(r) * (1 - discountRatio)) * 100) / 100;
+    const rate = (applyVat || inclusiveVat) ? (r.taxRate || 13) : 0;
+    const isInclusive = r.priceIncludesTax || inclusiveVat;
+    return isInclusive ? Math.round((discounted - discountedLineTax(r, discountRatio)) * 100) / 100 : discounted;
+  };
+
+  const totalBeforeDiscountRaw = rows.reduce((s, r) => s + lineAmount(r), 0);
+  const vatRate = rows[0]?.taxRate || 13;
+  const totalBeforeDiscount = (inclusiveVat || applyVat) && vatRate > 0
+    ? Math.round(totalBeforeDiscountRaw / (1 + vatRate / 100) * 100) / 100
+    : totalBeforeDiscountRaw;
+  let discount = Math.round((parseFloat(discountValue) || 0) * 100) / 100;
+  const discountRatio = totalBeforeDiscount > 0 ? discount / totalBeforeDiscount : 0;
+  const netAmount = Math.max(0, totalBeforeDiscount - discount);
+  const subtotal = rows.reduce((s, r) => s + discountedLineBase(r, discountRatio), 0);
+  const vatTotal = rows.reduce((s, r) => s + discountedLineTax(r, discountRatio), 0);
+  const grandTotal = inclusiveVat ? Math.round((netAmount + vatTotal) * 100) / 100 : Math.max(0, netAmount + vatTotal);
+
+  const handleApplyVatChange = (checked) => {
+    setApplyVat(checked);
+    if (checked) {
+      setInclusiveVat(false);
+      setRows(prev => prev.map(r => ({ ...r, taxRate: r.taxRate || 13, vatEnabled: true, priceIncludesTax: false })));
+    } else {
+      setRows(prev => prev.map(r => ({ ...r, taxRate: 0, vatEnabled: false, priceIncludesTax: false })));
+    }
+  };
+
+  const handleInclusiveVatChange = (checked) => {
+    setInclusiveVat(checked);
+    if (checked) {
+      setApplyVat(false);
+      setRows(prev => prev.map(r => ({ ...r, taxRate: r.taxRate || 13, vatEnabled: true, priceIncludesTax: true })));
+    } else {
+      setRows(prev => prev.map(r => ({ ...r, priceIncludesTax: false })));
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -98,10 +150,19 @@ export default function SalesEdit() {
     }
     setSaving(true);
     try {
-      const items = rows.filter(r => r.product).map(r => ({ product: r.product, quantity: Number(r.qty), price: Number(r.rate), subtotal: Number(r.qty) * Number(r.rate) }));
+      const items = rows.filter(r => r.product).map(r => ({
+        product: r.product, quantity: Number(r.qty), price: Number(r.rate),
+        subtotal: Number(r.qty) * Number(r.rate),
+        tax: r.vatEnabled ? Math.round(lineAmount(r) * (r.taxRate || 13) / ((r.priceIncludesTax || inclusiveVat) ? (100 + (r.taxRate || 13)) : 100) * 100) / 100 : 0,
+        taxRate: r.taxRate || 0, priceIncludesTax: r.priceIncludesTax || inclusiveVat,
+      }));
       const payload = {
-        items, subtotal, taxTotal: vatTotal, discount: Number(discountValue) || 0, grandTotal,
-        amountPaid: Number(amountPaid) || 0, paymentMethod, customer: customer || null,
+        items, subtotal: Math.round(subtotal * 100) / 100,
+        taxTotal: Math.round(vatTotal * 100) / 100,
+        discount: Math.round(discount * 100) / 100,
+        grandTotal: Math.round(grandTotal * 100) / 100,
+        amountPaid: Number(amountPaid) || 0, paymentMethod,
+        customer: customer || null,
         date: bsToADStr(invoiceDate), notes,
       };
       await api.put(`/sales/${id}`, payload);
@@ -110,6 +171,8 @@ export default function SalesEdit() {
     } catch (err) { addToast(err.response?.data?.message || 'Update failed', 'error'); }
     setSaving(false);
   };
+
+  const formatMoney = (n) => 'Rs. ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
 
   if (loading) return <div className="page-container"><p>Loading sale...</p></div>;
 
@@ -140,7 +203,7 @@ export default function SalesEdit() {
                 <td><SearchableSelect options={products.map(p => ({ value: p._id, label: `${p.name} (${p.sku || 'N/A'}) - Stock: ${p.stock || 0}` }))} value={r.product} onChange={v => selectProduct(i, v)} placeholder="Search product..." /></td>
                 <td><input type="number" min="1" value={r.qty} onChange={e => updateRow(i, 'qty', e.target.value)} style={{ width: 80 }} required /></td>
                 <td><input type="number" step="0.01" value={r.rate} onChange={e => updateRow(i, 'rate', e.target.value)} style={{ width: 120 }} required /></td>
-                <td className="text-right">{((Number(r.qty) || 0) * (Number(r.rate) || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                <td className="text-right">{lineAmount(r).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                 <td>{rows.length > 1 && <button type="button" className="btn btn-sm btn-danger" onClick={() => removeRow(i)}>X</button>}</td>
               </tr>
             ))}
@@ -150,15 +213,24 @@ export default function SalesEdit() {
 
         <div style={{ display: 'flex', gap: '2rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
           <div style={{ minWidth: 200 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>Subtotal:</span><strong>Rs. {subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>{inclusiveVat ? 'Subtotal (before VAT):' : 'Subtotal:'}</span><strong>{formatMoney(inclusiveVat ? totalBeforeDiscount : totalBeforeDiscountRaw)}</strong></div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <span>Discount:</span><input type="number" step="0.01" min="0" value={discountValue} onChange={e => setDiscountValue(e.target.value)} style={{ width: 100 }} />
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <label><input type="checkbox" checked={applyVat} onChange={e => setApplyVat(e.target.checked)} /> VAT 13%</label>
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: 4, flexWrap: 'wrap' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}>
+                <input type="checkbox" checked={applyVat} onChange={e => handleApplyVatChange(e.target.checked)} />
+                Add VAT (exclusive)
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}>
+                <input type="checkbox" checked={inclusiveVat} onChange={e => handleInclusiveVatChange(e.target.checked)} />
+                Inclusive VAT
+              </label>
             </div>
-            {applyVat && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>VAT:</span><strong>Rs. {vatTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></div>}
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #333', paddingTop: 4 }}><span style={{ fontWeight: 700 }}>Grand Total:</span><strong>Rs. {grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></div>
+            {vatTotal > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>VAT {inclusiveVat ? '(included)' : ''}:</span><strong>{formatMoney(vatTotal)}</strong></div>}
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #333', paddingTop: 4 }}><span style={{ fontWeight: 700 }}>Grand Total:</span><strong style={{ fontSize: '1.1rem' }}>{formatMoney(grandTotal)}</strong></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}><span>Paid:</span><strong>{formatMoney(Number(amountPaid) || 0)}</strong></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ fontWeight: 700 }}>Due:</span><strong style={{ color: grandTotal - (Number(amountPaid) || 0) > 0 ? '#dc2626' : '#16a34a' }}>{formatMoney(Math.max(0, grandTotal - (Number(amountPaid) || 0)))}</strong></div>
           </div>
         </div>
 

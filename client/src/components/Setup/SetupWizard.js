@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api';
 import { useTheme } from '../../context/ThemeContext';
+import { useToast } from '../UI/Toast';
 
 const countryFlags = {
   nepal: '🇳🇵',
@@ -13,8 +14,8 @@ const countryFlags = {
 export default function SetupWizard({ onComplete }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [countries, setCountries] = useState([]);
+  const addToast = useToast();
   const { theme } = useTheme();
 
   const [formData, setFormData] = useState({
@@ -58,14 +59,13 @@ export default function SetupWizard({ onComplete }) {
 
   const handleNext = () => {
     if (step === 1 && !formData.country) {
-      setError('Please select your country');
+      addToast('Please select your country', 'error');
       return;
     }
     if (step === 2 && (!formData.companyName || !formData.companyEmail)) {
-      setError('Company name and email are required');
+      addToast('Company name and email are required', 'error');
       return;
     }
-    setError('');
     setStep(step + 1);
   };
 
@@ -75,12 +75,11 @@ export default function SetupWizard({ onComplete }) {
 
   const handleComplete = async () => {
     setLoading(true);
-    setError('');
     try {
       await api.post('/setup/complete', formData);
       onComplete();
     } catch (err) {
-      setError(err.response?.data?.message || 'Setup failed');
+      addToast(err.response?.data?.message || 'Setup failed', 'error');
     }
     setLoading(false);
   };
@@ -105,8 +104,6 @@ export default function SetupWizard({ onComplete }) {
           <div className="step-line"></div>
           <div className={`step ${step >= 3 ? 'active' : ''}`}>3</div>
         </div>
-
-        {error && <div className="alert alert-error">{error}</div>}
 
         {step === 1 && (
           <div className="setup-section">

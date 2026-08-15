@@ -7,7 +7,6 @@ export default function RefundRequest() {
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [sale, setSale] = useState(null);
   const [reason, setReason] = useState('');
-  const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -36,7 +35,6 @@ export default function RefundRequest() {
     setSale(s);
     setShowDropdown(false);
     setSuggestions([]);
-    setError('');
   };
 
   const submitRequest = async (e) => {
@@ -67,7 +65,7 @@ export default function RefundRequest() {
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'end' }}>
           <div className="form-group" style={{ margin: 0, flex: 1, position: 'relative' }} ref={wrapperRef}>
             <label>Search by Invoice Number</label>
-            <input value={invoiceNumber} onChange={e => { setInvoiceNumber(e.target.value); setSale(null); setError(''); }}
+            <input value={invoiceNumber} onChange={e => { setInvoiceNumber(e.target.value); setSale(null); }}
               placeholder="Type invoice number..." autoComplete="off" />
             {showDropdown && (
               <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 10, maxHeight: 250, overflow: 'auto' }}>
@@ -88,7 +86,6 @@ export default function RefundRequest() {
           </div>
         </div>
       </div>
-      {error && <div className="alert alert-danger">{error}</div>}
       {sale && (
         <div className="card">
           <h3>{sale.invoiceNumber}</h3>

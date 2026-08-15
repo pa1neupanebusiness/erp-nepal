@@ -111,9 +111,10 @@ export function openPrintWindow({ title, company, subtitle, docTitle, bodyHtml, 
   iframe.style.position = 'fixed';
   iframe.style.right = '0';
   iframe.style.bottom = '0';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
+  iframe.style.width = '210mm';
+  iframe.style.height = '297mm';
   iframe.style.border = '0';
+  iframe.style.visibility = 'hidden';
   document.body.appendChild(iframe);
 
   const idoc = iframe.contentWindow.document;

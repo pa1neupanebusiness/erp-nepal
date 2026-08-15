@@ -35,9 +35,9 @@ Buyer PAN:  ${safe(invoice.buyerPAN || 'N/A')}
 Line Items Summary:
 ${lineItems || ' - No items'}
  --------------------------------------------------
-Taxable Amount:   NPR ${safeNum(invoice.taxableAmount)}
-Exempt Amount:    NPR ${safeNum(invoice.exemptAmount)}
-Value Added Tax:  NPR ${safeNum(invoice.vatAmountTotal)}
+${invoice.taxableAmount ? `Taxable Amount:   NPR ${safeNum(invoice.taxableAmount)}` : ''}
+${invoice.exemptAmount ? `Exempt Amount:    NPR ${safeNum(invoice.exemptAmount)}` : ''}
+${invoice.vatAmountTotal ? `Value Added Tax:  NPR ${safeNum(invoice.vatAmountTotal)}` : ''}
  --------------------------------------------------
 GRAND TOTAL:      NPR ${safeNum(invoice.grandTotal)}
  ==================================================

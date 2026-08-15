@@ -19,6 +19,7 @@ export default function PaymentOut() {
   const [outstanding, setOutstanding] = useState({ invoices: [], totalDue: 0 });
   const [form, setForm] = useState({ date: adToBsStr(new Date()), supplier: '', amount: '', method: 'cash', bank: '', chequeNumber: '', reference: '', remarks: '' });
   const [banks, setBanks] = useState([]);
+  const [submitted, setSubmitted] = useState(false);
   const addToast = useToast();
 
   const load = () => {
@@ -67,6 +68,7 @@ export default function PaymentOut() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitted(true);
     if (!canSubmit) { addToast('Check amount / supplier / outstanding balance', 'error'); return; }
     if (form.method !== 'cash' && !form.bank) { addToast('Please choose a bank', 'error'); return; }
     if (form.method === 'bank' && form.amount > outstanding.totalDue) {
@@ -161,7 +163,7 @@ export default function PaymentOut() {
           {amount > 0 && outstanding.totalDue > 0 && amount <= outstanding.totalDue && (
             <div className="text-muted" style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>Oldest invoices are settled first ({allocationPreview.filter(a => a.apply > 0).length} invoice(s)).</div>
           )}
-          {amount > outstanding.totalDue && outstanding.totalDue > 0 && <div className="text-danger" style={{ margin: '0.5rem 0' }}>Amount exceeds total due ({fmt(outstanding.totalDue)}).</div>}
+          {submitted && amount > outstanding.totalDue && outstanding.totalDue > 0 && <div className="text-danger" style={{ margin: '0.5rem 0' }}>Amount exceeds total due ({fmt(outstanding.totalDue)}).</div>}
 
           <button type="submit" className="btn btn-primary" disabled={!canSubmit || submitting}>{submitting ? 'Saving...' : 'Record Payment'}</button>
         </form>

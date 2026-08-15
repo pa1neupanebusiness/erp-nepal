@@ -15,7 +15,6 @@ export default function SalesReturn() {
   const [loading, setLoading] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [sale, setSale] = useState(null);
-  const [error, setError] = useState('');
   const [searching, setSearching] = useState(false);
   const [showReturnForm, setShowReturnForm] = useState(false);
   const [returnReason, setReturnReason] = useState('');
@@ -34,7 +33,6 @@ export default function SalesReturn() {
 
   const search = async () => {
     if (!invoiceNumber.trim()) return;
-    setError('');
     setSale(null);
     setSearching(true);
     try {
@@ -44,7 +42,7 @@ export default function SalesReturn() {
       res.data.items?.forEach(it => { items[it.product?._id || it.product] = { max: it.quantity, qty: it.quantity }; });
       setReturnItems(items);
     } catch (err) {
-      setError(err.response?.data?.message || 'Sale not found');
+      addToast(err.response?.data?.message || 'Sale not found', 'error');
     } finally {
       setSearching(false);
     }
@@ -120,8 +118,6 @@ export default function SalesReturn() {
               </div>
             </div>
           </div>
-
-          {error && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{error}</div>}
 
           {sale && !showReturnForm && (
             <div className="card">

@@ -163,13 +163,17 @@ export default function CreateSalesInvoice() {
     return isInclusive ? Math.round((discounted - discountedLineTax(r, discountRatio)) * 100) / 100 : discounted;
   };
 
-  const totalBeforeDiscount = rows.reduce((s, r) => s + lineAmount(r), 0);
+  const totalBeforeDiscountRaw = rows.reduce((s, r) => s + lineAmount(r), 0);
+  const vatRate = (rows[0]?.taxRate || 13);
+  const totalBeforeDiscount = inclusiveVat && vatRate > 0
+    ? Math.round(totalBeforeDiscountRaw / (1 + vatRate / 100) * 100) / 100
+    : totalBeforeDiscountRaw;
   let discount = Math.round((parseFloat(discountValue) || 0) * 100) / 100;
   const discountRatio = totalBeforeDiscount > 0 ? discount / totalBeforeDiscount : 0;
   const netAmount = Math.max(0, totalBeforeDiscount - discount);
   const subtotal = rows.reduce((s, r) => s + discountedLineBase(r, discountRatio), 0);
   const taxTotal = rows.reduce((s, r) => s + discountedLineTax(r, discountRatio), 0);
-  const grandTotal = inclusiveVat ? netAmount : Math.max(0, netAmount + taxTotal);
+  const grandTotal = inclusiveVat ? Math.round((netAmount + taxTotal) * 100) / 100 : Math.max(0, netAmount + taxTotal);
   const paid = parseFloat(amountPaid) || grandTotal;
   const change = Math.max(0, paid - grandTotal);
 

@@ -7,19 +7,17 @@ export default function Refund() {
   const addToast = useToast();
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [sale, setSale] = useState(null);
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [confirm, setConfirm] = useState(null);
 
   const search = async () => {
     if (!invoiceNumber.trim()) return;
-    setError('');
     setSale(null);
     try {
       const res = await api.get(`/sales/search/${invoiceNumber.trim()}`);
       setSale(res.data);
     } catch (err) {
-      setError(err.response?.data?.message || 'Sale not found');
+      addToast(err.response?.data?.message || 'Sale not found', 'error');
     }
   };
 
@@ -58,7 +56,6 @@ export default function Refund() {
           <button className="btn btn-primary" onClick={search}>Search</button>
         </div>
       </div>
-      {error && <div className="alert alert-danger">{error}</div>}
       {sale && (
         <div className="card">
           <h3>{sale.invoiceNumber}</h3>

@@ -51,7 +51,7 @@ export default function MonthlySalesRegister() {
         <td class="text-center">${(r.paymentMethod || '').toUpperCase()}</td>
         <td class="text-right">${fmt(r.totalGross)}</td>
         <td class="text-right">${fmt(r.discount)}</td>
-        <td class="text-right">${fmt(r.taxableAmount)}</td>
+        ${hasVat ? `<td class="text-right">${fmt(r.taxableAmount)}</td>` : ''}
         ${hasVat ? `<td class="text-right">${fmtBlank(r.vatAmount)}</td>` : ''}
         <td class="text-right">${fmt(r.netTotal)}</td>
         <td class="text-center">${r.status === 'refunded' ? 'REFUNDED' : 'OK'}</td>
@@ -62,14 +62,14 @@ export default function MonthlySalesRegister() {
         <div class="stat"><div class="stat-label">Invoices</div><div class="stat-value">${summary.transactionCount || 0}</div></div>
         <div class="stat"><div class="stat-label">Gross</div><div class="stat-value">${fmt(summary.totalGross)}</div></div>
         <div class="stat"><div class="stat-label">Discount</div><div class="stat-value">${fmt(summary.totalDiscount)}</div></div>
-        <div class="stat"><div class="stat-label">Taxable</div><div class="stat-value">${fmt(summary.totalTaxable)}</div></div>
+        ${hasVat ? `<div class="stat"><div class="stat-label">Taxable</div><div class="stat-value">${fmt(summary.totalTaxable)}</div></div>` : ''}
         ${hasVat ? `<div class="stat"><div class="stat-label">VAT 13%</div><div class="stat-value">${fmt(summary.totalVat)}</div></div>` : ''}
         <div class="stat"><div class="stat-label">Net Total</div><div class="stat-value">${fmt(summary.totalNet)}</div></div>
       </div>
       <table class="data-table">
         <thead><tr>
           <th>S.No</th><th>Invoice No</th><th>Date (AD)</th><th>Miti (BS)</th><th>Buyer</th><th class="text-center">PAN</th><th class="text-center">Pay Mode</th>
-          <th class="text-right">Gross</th><th class="text-right">Discount</th><th class="text-right">Taxable</th>${hasVat ? '<th class="text-right">VAT</th>' : ''}<th class="text-right">Net Total</th><th class="text-center">Status</th>
+          <th class="text-right">Gross</th><th class="text-right">Discount</th>${hasVat ? '<th class="text-right">Taxable</th>' : ''}${hasVat ? '<th class="text-right">VAT</th>' : ''}<th class="text-right">Net Total</th><th class="text-center">Status</th>
         </tr></thead>
         <tbody>${bodyRows}</tbody>
       </table>
@@ -105,7 +105,7 @@ export default function MonthlySalesRegister() {
         <div className="summary-card" style={{ borderTop: '3px solid #7c3aed' }}><div className="summary-label">🧾 Invoices</div><div className="summary-value">{summary.transactionCount || 0}</div></div>
         <div className="summary-card" style={{ borderTop: '3px solid #0f172a' }}><div className="summary-label">Gross Amount</div><div className="summary-value">{currencySymbol}{fmt(summary.totalGross)}</div></div>
         <div className="summary-card" style={{ borderTop: '3px solid #d97706' }}><div className="summary-label">Discount</div><div className="summary-value">{currencySymbol}{fmt(summary.totalDiscount)}</div></div>
-        <div className="summary-card" style={{ borderTop: '3px solid #0891b2' }}><div className="summary-label">Taxable</div><div className="summary-value">{currencySymbol}{fmt(summary.totalTaxable)}</div></div>
+        {hasVat && <div className="summary-card" style={{ borderTop: '3px solid #0891b2' }}><div className="summary-label">Taxable</div><div className="summary-value">{currencySymbol}{fmt(summary.totalTaxable)}</div></div>}
         {hasVat && <div className="summary-card" style={{ borderTop: '3px solid #16a34a' }}><div className="summary-label">VAT 13%</div><div className="summary-value">{currencySymbol}{fmt(summary.totalVat)}</div></div>}
         <div className="summary-card" style={{ borderTop: '3px solid #2563eb' }}><div className="summary-label">Net Total</div><div className="summary-value">{currencySymbol}{fmt(summary.totalNet)}</div></div>
       </div>
@@ -120,12 +120,12 @@ export default function MonthlySalesRegister() {
             <thead>
               <tr>
                 <th>Invoice</th><th>Date</th><th>Miti (BS)</th><th>Buyer</th><th>PAN</th><th>Pay Mode</th>
-                <th className="text-right">Gross</th><th className="text-right">Discount</th><th className="text-right">Taxable</th>{hasVat && <th className="text-right">VAT</th>}<th className="text-right">Net</th><th>Status</th>
+                <th className="text-right">Gross</th><th className="text-right">Discount</th>{hasVat && <th className="text-right">Taxable</th>}{hasVat && <th className="text-right">VAT</th>}<th className="text-right">Net</th><th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {loading ? <tr><td colSpan={hasVat ? 12 : 11}>Loading...</td></tr>
-                : rows.length === 0 ? <tr><td colSpan={hasVat ? 12 : 11}>No sales found for this month</td></tr>
+              {loading ? <tr><td colSpan={hasVat ? 11 : 9}>Loading...</td></tr>
+                : rows.length === 0 ? <tr><td colSpan={hasVat ? 11 : 9}>No sales found for this month</td></tr>
                 : rows.map((r, i) => (
                   <tr key={i} onClick={() => setDetail(r)} style={{ cursor: 'pointer' }}>
                     <td style={{ fontWeight: 600 }}>{r.invoiceNumber}</td>
@@ -136,7 +136,7 @@ export default function MonthlySalesRegister() {
                     <td><span className={`badge ${r.paymentMethod === 'cash' ? 'badge-success' : r.paymentMethod === 'refunded' ? 'badge-danger' : 'badge-info'}`}>{r.paymentMethod}</span></td>
                     <td className="text-right">{fmt(r.totalGross)}</td>
                     <td className="text-right">{fmt(r.discount)}</td>
-                    <td className="text-right">{fmt(r.taxableAmount)}</td>
+                    {hasVat && <td className="text-right">{fmt(r.taxableAmount)}</td>}
                     {hasVat && <td className="text-right">{fmtBlank(r.vatAmount)}</td>}
                     <td className="text-right" style={{ fontWeight: 700 }}>{fmt(r.netTotal)}</td>
                     <td>{r.status === 'refunded' ? <span className="badge badge-danger">Refunded</span> : <span className="badge badge-success">OK</span>}</td>
@@ -164,7 +164,7 @@ export default function MonthlySalesRegister() {
           rows={[
             { label: 'Gross Amount', value: detail.totalGross },
             { label: 'Discount', value: detail.discount },
-            { label: 'Taxable Amount', value: detail.taxableAmount },
+            ...(hasVat ? [{ label: 'Taxable Amount', value: detail.taxableAmount }] : []),
             ...(hasVat ? [{ label: 'VAT 13%', value: detail.vatAmount }] : []),
             { label: 'Net Total', value: detail.netTotal },
           ]}

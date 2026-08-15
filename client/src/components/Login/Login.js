@@ -2,23 +2,23 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api';
 import { useTheme } from '../../context/ThemeContext';
+import { useToast } from '../UI/Toast';
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const addToast = useToast();
   const { theme, toggleTheme } = useTheme();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
     try {
       const { data } = await api.post('/auth/login', { email, password });
       onLogin(data);
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+      addToast(err.response?.data?.message || 'Login failed', 'error');
     } finally {
       setLoading(false);
     }
@@ -35,7 +35,6 @@ export default function Login({ onLogin }) {
           <p>Accounting & Store Management</p>
         </div>
         <form onSubmit={handleSubmit}>
-          {error && <div className="alert alert-error">{error}</div>}
           <div className="form-group">
             <label>Email</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your email" required />

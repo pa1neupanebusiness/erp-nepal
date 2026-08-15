@@ -272,6 +272,7 @@ function JournalEntryList() {
   const [detailsId, setDetailsId] = useState(null);
   const [posting, setPosting] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
   const addToast = useToast();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const isSuperAdmin = user.role === 'super_admin';
@@ -329,7 +330,7 @@ function JournalEntryList() {
   );
 
   const emptyLine = () => ({ account: '', debit: 0, credit: 0, subLedger: { customer: '', supplier: '' } });
-  const resetForm = () => setForm({ date: adToBsStr(new Date()), reference: '', description: '', lines: [emptyLine()] });
+  const resetForm = () => { setSubmitted(false); setForm({ date: adToBsStr(new Date()), reference: '', description: '', lines: [emptyLine()] }); };
 
   const addLine = () => setForm({ ...form, lines: [...form.lines, emptyLine()] });
   const removeLine = (idx) => setForm({ ...form, lines: form.lines.filter((_, i) => i !== idx) });
@@ -365,6 +366,7 @@ function JournalEntryList() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitted(true);
     if (!balanced) { addToast('Debit and credit totals must be equal', 'error'); return; }
     if (controlMissing) { addToast('Sundry Debtors/Creditors lines require a customer/vendor reference', 'error'); return; }
     setPosting(true);
@@ -510,10 +512,10 @@ function JournalEntryList() {
                 <td><strong>{formatNPR(totalCredit)}</strong></td>
                 <td></td>
               </tr>
-              {!balanced && (
+              {submitted && !balanced && (
                 <tr><td colSpan="5" className="text-danger">Debit ({totalDebit.toFixed(2)}) and Credit ({totalCredit.toFixed(2)}) must be equal</td></tr>
               )}
-              {controlMissing && (
+              {submitted && controlMissing && (
                 <tr><td colSpan="5" className="text-danger">Sundry Debtors / Sundry Creditors lines require a customer or vendor reference</td></tr>
               )}
             </tfoot>

@@ -29,13 +29,14 @@ export function renderTaxInvoiceHtml(sale, company) {
   const discount = sale.discount || 0;
   const taxTotal = sale.taxTotal || 0;
   const grandTotal = sale.grandTotal || 0;
+  const storedSubtotal = sale.subtotal || 0;
 
   const rawItems = (sale.items || []).map(i => ({
     name: i.product?.name || i.name || 'Item',
     hsCode: i.hsCode || i.product?.hsCode || '',
     qty: i.quantity || 0,
     rawRate: i.price || 0,
-    discount: i.discount || 0,
+    itemDiscount: i.discount || 0,
   }));
 
   const rawSubTotalGross = rawItems.reduce((s, it) => s + (it.rawRate * it.qty), 0);
@@ -44,20 +45,18 @@ export function renderTaxInvoiceHtml(sale, company) {
   const isInclusive = !looksExclusive;
 
   const items = rawItems.map(i => {
-    const rawAmount = i.rawRate * i.qty - (i.discount || 0);
+    const rawAmount = i.rawRate * i.qty - i.itemDiscount;
     if (isInclusive && vatRate > 0) {
       const beforeVatRate = Math.round((i.rawRate / (1 + vatRate / 100)) * 100) / 100;
-      const beforeVatAmount = Math.round((beforeVatRate * i.qty - (i.discount || 0)) * 100) / 100;
+      const beforeVatAmount = Math.round((beforeVatRate * i.qty - i.itemDiscount) * 100) / 100;
       return { ...i, rate: beforeVatRate, amount: beforeVatAmount };
     }
     return { ...i, rate: i.rawRate, amount: rawAmount };
   });
 
   const subTotalGross = rawSubTotalGross;
-  const afterDiscount = Math.max(0, subTotalGross - discount);
-  const taxableAmount = isInclusive ? Math.max(0, afterDiscount - taxTotal) : afterDiscount;
-  const discountPct = subTotalGross > 0 ? (discount / subTotalGross) * 100 : 0;
   const beforeVatSubTotal = isInclusive && vatRate > 0 ? Math.round(subTotalGross / (1 + vatRate / 100) * 100) / 100 : subTotalGross;
+  const displaySubtotal = isInclusive ? beforeVatSubTotal : subTotalGross;
 
   const invoiceDate = sale.invoiceDate || sale.createdAt || sale.date;
   const enDate = new Date(invoiceDate).toLocaleDateString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -87,8 +86,9 @@ export function renderTaxInvoiceHtml(sale, company) {
   return `
   <style>
     @page { size: A4 portrait; margin: 10mm; }
+    * { box-sizing: border-box; }
     body { font-family: Arial, sans-serif; font-size: 13px; color: #000; background-color: #fff; margin: 0; padding: 0; }
-    .invoice-container { width: 100%; margin: 0; padding: 12px; box-sizing: border-box; }
+    .invoice-container { width: 100%; margin: 0; padding: 12px; }
     .header { text-align: center; margin-bottom: 20px; }
     .company-name { font-size: 26px; font-weight: bold; font-family: 'Times New Roman', Times, serif; margin-bottom: 4px; }
     .company-details { font-size: 13px; line-height: 1.4; }
@@ -100,14 +100,14 @@ export function renderTaxInvoiceHtml(sale, company) {
     .pan-boxes { display: inline-flex; vertical-align: middle; margin-left: 5px; }
     .pan-box { width: 18px; height: 20px; border: 1px solid #000; margin-right: -1px; text-align: center; line-height: 20px; font-weight: bold; }
     table.invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 0px; }
-    table.invoice-table th, table.invoice-table td { border: 1px solid #000; padding: 6px; vertical-align: top; }
+    table.invoice-table th, table.invoice-table td { border: 1px solid #000; padding: 8px; vertical-align: top; }
     table.invoice-table th { font-weight: bold; text-align: center; font-size: 12px; }
-    .col-sn { width: 6%; text-align: center; }
-    .col-hs { width: 12%; text-align: center; }
-    .col-particulars { width: 44%; }
-    .col-qty { width: 10%; text-align: center; }
-    .col-rate { width: 14%; text-align: right; }
-    .col-total { width: 14%; text-align: right; }
+    .col-sn { width: 5%; text-align: center; }
+    .col-hs { width: 10%; text-align: center; }
+    .col-particulars { width: 47%; }
+    .col-qty { width: 8%; text-align: center; }
+    .col-rate { width: 15%; text-align: right; }
+    .col-total { width: 15%; text-align: right; }
     .text-center { text-align: center; }
     .words-cell { padding: 10px !important; }
     .words-title { font-weight: bold; margin-bottom: 10px; }
@@ -161,22 +161,22 @@ export function renderTaxInvoiceHtml(sale, company) {
           <td colspan="3" style="padding: 0;">
             <table class="summary-table">
               ${discount > 0 ? `<tr>
-                <td class="summary-label">${isInclusive ? 'Total' : 'Gross Amount'}</td>
-                <td class="summary-val">${num(isInclusive ? beforeVatSubTotal : subTotalGross)}</td>
+                <td class="summary-label">${isInclusive ? 'Total (before VAT)' : 'Gross Amount'}</td>
+                <td class="summary-val">${num(displaySubtotal)}</td>
               </tr>
               <tr>
-                <td class="summary-label">${discountPct.toFixed(2)}% Discount</td>
+                <td class="summary-label">Discount</td>
                 <td class="summary-val">${num(discount)}</td>
               </tr>` : (!isInclusive ? `<tr>
                 <td class="summary-label">Gross Amount</td>
                 <td class="summary-val">${num(subTotalGross)}</td>
               </tr>` : '')}
-              <tr>
-                <td class="summary-label">Taxable Value</td>
-                <td class="summary-val">${num(taxableAmount)}</td>
-              </tr>
               ${taxTotal > 0 ? `<tr>
-                <td class="summary-label">${vatRate}% VAT</td>
+                <td class="summary-label">Taxable Value</td>
+                <td class="summary-val">${num(storedSubtotal)}</td>
+              </tr>
+              <tr>
+                <td class="summary-label">${vatRate}% VAT${isInclusive ? ' (included)' : ''}</td>
                 <td class="summary-val">${num(taxTotal)}</td>
               </tr>` : ''}
               <tr>

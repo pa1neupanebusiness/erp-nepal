@@ -12,8 +12,8 @@ router.get('/', protect, async (req, res) => {
 
 router.get('/:id/transactions', protect, async (req, res) => {
   const [sales, emis] = await Promise.all([
-    Sale.find({ customer: req.params.id, ...req.companyFilter }).populate('customer').sort({ createdAt: -1 }).limit(50),
-    Emi.find({ customer: req.params.id, ...req.companyFilter }).sort({ createdAt: -1 }).limit(50),
+    Sale.find({ customer: req.params.id, ...req.companyFilter }).populate('customer').sort({ createdAt: -1 }),
+    Emi.find({ customer: req.params.id, ...req.companyFilter }).sort({ createdAt: -1 }),
   ]);
   res.json({ sales, emis });
 });

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../api';
 import { useTheme } from '../../context/ThemeContext';
+import { useToast } from '../UI/Toast';
 
 const countryFlags = {
   nepal: '🇳🇵', india: '🇮🇳', usa: '🇺🇸', uk: '🇬🇧', australia: '🇦🇺',
@@ -14,7 +15,7 @@ export default function Register() {
   const { theme, toggleTheme } = useTheme();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const addToast = useToast();
   const [countries, setCountries] = useState([]);
   const [showCustomCountry, setShowCustomCountry] = useState(false);
   const [customCountryName, setCustomCountryName] = useState('');
@@ -114,10 +115,9 @@ export default function Register() {
   };
 
   const handleNext = () => {
-    setError('');
     if (step === 1) {
       if (!form.country && !form.customCountry) {
-        setError('Please select your country or enter a custom one');
+        addToast('Please select your country or enter a custom one', 'error');
         return;
       }
       if (showCustomCountry && customCountryName.trim() && !searching) {
@@ -126,32 +126,30 @@ export default function Register() {
       }
     }
     if (step === 2 && (!form.companyName || !form.email)) {
-      setError('Company name and email are required');
+      addToast('Company name and email are required', 'error');
       return;
     }
     setStep(step + 1);
   };
 
   const handleBack = () => {
-    setError('');
     setStep(step - 1);
   };
 
   const handleSubmit = async () => {
     if (!form.adminName || !form.password) {
-      setError('Admin name and password are required');
+      addToast('Admin name and password are required', 'error');
       return;
     }
     if (form.password !== form.confirmPassword) {
-      setError('Passwords do not match');
+      addToast('Passwords do not match', 'error');
       return;
     }
     if (form.password.length < 6) {
-      setError('Password must be at least 6 characters');
+      addToast('Password must be at least 6 characters', 'error');
       return;
     }
     setLoading(true);
-    setError('');
     try {
       const payload = {
         companyName: form.companyName,
@@ -172,7 +170,7 @@ export default function Register() {
       localStorage.setItem('user', JSON.stringify(data));
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
+      addToast(err.response?.data?.message || 'Registration failed', 'error');
       setLoading(false);
     }
   };
@@ -195,8 +193,6 @@ export default function Register() {
           <div className="step-line"></div>
           <div className={`step ${step >= 3 ? 'active' : ''}`}>3</div>
         </div>
-
-        {error && <div className="alert alert-error">{error}</div>}
 
         {step === 1 && (
           <div>

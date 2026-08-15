@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { FiscalYearProvider, useFiscalYear } from './context/FiscalYearContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { DateFormatProvider } from './context/DateFormatContext';
-import { ToastProvider } from './components/UI/Toast';
+import { ToastProvider, useToast } from './components/UI/Toast';
 import api from './api';
 import NepaliDatePicker, { bsToADStr, getBSTodayStr } from './components/UI/NepaliDatePicker';
 import TopBar from './components/UI/TopBar';
@@ -67,22 +67,21 @@ function FiscalYearPrompt() {
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const addToast = useToast();
   const { refresh } = useFiscalYear();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name || !startDate || !endDate) {
-      setError('All fields are required');
+      addToast('All fields are required', 'error');
       return;
     }
     setLoading(true);
-    setError('');
     try {
       await api.post('/fiscal-years', { name, startDate: bsToADStr(startDate), endDate: bsToADStr(endDate) });
       await refresh();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create fiscal year');
+      addToast(err.response?.data?.message || 'Failed to create fiscal year', 'error');
       setLoading(false);
     }
   };
@@ -98,7 +97,6 @@ function FiscalYearPrompt() {
           <p style={{ fontSize: '0.9rem', color: '#64748b', margin: 0 }}>Create your first fiscal year to start using the ERP</p>
         </div>
         <form onSubmit={handleSubmit}>
-          {error && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '0.75rem 1rem', marginBottom: '1rem', color: '#dc2626', fontSize: '0.85rem' }}>{error}</div>}
           <div style={{ marginBottom: '1rem' }}>
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '0.35rem' }}>Fiscal Year Name</label>
             <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. 2082/83" style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1.5px solid #e2e8f0', fontSize: '0.9rem', outline: 'none', transition: 'border 0.2s', boxSizing: 'border-box' }} onFocus={e => e.target.style.borderColor = '#667eea'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
