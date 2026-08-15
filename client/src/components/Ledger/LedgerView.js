@@ -266,14 +266,6 @@ export default function LedgerView() {
                           <td><strong>{formatNPR(e.balance)}</strong></td>
                         </tr>
                       ))}
-                      {viewMode !== 'all' && (
-                        <tr style={{ background: '#f8fafc', fontWeight: 600 }}>
-                          <td colSpan="3">{g.label} Total</td>
-                          <td>{formatNPR(g.dr)}</td>
-                          <td>{formatNPR(g.cr)}</td>
-                          <td>{formatNPR(g.closing)}</td>
-                        </tr>
-                      )}
                     </React.Fragment>
                   ))}
                   {displayGroups.length === 0 && (
