@@ -211,6 +211,9 @@ export default function StockReports() {
             { label: 'Total In', value: fmtQty(movements.filter(m => m.type === 'in' || m.type === 'sales_return' || m.type === 'adjustment' && m.quantity > 0).reduce((s, m) => s + m.quantity, 0)) },
             { label: 'Total Out', value: fmtQty(movements.filter(m => m.type === 'out' || m.type === 'purchase_return' || m.type === 'adjustment' && m.quantity < 0).reduce((s, m) => s + Math.abs(m.quantity), 0)) },
           ]}
+          actions={
+            <button className="btn btn-sm" onClick={() => { setDetailsId(null); startEdit(detailRow); }}>Edit</button>
+          }
           onClose={() => setDetailsId(null)}
         />
       )}
