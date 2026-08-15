@@ -148,15 +148,15 @@ export default function SalesList() {
           ) : null}
           title={`Sale ${detail.invoiceNumber}`}
           subtitle={`${new Date(detail.createdAt).toLocaleString('en-IN')} | ${detail.customer?.name || 'Walk-in'} | ${detail.paymentMethod}`}
-          meta={[
-            { label: 'Customer', value: detail.customer?.name || 'Walk-in' },
-            { label: 'Payment', value: detail.paymentMethod === 'split' ? (detail.paymentSplits || []).map(s => `${s.method}: ${formatNPR(s.amount)}`).join(' + ') : detail.paymentMethod },
-            { label: 'Status', value: detail.status },
-            { label: 'Grand Total', value: formatNPR(detail.grandTotal) },
-            { label: 'Paid', value: formatNPR(detail.amountPaid) },
-            { label: 'Change', value: formatNPR(detail.change) },
-            ...(detail.notes ? [{ label: 'Notes', value: detail.notes }] : []),
-          ]}
+meta={[
+              { label: 'Customer', value: detail.customer?.name || 'Walk-in' },
+              { label: 'Payment', value: detail.paymentMethod === 'split' ? (detail.paymentSplits || []).map(s => `${s.method}: ${formatNPR(s.amount)}`).join(' + ') : detail.paymentMethod },
+              { label: 'Status', value: detail.status },
+              { label: 'Grand Total', value: formatNPR(detail.grandTotal) },
+              { label: 'Paid', value: formatNPR(detail.amountPaid) },
+              { label: 'Due', value: formatNPR(detail.dueAmount) },
+              ...(detail.notes ? [{ label: 'Notes', value: detail.notes }] : []),
+            ]}
           columns={[
             { key: 'product', label: 'Item', wide: true, render: (v) => v?.name || v || 'Unknown' },
             { key: 'price', label: 'Rate', align: 'right', render: (v) => formatNPR(v) },
