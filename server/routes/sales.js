@@ -35,7 +35,7 @@ async function generateInvoice(companyId) {
       { new: true }
     );
     if (!company) throw new Error('No company assigned to this account');
-    const num = String(company.invoiceCounter).padStart(3, '0');
+    const num = String(company.invoiceCounter).padStart(4, '0');
     const invNo = `${fy}-${num}`;
     const exists = await Sale.exists({ invoiceNumber: invNo, company: companyId });
     if (!exists) return invNo;
