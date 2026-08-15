@@ -60,7 +60,10 @@ router.post('/', protect, async (req, res) => {
       data.sku = `${prefix}-${String(count + 1).padStart(4, '0')}`;
     }
     if (!data.barcode) {
-      data.barcode = String(Math.floor(10000 + Math.random() * 89999)).padStart(5, '0');
+      const categoryName = data.category ? (await Category.findById(data.category))?.name || '' : '';
+      const prefix = categoryName ? categoryName.substring(0, 2).toUpperCase() : 'GEN';
+      const suffix = String(Math.floor(100 + Math.random() * 899)).padStart(3, '0');
+      data.barcode = `${prefix}${suffix}`;
     }
     const item = await Product.create(data);
     if (req.body.stock > 0) {
