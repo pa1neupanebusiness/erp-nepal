@@ -480,9 +480,10 @@ export default function POS() {
               {amountPaid && <div className="summary-row"><span>Change:</span><span>{formatNPR(change)}</span></div>}
             </>
           )}
-          {message && message.type === 'success' && lastSale && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
-              <button className="btn btn-sm btn-primary" onClick={() => printInvoice(lastSale, company)}>Print Invoice</button>
+          {lastSale && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', padding: '0.5rem', background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0' }}>
+              <span style={{ color: '#15803d', fontWeight: 600, fontSize: '0.85rem' }}>Invoice {lastSale.invoiceNumber} created</span>
+              <button className="btn btn-sm btn-primary" onClick={() => { printInvoice(lastSale, company); setLastSale(null); }}>Print Invoice</button>
             </div>
           )}
           <div style={{ display: 'flex', gap: '0.35rem' }}>
