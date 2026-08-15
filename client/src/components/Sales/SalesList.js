@@ -106,7 +106,7 @@ export default function SalesList() {
                 <tr key={s._id} style={{ cursor: 'pointer' }} onClick={() => setDetail(s)}>
                   <td>{s.invoiceNumber}{s.emiData?.exchangeEnabled && <span className="badge badge-warning" style={{ marginLeft: '0.35rem' }}>Exchange</span>}</td>
                   <td>{new Date(s.createdAt).toLocaleDateString('en-IN')}</td>
-                  <td>{s.customer?.name || 'Walk-in'}</td>
+                  <td>{s.customer?.name || ''}</td>
                   <td>{s.items?.length || 0}</td>
                   <td>{formatNPR(s.subtotal)}</td>
                   <td>{s.discount > 0 ? <span style={{ color: '#dc2626' }}>-{formatNPR(s.discount)}</span> : '-'}</td>
