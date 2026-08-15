@@ -1,0 +1,196 @@
+============================================================
+     ERP MULTI-COUNTRY SYSTEM - USER GUIDE
+              Made by DevUp Soft
+============================================================
+
+ACCESS THE SYSTEM
+============================================================
+
+Live URL: https://erp-nepal.onrender.com
+
+No installation required! Just open the link in any browser:
+   - Chrome (recommended)
+   - Firefox
+   - Edge
+   - Safari
+
+============================================================
+LOGIN
+============================================================
+
+First-time setup account:
+   Email:    admin@erp.com
+   Password: admin123
+
+============================================================
+FIRST-TIME SETUP (3 Simple Steps)
+============================================================
+
+When you login for the first time, you'll see the Setup Wizard:
+
+STEP 1: Select Your Country
+-----------------------------
+Click on your country:
+   Asia:     Nepal, India, Singapore, Japan, UAE
+   Europe:   UK, Germany, France, Ireland
+   Americas: USA, Canada
+   Oceania:  Australia, New Zealand
+   Africa:   South Africa
+
+STEP 2: Enter Company Details
+-------------------------------
+- Company Name: Your business name
+- Address: Business address
+- Phone: Contact number
+
+STEP 3: Choose Date Format
+----------------------------
+- BS (Bikram Sambat): Nepal only
+- AD: All other countries
+
+Click "Complete Setup" → You're ready!
+
+============================================================
+MAIN FEATURES
+============================================================
+
+DASHBOARD
+---------
+• Daily sales, expenses, profit overview
+• Recent transactions
+• Quick stats
+
+POINT OF SALE (POS)
+-------------------
+• Add products to cart
+• Process payments
+• Print receipts
+• Daily summaries
+
+PRODUCTS & INVENTORY
+--------------------
+• Add/edit products
+• Track stock levels
+• Categories & suppliers
+• Purchase orders
+
+ACCOUNTING
+----------
+• Chart of Accounts (auto-created for your country)
+• Vouchers & Journal Entries
+• Ledger view
+• Trial Balance
+• Income Statement (P&L)
+• Balance Sheet
+
+REPORTS
+-------
+• Cash Flow Report
+• Aging Report (receivables/payables)
+• VAT/GST Report (auto-calculated)
+• TDS/PAYE Report (if applicable)
+• Sales History
+
+USERS & SETTINGS
+----------------
+• Add staff accounts
+• Set permissions
+• Company settings
+
+============================================================
+COUNTRY-SPECIFIC FEATURES
+============================================================
+
+Your system automatically adapts based on your country:
+
+┌─────────────┬──────────┬───────────┬──────────────────┐
+│ Country     │ Currency │ Tax Name  │ Tax Rate         │
+├─────────────┼──────────┼───────────┼──────────────────┤
+│ Nepal       │ NPR (रू) │ VAT + TDS │ 13% VAT          │
+│ India       │ INR (₹)  │ GST + TDS │ 18% GST          │
+│ USA         │ USD ($)  │ Sales Tax │ Varies           │
+│ UK          │ GBP (£)  │ VAT       │ 20%              │
+│ Australia   │ AUD (A$) │ GST       │ 10%              │
+│ Germany     │ EUR (€)  │ USt       │ 19%              │
+│ France      │ EUR (€)  │ TVA       │ 20%              │
+│ Canada      │ CAD (C$) │ GST/HST   │ 5%               │
+│ Japan       │ JPY (¥)  │ 消費税     │ 10%              │
+│ Singapore   │ SGD (S$) │ GST       │ 9%               │
+│ UAE         │ AED (د.إ)│ VAT       │ 5%               │
+│ South Africa│ ZAR (R)  │ VAT       │ 15%              │
+│ New Zealand │ NZD (NZ$)│ GST       │ 15%              │
+│ Ireland     │ EUR (€)  │ VAT       │ 23%              │
+└─────────────┴──────────┴───────────┴──────────────────┘
+
+============================================================
+COMMON TASKS
+============================================================
+
+ADD A NEW PRODUCT:
+1. Click "Products" in sidebar
+2. Click "Add Product"
+3. Enter name, price, stock, category
+4. Click Save
+
+RECORD A SALE:
+1. Click "POS" in sidebar
+2. Search products
+3. Add to cart
+4. Select payment method
+5. Click "Complete Sale"
+
+VIEW TAX REPORT:
+1. Click "[Your Tax] Report" in sidebar
+2. Select date range
+3. View output tax (collected) and input tax (paid)
+4. See net payable amount
+
+ADD A STAFF MEMBER:
+1. Click "User Management" in sidebar
+2. Click "Add User"
+3. Enter name, email, password
+4. Assign role and permissions
+5. Click Save
+
+============================================================
+TIPS
+============================================================
+
+• Your country is shown under the company name in sidebar
+• Currency symbol updates automatically everywhere
+• Tax labels match your country (GST for India, VAT for UK, etc.)
+• Chart of Accounts is pre-filled with local account names
+• Fiscal year follows your country's standard
+
+============================================================
+TROUBLESHOOTING
+============================================================
+
+Can't login?
+→ Make sure you're using the correct email/password
+→ Try refreshing the page (F5)
+
+Setup wizard not appearing?
+→ Clear browser cache
+→ Try incognito/private window
+
+Page looks broken?
+→ Try a different browser
+→ Clear cache: Ctrl+Shift+Delete
+
+Need help?
+→ Contact: support@devupsoft.com
+
+============================================================
+QUICK REFERENCE
+============================================================
+
+URL:       https://erp-nepal.onrender.com
+Login:     admin@erp.com / admin123
+Support:   support@devupsoft.com
+GitHub:    https://github.com/pa1neupanebusiness/erp-nepal
+
+============================================================
+                 Thank you for using ERP System!
+                      Made by DevUp Soft
+============================================================

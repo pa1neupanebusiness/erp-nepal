@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tax Invoice</title>
+<style>
+  /* ===================== BASE / SCREEN ===================== */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    color: #111;
+    background: #f1f5f9;
+    padding: 16px;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .sheet {
+    background: #fff;
+    max-width: 210mm;          /* A4 width */
+    margin: 0 auto;
+    padding: 12mm 10mm;
+    box-shadow: 0 2px 12px rgba(0,0,0,.12);
+  }
+  .sheet.a5 { max-width: 148mm; }   /* A5 width toggle */
+
+  /* ---- Header ---- */
+  .biz-name { font-size: 18px; font-weight: 700; letter-spacing: .3px; }
+  .biz-meta { font-size: 11px; color: #444; margin-top: 2px; }
+  .doc-title {
+    font-size: 20px; font-weight: 700; text-align: center;
+    border: 2px solid #000; padding: 4px 0; letter-spacing: 2px; margin: 10px 0;
+  }
+
+  /* ---- Meta grid ---- */
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; margin-bottom: 10px; }
+  .meta-grid .col div { margin: 1px 0; }
+  .meta-label { color: #666; font-size: 10.5px; }
+  .meta-val { font-weight: 600; }
+
+  /* ---- Items table ---- */
+  table { width: 100%; border-collapse: collapse; }
+  .items th, .items td { border: 1px solid #000; padding: 6px 8px; text-align: left; }
+  .items th { background: #f3f4f6; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+  .items td.num, .items th.num { text-align: right; white-space: nowrap; }
+  .items td.center, .items th.center { text-align: center; }
+
+  /* ---- Summary ---- */
+  .summary-wrap { display: flex; justify-content: space-between; margin-top: 10px; gap: 16px; }
+  .amount-words { flex: 1; font-size: 11px; }
+  .amount-words .box { border: 1px solid #000; padding: 6px 8px; min-height: 42px; }
+  .summary { width: 240px; }
+  .summary table { width: 100%; }
+  .summary td { padding: 4px 8px; border: none; }
+  .summary td.lbl { color: #333; }
+  .summary td.val { text-align: right; font-weight: 600; }
+  .summary tr.grand td {
+    border-top: 2px solid #000; border-bottom: double 3px #000;
+    font-size: 13px; font-weight: 700; padding-top: 6px; padding-bottom: 6px;
+  }
+  .summary .note { font-size: 10px; color: #555; padding: 2px 8px; }
+  .vat-tag { font-size: 10px; color: #475569; }
+
+  /* ---- Footer ---- */
+  .terms { font-size: 10px; color: #555; margin-top: 12px; border-top: 1px dashed #999; padding-top: 6px; }
+  .signatures { display: flex; justify-content: space-between; margin-top: 26px; gap: 16px; }
+  .signatures .sig { width: 30%; border-top: 1px solid #000; padding-top: 4px; text-align: center; font-size: 10.5px; }
+
+  /* ===================== PRINT ===================== */
+  @page { margin: 10mm; size: auto; }
+  @media print {
+    body { background: #fff; padding: 0; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .sheet { box-shadow: none; max-width: none; width: 100%; padding: 0; margin: 0; }
+    .doc-title, .items th, .summary tr.grand td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    /* remove screen-only shadows/borders that waste ink */
+    tr, td, th { page-break-inside: avoid; }
+    .items tr { page-break-inside: avoid; }
+    .signatures { page-break-inside: avoid; }
+    .terms { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+  <div class="sheet" id="invoice">
+    <!-- ===== HEADER ===== -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <div class="biz-name">[[BUSINESS NAME]]</div>
+        <div class="biz-meta">[[Street Address, City, Country]]</div>
+        <div class="biz-meta">PAN/VAT: [[PAN1234567]] &nbsp;|&nbsp; Ph: [[+977-1-1234567]]</div>
+        <div class="biz-meta">Email: [[info@business.com]]</div>
+      </div>
+    </div>
+    <div class="doc-title">INVOICE</div>
+
+    <!-- ===== META ===== -->
+    <div class="meta-grid">
+      <div class="col">
+        <div><span class="meta-label">Customer:</span> <span class="meta-val">[[Customer Name]]</span></div>
+        <div><span class="meta-label">Address:</span> [[Customer Address]]</div>
+        <div><span class="meta-label">PAN/VAT No:</span> [[CUST-PAN]]</div>
+        <div><span class="meta-label">Payment Mode:</span> <span class="meta-val">[[Cash / Bank / Credit]]</span></div>
+      </div>
+      <div class="col" style="text-align:right;">
+        <div><span class="meta-label">Invoice No:</span> <span class="meta-val">[[INV-0001]]</span></div>
+        <div><span class="meta-label">Date (BS):</span> [[2082-04-15]]</div>
+        <div><span class="meta-label">Date (AD):</span> [[2025-07-30]]</div>
+        <div><span class="meta-label">Type:</span> <span class="meta-val">[[Cash / Credit]]</span></div>
+      </div>
+    </div>
+
+    <!-- ===== ITEMS ===== -->
+    <table class="items">
+      <thead>
+        <tr>
+          <th class="center" style="width:34px;">S.N.</th>
+          <th>Item Description</th>
+          <th class="num" style="width:54px;">Qty</th>
+          <th class="num" style="width:74px;">Rate (Rs.)</th>
+          <th class="num" style="width:70px;">Discount</th>
+          <th class="num" style="width:92px;">Taxable Amt</th>
+          <th class="num" style="width:84px;">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Repeat per line item -->
+        <tr>
+          <td class="center">1</td>
+          <td>[[Product / Service Name]]</td>
+          <td class="num">2</td>
+          <td class="num">1,150.00</td>
+          <td class="num">0.00</td>
+          <td class="num">2,300.00</td>
+          <td class="num">2,300.00</td>
+        </tr>
+        <tr>
+          <td class="center">2</td>
+          <td>[[Another Item]]</td>
+          <td class="num">1</td>
+          <td class="num">500.00</td>
+          <td class="num">50.00</td>
+          <td class="num">450.00</td>
+          <td class="num">450.00</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ===== SUMMARY ===== -->
+    <div class="summary-wrap">
+      <div class="amount-words">
+        <div class="meta-label">Amount in Words:</div>
+        <div class="box">[[Rupees Two Thousand Seven Hundred Fifty Only]]</div>
+      </div>
+      <div class="summary">
+        <table>
+          <tr><td class="lbl">Sub Total</td><td class="val">2,750.00</td></tr>
+          <tr><td class="lbl">Discount Total</td><td class="val">50.00</td></tr>
+          <tr><td class="lbl">Taxable Amount</td><td class="val">2,700.00</td></tr>
+          <tr><td class="lbl">Non-Taxable Amount</td><td class="val">0.00</td></tr>
+          <tr><td class="lbl">VAT (13%) <span class="vat-tag">[Exclusive]</span></td><td class="val">351.00</td></tr>
+          <tr class="grand"><td class="lbl">Grand Total</td><td class="val">3,051.00</td></tr>
+          <tr><td class="note" colspan="2">VAT computed on taxable amount @13% (Exclusive of price).</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== FOOTER ===== -->
+    <div class="terms">
+      <strong>Terms &amp; Conditions:</strong> Goods once sold will not be taken back. Subject to [[City]] jurisdiction.
+      E.&amp;O.E.
+    </div>
+    <div class="signatures">
+      <div class="sig">Prepared By</div>
+      <div class="sig">Received By</div>
+      <div class="sig">Authorized Signature</div>
+    </div>
+  </div>
+</body>
+</html>

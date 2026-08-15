@@ -1,0 +1,65 @@
+/* ============================================
+   COMPANY META STYLES (Multi-Country ERP)
+   ============================================ */
+
+.company-meta {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.company-country {
+  font-size: 0.7rem;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.company-currency {
+  font-size: 0.7rem;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+[data-theme="dark"] .company-country {
+  background: rgba(56, 189, 248, 0.15);
+}
+
+[data-theme="dark"] .company-currency {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+/* ============================================
+   DATE FORMAT TOGGLE
+   ============================================ */
+
+.date-format-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.date-format-btn {
+  background: var(--card-hover);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all 0.2s;
+}
+
+.date-format-btn.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+}
+
+.date-format-btn:hover:not(.active) {
+  background: var(--border);
+  color: var(--text);
+}

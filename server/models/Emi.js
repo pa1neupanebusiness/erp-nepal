@@ -1,0 +1,72 @@
+const mongoose = require('mongoose');
+
+const paymentSplitSchema = new mongoose.Schema({
+  type: { type: String, enum: ['cash', 'qr', 'bank_transfer', 'exchange_credit', 'bank_emi'], required: true },
+  amount: { type: Number, required: true },
+  bankId: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank' },
+  bankName: { type: String },
+  method: { type: String },
+  reference: { type: String },
+  date: { type: Date, default: Date.now },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+}, { _id: false });
+
+const emiSchema = new mongoose.Schema({
+  emiNumber: { type: String, required: true },
+  product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+  serialNumber: { type: String },
+  customer: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', required: true },
+  productTotal: { type: Number, required: true },
+  exchangeEnabled: { type: Boolean, default: false },
+  exchangeAmount: { type: Number, default: 0 },
+  exchangeCustomerName: { type: String },
+  exchangePaidAmount: { type: Number, default: 0 },
+  exchangeItems: [{
+    product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+    quantity: { type: Number, required: true },
+    price: { type: Number, required: true },
+    serialNumber: { type: String },
+    condition: { type: String, enum: ['new', 'second_hand'], default: 'second_hand' },
+    status: { type: String, enum: ['pending', 'verified', 'accepted', 'rejected'], default: 'accepted' },
+  }],
+  netAmount: { type: Number, required: true },
+  downPayment: { type: Number, required: true },
+  downPaymentPercent: { type: Number },
+  downPaymentBank: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank' },
+  remainingAmount: { type: Number, required: true },
+  vatAmount: { type: Number, default: 0 },
+  grossBill: { type: Number, default: 0 },
+  vatRate: { type: Number, default: 0 },
+  inclusiveVat: { type: Boolean, default: false },
+  disbursedAmount: { type: Number, default: 0 },
+  bankCharge: { type: Number, default: 0 },
+  disbursedAt: { type: Date },
+  disbursementStatus: { type: String, enum: ['pending', 'disbursed'], default: 'pending' },
+  disbursingBank: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank' },
+  totalPaid: { type: Number, default: 0 },
+  paidStatus: { type: String, enum: ['pending', 'partial', 'completed', 'defaulted'], default: 'pending' },
+  payments: [{
+    date: { type: Date, default: Date.now },
+    amount: { type: Number, required: true },
+    principal: { type: Number, required: true },
+    interest: { type: Number, required: true },
+    method: { type: String, enum: ['cash', 'qr', 'bank'], default: 'cash' },
+    reference: { type: String },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  }],
+  paymentSplits: [paymentSplitSchema],
+  bankName: { type: String, required: true },
+  bank: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank' },
+  downPaymentMethod: { type: String, enum: ['cash', 'qr', 'bank'], default: 'cash' },
+  tenure: { type: Number },
+  monthlyEMI: { type: Number },
+  interestRate: { type: Number, default: 0 },
+  startDate: { type: Date },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  fiscalYear: { type: String },
+  remarks: { type: String },
+}, { timestamps: true });
+
+emiSchema.plugin(require('./companyPlugin'));
+emiSchema.index({ company: 1, emiNumber: 1 }, { unique: true });
+module.exports = mongoose.model('Emi', emiSchema);

@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: erp-nepal
+    env: node
+    buildCommand: cd client && npm install --no-package-lock && npm run build && cd ../server && npm install --no-package-lock
+    startCommand: cd server && NODE_ENV=production node server.js
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_URL
+        value: https://erp-nepal.onrender.com
+      - key: NODE_VERSION
+        value: 18.19.0

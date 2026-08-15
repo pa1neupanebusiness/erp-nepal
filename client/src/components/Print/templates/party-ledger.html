@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Party Statement / Account Ledger</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    color: #111; background: #f1f5f9;
+    padding: 16px; font-size: 12px; line-height: 1.4;
+  }
+  .sheet {
+    background: #fff; width: 297mm; max-width: 297mm;   /* A4 landscape */
+    margin: 0 auto; padding: 10mm 12mm; box-shadow: 0 2px 12px rgba(0,0,0,.12);
+  }
+
+  /* Header */
+  .biz-name { font-size: 17px; font-weight: 700; }
+  .biz-meta { font-size: 11px; color: #444; }
+  .report-title { font-size: 16px; font-weight: 700; text-align: center; letter-spacing: 1px; margin: 8px 0; border-bottom: 2px solid #000; padding-bottom: 4px; }
+
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; margin-bottom: 8px; }
+  .meta-label { color: #666; font-size: 10.5px; }
+  .meta-val { font-weight: 600; }
+
+  /* Ledger table */
+  table { width: 100%; border-collapse: collapse; }
+  .ledger th, .ledger td { border: 1px solid #000; padding: 5px 7px; text-align: left; }
+  .ledger th { background: #f3f4f6; font-size: 11px; text-transform: uppercase; letter-spacing: .3px; }
+  .ledger td.num, .ledger th.num { text-align: right; white-space: nowrap; }
+  .ledger td.center, .ledger th.center { text-align: center; }
+  .ledger tr.opening td { font-weight: 700; background: #fffbeb; }
+  .ledger tr.total td { font-weight: 700; background: #eef2ff; border-top: double 3px #000; }
+  .ledger tr.closing td { font-weight: 700; background: #ecfdf5; border-top: 2px solid #000; }
+  .dr { color: #b91c1c; }
+  .cr { color: #15803d; }
+
+  .footer-note { font-size: 10px; color: #555; margin-top: 10px; border-top: 1px dashed #999; padding-top: 5px; }
+  .signatures { display: flex; justify-content: space-between; margin-top: 24px; gap: 16px; }
+  .sig { width: 30%; border-top: 1px solid #000; padding-top: 4px; text-align: center; font-size: 10.5px; }
+
+  @page { margin: 10mm; size: landscape; }
+  @media print {
+    body { background: #fff; padding: 0; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .sheet { box-shadow: none; width: 100%; max-width: none; padding: 0; margin: 0; }
+    tr, td, th { page-break-inside: avoid; }
+    .ledger tr { page-break-inside: avoid; }
+    .signatures { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+  <div class="sheet" id="ledger">
+    <!-- Header -->
+    <div class="biz-name">[[ORGANIZATION NAME]]</div>
+    <div class="biz-meta">[[Address, City, Country]] &nbsp;|&nbsp; PAN/VAT: [[PAN1234567]]</div>
+    <div class="report-title">PARTY STATEMENT / ACCOUNT LEDGER</div>
+
+    <!-- Meta -->
+    <div class="meta-grid">
+      <div>
+        <div><span class="meta-label">Party:</span> <span class="meta-val">[[Customer / Supplier Name]]</span></div>
+        <div><span class="meta-label">Address:</span> [[Party Address]]</div>
+        <div><span class="meta-label">PAN No:</span> [[PARTY-PAN]]</div>
+      </div>
+      <div style="text-align:right;">
+        <div><span class="meta-label">Statement Period:</span></div>
+        <div class="meta-val">[[2082-01-01]] to [[2082-12-30]] (BS)</div>
+        <div class="meta-val">[[2025-04-14]] to [[2026-04-12]] (AD)</div>
+      </div>
+    </div>
+
+    <!-- Ledger table -->
+    <table class="ledger">
+      <thead>
+        <tr>
+          <th class="center" style="width:62px;">Date (BS/AD)</th>
+          <th class="center" style="width:80px;">Vch Type</th>
+          <th class="center" style="width:90px;">Vch No</th>
+          <th>Particulars / Description</th>
+          <th class="num" style="width:110px;">Debit (Dr) Rs.</th>
+          <th class="num" style="width:110px;">Credit (Cr) Rs.</th>
+          <th class="num" style="width:120px;">Balance Rs. (Dr/Cr)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Opening Balance -->
+        <tr class="opening">
+          <td class="center">[[2082-01-01]]</td>
+          <td class="center">OPEN</td>
+          <td class="center">--</td>
+          <td>Opening Balance</td>
+          <td class="num dr">12,500.00</td>
+          <td class="num">--</td>
+          <td class="num dr">12,500.00 Dr</td>
+        </tr>
+
+        <!-- Transaction rows -->
+        <tr>
+          <td class="center">[[2082-02-10]]<br/><span style="font-size:9px;color:#888;">2025-05-23</span></td>
+          <td class="center">SALE</td>
+          <td class="center">INV-0007</td>
+          <td>Sales of goods</td>
+          <td class="num">--</td>
+          <td class="num cr">8,000.00</td>
+          <td class="num dr">4,500.00 Dr</td>
+        </tr>
+        <tr>
+          <td class="center">[[2082-03-05]]<br/><span style="font-size:9px;color:#888;">2025-06-18</span></td>
+          <td class="center">RCPT</td>
+          <td class="center">RCT-0012</td>
+          <td>Payment received</td>
+          <td class="num dr">2,000.00</td>
+          <td class="num">--</td>
+          <td class="num dr">6,500.00 Dr</td>
+        </tr>
+        <tr>
+          <td class="center">[[2082-05-20]]<br/><span style="font-size:9px;color:#888;">2025-09-03</span></td>
+          <td class="center">SALE</td>
+          <td class="center">INV-0021</td>
+          <td>Credit sale</td>
+          <td class="num">--</td>
+          <td class="num cr">5,000.00</td>
+          <td class="num dr">1,500.00 Dr</td>
+        </tr>
+
+        <!-- Totals -->
+        <tr class="total">
+          <td class="center" colspan="4">TOTAL</td>
+          <td class="num">14,500.00</td>
+          <td class="num">13,000.00</td>
+          <td class="num">--</td>
+        </tr>
+
+        <!-- Closing Balance -->
+        <tr class="closing">
+          <td class="center" colspan="4">CLOSING BALANCE</td>
+          <td class="num" colspan="2" style="text-align:center;">Net: 1,500.00</td>
+          <td class="num dr">1,500.00 Dr</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="footer-note">
+      Closing balance is derived as (Opening + Total Debits − Total Credits). Net debit balance shown as <span class="dr">Dr</span>, net credit balance as <span class="cr">Cr</span>.
+      This is a system-generated statement.
+    </div>
+    <div class="signatures">
+      <div class="sig">Prepared By</div>
+      <div class="sig">Verified By</div>
+      <div class="sig">Authorized Signature</div>
+    </div>
+  </div>
+</body>
+</html>
