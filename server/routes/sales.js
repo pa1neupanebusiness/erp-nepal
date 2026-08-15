@@ -8,6 +8,7 @@ const InventoryMovement = require('../models/InventoryMovement');
 const Company = require('../models/Company');
 const Customer = require('../models/Customer');
 const { protect, adminOnly, requirePANForLargeTx } = require('../middleware/auth');
+const fiscalYearFilter = require('../middleware/fiscalYear');
 const { round100, buildIRDPayload, adToBikramSambat, getBSFiscalYear } = require('../utils/dateUtils');
 const { postDaybookEntries, cancelDaybookEntries } = require('../utils/daybookService');
 const { getClientIp } = require('../utils/irdAudit');

@@ -191,6 +191,7 @@ function ChartOfAccounts() {
               { label: 'Type', value: l.account?.type || '-' },
               { label: 'Category', value: l.account?.category || '-' },
               { label: 'Current Balance', value: formatNPR(l.currentBalance) },
+              { label: 'Total Due', value: formatNPR(l.totalDue || 0) },
               { label: 'Entries', value: (l.entries || []).length + '' },
             ]}
             columns={[
@@ -200,6 +201,7 @@ function ChartOfAccounts() {
               { key: 'debit', label: 'Debit', align: 'right', render: (v) => v > 0 ? formatNPR(v) : '-' },
               { key: 'credit', label: 'Credit', align: 'right', render: (v) => v > 0 ? formatNPR(v) : '-' },
               { key: 'balance', label: 'Balance', align: 'right', render: (v) => formatNPR(v) },
+              { key: 'totalDue', label: 'Total Due', align: 'right', render: (v) => formatNPR(v) },
             ]}
             rows={l.entries || []}
             onRowClick={handleLedgerRowClick}
