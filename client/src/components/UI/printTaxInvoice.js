@@ -39,7 +39,10 @@ export function renderTaxInvoiceHtml(sale, company) {
   }));
 
   const rawSubTotalGross = rawItems.reduce((s, it) => s + (it.rawRate * it.qty), 0);
-  const isInclusive = !!sale.inclusiveVat;
+  const rawAfterDiscount = Math.max(0, rawSubTotalGross - discount);
+  const isInclusive = sale.inclusiveVat !== undefined
+    ? !!sale.inclusiveVat
+    : taxTotal > 0 ? Math.abs((rawAfterDiscount + taxTotal) - grandTotal) >= 0.5 : false;
 
   const items = rawItems.map(i => {
     const rawAmount = i.rawRate * i.qty - i.itemDiscount;

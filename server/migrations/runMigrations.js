@@ -332,6 +332,21 @@ async function fixFiscalYearLabels() {
   console.log('FiscalYear label fix complete.');
 }
 
+async function backfillInclusiveVatFlag() {
+  const sales = await Sale.find({ taxTotal: { $gt: 0 }, inclusiveVat: { $ne: true } }).select('items discount taxTotal grandTotal inclusiveVat').lean();
+  let updated = 0;
+  for (const s of sales) {
+    const rawSubTotalGross = (s.items || []).reduce((sum, it) => sum + (it.price || 0) * (it.quantity || 0), 0);
+    const rawAfterDiscount = Math.max(0, rawSubTotalGross - (s.discount || 0));
+    const looksExclusive = Math.abs((rawAfterDiscount + (s.taxTotal || 0)) - (s.grandTotal || 0)) < 0.5;
+    if (!looksExclusive) {
+      await Sale.updateOne({ _id: s._id }, { $set: { inclusiveVat: true } });
+      updated++;
+    }
+  }
+  console.log(`Backfill inclusiveVat: ${updated} sales marked as inclusive out of ${sales.length} with VAT`);
+}
+
 const migrations = [
   { name: 'setupSuperAdminAndModules', run: setupSuperAdminAndModules },
   { name: 'seedMissingChartAccounts', run: seedMissingChartAccounts },
@@ -343,6 +358,7 @@ const migrations = [
   { name: 'backfillCompanyShortNames', run: backfillCompanyShortNames },
   { name: 'fixTdsAccountNames', run: fixTdsAccountNames },
   { name: 'fixFiscalYearLabels', run: fixFiscalYearLabels },
+  { name: 'backfillInclusiveVatFlag', run: backfillInclusiveVatFlag },
 ];
 
 async function runMigrations() {

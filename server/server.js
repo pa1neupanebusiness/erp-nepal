@@ -109,6 +109,28 @@ app.post('/api/admin/fix-fiscal-year-labels', protect, async (req, res) => {
   }
 });
 
+app.post('/api/admin/backfill-inclusive-vat', protect, async (req, res) => {
+  if (req.user.role !== 'super_admin') return res.status(403).json({ message: 'Super admin only' });
+  try {
+    const sales = await Sale.find({ taxTotal: { $gt: 0 }, inclusiveVat: { $ne: true } }).select('items discount taxTotal grandTotal inclusiveVat').lean();
+    let updated = 0;
+    const fixes = [];
+    for (const s of sales) {
+      const rawSubTotalGross = (s.items || []).reduce((sum, it) => sum + (it.price || 0) * (it.quantity || 0), 0);
+      const rawAfterDiscount = Math.max(0, rawSubTotalGross - (s.discount || 0));
+      const looksExclusive = Math.abs((rawAfterDiscount + (s.taxTotal || 0)) - (s.grandTotal || 0)) < 0.5;
+      if (!looksExclusive) {
+        await Sale.updateOne({ _id: s._id }, { $set: { inclusiveVat: true } });
+        updated++;
+        fixes.push(s._id.toString());
+      }
+    }
+    res.json({ scanned: sales.length, markedInclusive: updated, ids: fixes });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'ERP System is running', version: '1.0.0' });
 });
