@@ -160,6 +160,10 @@ export function renderTaxInvoiceHtml(sale, company) {
           <td colspan="3" style="padding: 0;">
             <table class="summary-table">
               ${discount > 0 ? `<tr>
+                <td class="summary-label">Total</td>
+                <td class="summary-val">${num(subTotalGross)}</td>
+              </tr>
+              <tr>
                 <td class="summary-label">${discountPct.toFixed(2)}% Discount</td>
                 <td class="summary-val">${num(discount)}</td>
               </tr>` : ''}
