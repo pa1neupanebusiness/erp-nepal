@@ -109,12 +109,13 @@ export function openPrintWindow({ title, company, subtitle, docTitle, bodyHtml, 
   const iframe = document.createElement('iframe');
   iframe.setAttribute('aria-hidden', 'true');
   iframe.style.position = 'fixed';
-  iframe.style.right = '0';
-  iframe.style.bottom = '0';
+  iframe.style.top = '0';
+  iframe.style.left = '0';
   iframe.style.width = '210mm';
   iframe.style.height = '297mm';
   iframe.style.border = '0';
-  iframe.style.visibility = 'hidden';
+  iframe.style.zIndex = '-1';
+  iframe.style.opacity = '0.01';
   document.body.appendChild(iframe);
 
   const idoc = iframe.contentWindow.document;
@@ -138,12 +139,14 @@ export function openPrintWindow({ title, company, subtitle, docTitle, bodyHtml, 
 export function printHtmlDocument(html, title = 'Report') {
   const iframe = document.createElement('iframe');
   iframe.setAttribute('aria-hidden', 'true');
-  iframe.style.position = 'absolute';
-  iframe.style.left = '-10000px';
+  iframe.style.position = 'fixed';
   iframe.style.top = '0';
-  iframe.style.width = '800px';
-  iframe.style.height = '1000px';
+  iframe.style.left = '0';
+  iframe.style.width = '210mm';
+  iframe.style.height = '297mm';
   iframe.style.border = '0';
+  iframe.style.zIndex = '-1';
+  iframe.style.opacity = '0.01';
   document.body.appendChild(iframe);
 
   const idoc = iframe.contentWindow.document;
