@@ -315,6 +315,14 @@ router.get('/ledger/:accountId', protect, async (req, res) => {
   const account = await Account.findOne({ _id: req.params.accountId, ...req.companyFilter });
   if (!account) return res.status(404).json({ message: 'Account not found' });
 
+  // For parent accounts (10300 AR, 20100 AP), include all sub-accounts (103**, 201**)
+  let accountIds = [account._id];
+  const isParentAccount = ['10300', '20100'].includes(account.code);
+  if (isParentAccount) {
+    const subAccounts = await Account.find({ code: { $regex: `^${account.code.slice(0, 3)}` }, ...req.companyFilter });
+    accountIds = subAccounts.map(a => a._id);
+  }
+
   // Scope the ledger by the fiscal year the entry was recorded in when an explicit
   // fiscalYearId is supplied. Otherwise fall back to a date range (fiscal year bounds
   // derived from the selected FY, or explicit From/To dates).
@@ -346,20 +354,24 @@ router.get('/ledger/:accountId', protect, async (req, res) => {
   let opening = 0;
   if (periodStart) {
     const prior = await JournalEntry.find({
-      'lines.account': req.params.accountId, isPosted: true,
+      'lines.account': { $in: accountIds }, isPosted: true,
       ...req.companyFilter, date: { $lt: periodStart },
     });
     for (const e of prior) {
-      const line = e.lines.find(l => l.account?._id?.toString() === req.params.accountId || l.account?.toString() === req.params.accountId);
-      const debit = line?.debit || 0;
-      const credit = line?.credit || 0;
-      if (isDebit) opening += debit - credit;
-      else opening += credit - debit;
+      for (const acctId of accountIds) {
+        const line = e.lines.find(l => l.account?._id?.toString() === acctId.toString() || l.account?.toString() === acctId.toString());
+        if (line) {
+          const debit = line?.debit || 0;
+          const credit = line?.credit || 0;
+          if (isDebit) opening += debit - credit;
+          else opening += credit - debit;
+        }
+      }
     }
   }
 
   // Entries in the period: use the fiscal-year / date scope, not createdAt-based fyFilter
-  const entries = await JournalEntry.find({ 'lines.account': req.params.accountId, isPosted: true, ...req.companyFilter, ...scopeFilter, ...dateFilter })
+  const entries = await JournalEntry.find({ 'lines.account': { $in: accountIds }, isPosted: true, ...req.companyFilter, ...scopeFilter, ...dateFilter })
     .populate('lines.account', 'code name')
     .populate('createdBy', 'name')
     .sort({ date: 1, createdAt: 1 });
@@ -378,9 +390,14 @@ router.get('/ledger/:accountId', protect, async (req, res) => {
     });
   }
   for (const e of entries) {
-    const line = e.lines.find(l => l.account?._id?.toString() === req.params.accountId || l.account?.toString() === req.params.accountId);
-    const debit = line?.debit || 0;
-    const credit = line?.credit || 0;
+    let debit = 0, credit = 0;
+    for (const acctId of accountIds) {
+      const line = e.lines.find(l => l.account?._id?.toString() === acctId.toString() || l.account?.toString() === acctId.toString());
+      if (line) {
+        debit += line?.debit || 0;
+        credit += line?.credit || 0;
+      }
+    }
     if (isDebit) balance += debit - credit;
     else balance += credit - debit;
     rows.push({
