@@ -410,11 +410,11 @@ export default function Dashboard() {
             { key: 'product', label: 'Item', wide: true, render: (v) => v?.name || v || 'Unknown' },
             { key: 'price', label: 'Price', align: 'right', render: (v) => formatNPR(v) },
             { key: 'quantity', label: 'Qty', align: 'right' },
-            { key: 'tax', label: 'Tax', align: 'right', render: (v) => formatNPR(v) },
             { key: 'subtotal', label: 'Subtotal', align: 'right', render: (v) => formatNPR(v) },
           ]}
           rows={detail.items || []}
           footer={[
+            ...(detail.taxTotal > 0 ? [{ label: 'VAT', value: formatNPR(detail.taxTotal) }] : []),
             { label: 'Grand Total', value: formatNPR(detail.grandTotal) },
             { label: 'Paid', value: formatNPR(detail.amountPaid) },
             { label: 'Change', value: formatNPR(detail.change) },

@@ -154,7 +154,6 @@ export default function SalesList() {
             { key: 'product', label: 'Item', wide: true, render: (v) => v?.name || v || 'Unknown' },
             { key: 'price', label: 'Rate', align: 'right', render: (v) => formatNPR(v) },
             { key: 'quantity', label: 'Qty', align: 'right' },
-            { key: 'tax', label: 'Tax', align: 'right', render: (v) => v > 0 ? formatNPR(v) : '-' },
             { key: 'subtotal', label: 'Amount', align: 'right', render: (v) => formatNPR(v) },
           ]}
           rows={detail.items || []}
