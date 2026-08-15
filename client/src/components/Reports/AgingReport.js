@@ -8,6 +8,7 @@ import { useToast } from '../UI/Toast';
 export default function AgingReport() {
   const [data, setData] = useState(null);
   const [tab, setTab] = useState('receivable');
+  const [search, setSearch] = useState('');
   const [detail, setDetail] = useState(null);
   const [detailType, setDetailType] = useState('');
   const [showPayModal, setShowPayModal] = useState(false);
@@ -97,6 +98,10 @@ export default function AgingReport() {
         <button className={`tab ${tab === 'payable' ? 'active' : ''}`} onClick={() => setTab('payable')}>Accounts Payable - {data?.payable?.length || 0} items</button>
       </div>
 
+      <div style={{ padding: '0.5rem 0', marginBottom: '0.5rem' }}>
+        <input type="text" placeholder="Search customer / supplier..." value={search} onChange={e => setSearch(e.target.value)} style={{ padding: '0.4rem 0.7rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: 250 }} />
+      </div>
+
       <div className="card">
         {tab === 'receivable' && (
           <div>
@@ -115,7 +120,7 @@ export default function AgingReport() {
             <table className="table">
               <thead><tr><th>Customer</th><th>Phone</th><th>Invoice</th><th>Bank</th><th>Date</th><th>Amount</th><th>Aging</th></tr></thead>
               <tbody>
-                {data?.receivable?.map((r, i) => (
+                {data?.receivable?.filter(r => !search || (r.customer || '').toLowerCase().includes(search.toLowerCase())).map((r, i) => (
                   <tr key={i} style={{ cursor: 'pointer' }} onClick={() => handleReceivableClick(r)}>
                     <td>{r.customer}</td><td>{r.phone}</td>
                     <td>{r.invoice}{r.type === 'EMI' && <span className="badge badge-info" style={{ marginLeft: '0.35rem' }}>EMI</span>}</td>
@@ -146,7 +151,7 @@ export default function AgingReport() {
             <table className="table">
               <thead><tr><th>Supplier</th><th>Purchase#</th><th>Date</th><th>Due Amount</th><th>Aging</th></tr></thead>
               <tbody>
-                {data?.payable?.map((p, i) => (
+                {data?.payable?.filter(p => !search || (p.supplier || '').toLowerCase().includes(search.toLowerCase())).map((p, i) => (
                   <tr key={i} style={{ cursor: 'pointer' }} onClick={() => handlePayableClick(p)}>
                     <td>{p.supplier}</td><td>{p.purchaseNumber}</td>
                     <td>{new Date(p.date).toLocaleDateString('en-IN')}</td>

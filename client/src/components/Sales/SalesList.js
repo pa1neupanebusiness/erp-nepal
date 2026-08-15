@@ -15,6 +15,7 @@ export default function SalesList() {
   const [items, setItems] = useState([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [search, setSearch] = useState('');
   const [detail, setDetail] = useState(null);
   const [confirmRefund, setConfirmRefund] = useState(null);
   const [company, setCompany] = useState(null);
@@ -89,6 +90,7 @@ export default function SalesList() {
           </div>
           <button className="btn btn-primary" onClick={load}>Filter</button>
           <button className="btn btn-secondary" onClick={() => { setStartDate(''); setEndDate(''); }}>All</button>
+          <input type="text" placeholder="Search customer / invoice..." value={search} onChange={e => setSearch(e.target.value)} style={{ padding: '0.4rem 0.7rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: 200 }} />
           <div style={{ marginLeft: 'auto', fontWeight: 'bold' }}>Total: {formatNPR(totalSales)}</div>
         </div>
       </div>

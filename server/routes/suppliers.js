@@ -6,16 +6,12 @@ const JournalEntry = require('../models/JournalEntry');
 const { findOrCreateSupplierPayable } = require('../utils/supplierPayable');
 const { adjustBankBalance } = require('../utils/bankService');
 const { postJournalEntryAtomic } = require('../utils/postingEngine');
-const { adToBikramSambat } = require('../utils/dateUtils');
+const { adToBikramSambat, getBSFiscalYear } = require('../utils/dateUtils');
 const { protect, adminOnly } = require('../middleware/auth');
 const router = express.Router();
 
 function getFiscalYear(date) {
-  const d = new Date(date);
-  const m = d.getMonth() + 1, y = d.getFullYear(), dy = d.getDate();
-  const adStart = (m > 7 || (m === 7 && dy >= 16)) ? y : y - 1;
-  const bsStart = adStart + 57;
-  return `${String(bsStart).slice(-2)}/${String(bsStart + 1).slice(-2)}`;
+  return getBSFiscalYear(date).label;
 }
 
 router.get('/', protect, async (req, res) => {

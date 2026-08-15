@@ -4,8 +4,9 @@ const Sale = require('../models/Sale');
 const Emi = require('../models/Emi');
 const Customer = require('../models/Customer');
 const Account = require('../models/Account');
+const Company = require('../models/Company');
 const { protect, adminOnly } = require('../middleware/auth');
-const { adToBikramSambat } = require('../utils/dateUtils');
+const { adToBikramSambat, getBSFiscalYear } = require('../utils/dateUtils');
 const { adjustBankBalance } = require('../utils/bankService');
 const { postJournalEntryAtomic } = require('../utils/postingEngine');
 const { createNotification } = require('../utils/notifyService');
@@ -15,16 +16,19 @@ const { findOrCreateCustomerReceivable } = require('../utils/customerReceivable'
 const router = express.Router();
 
 function getFiscalYear(date) {
-  const d = new Date(date);
-  const m = d.getMonth() + 1, y = d.getFullYear(), dy = d.getDate();
-  if (m > 7 || (m === 7 && dy >= 16)) return `${y}-${y + 1}`;
-  return `${y - 1}-${y}`;
+  return getBSFiscalYear(date).label;
 }
 
 async function generateReceiptNo(req) {
-  const year = new Date().getFullYear();
-  const count = await PaymentIn.countDocuments({ company: req.companyId }) + 1;
-  return `RCT-${year}-${String(count).padStart(5, '0')}`;
+  const fy = getBSFiscalYear().label;
+  const company = await Company.findOneAndUpdate(
+    { _id: req.companyId },
+    { $inc: { receiptCounter: 1 } },
+    { new: true }
+  );
+  if (!company) throw new Error('No company');
+  const num = String(company.receiptCounter || 1).padStart(4, '0');
+  return `RCT-${fy}-${num}`;
 }
 
 const populateBase = [

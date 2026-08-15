@@ -5,14 +5,11 @@ const Bank = require('../models/Bank');
 const { protect } = require('../middleware/auth');
 const { postJournalEntryAtomic } = require('../utils/postingEngine');
 const { cancelDaybookEntries } = require('../utils/daybookService');
-const { adToBikramSambat } = require('../utils/dateUtils');
+const { adToBikramSambat, getBSFiscalYear } = require('../utils/dateUtils');
 const router = express.Router();
 
 function getFiscalYear(date) {
-  const d = new Date(date);
-  const m = d.getMonth() + 1, y = d.getFullYear(), dy = d.getDate();
-  if (m > 7 || (m === 7 && dy >= 16)) return `${y}-${y + 1}`;
-  return `${y - 1}-${y}`;
+  return getBSFiscalYear(date).label;
 }
 
 router.get('/', protect, async (req, res) => {

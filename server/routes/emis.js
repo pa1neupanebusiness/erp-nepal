@@ -10,24 +10,18 @@ const Supplier = require('../models/Supplier');
 const Bank = require('../models/Bank');
 const Company = require('../models/Company');
 const { protect, requirePANForLargeTx } = require('../middleware/auth');
-const { round100, buildIRDPayload, adToBikramSambat } = require('../utils/dateUtils');
+const { round100, buildIRDPayload, adToBikramSambat, getBSFiscalYear } = require('../utils/dateUtils');
 const { postJournalEntryAtomic, postEmiAtomic } = require('../utils/postingEngine');
 const { ensureCompanyEmiAccounts } = require('../utils/ensureEmiAccounts');
 const { adjustBankBalance } = require('../utils/bankService');
 const router = express.Router();
 
 function getFiscalYear(date) {
-  const d = new Date(date);
-  const m = d.getMonth() + 1, y = d.getFullYear(), dy = d.getDate();
-  if (m > 7 || (m === 7 && dy >= 16)) return `${y}-${y + 1}`;
-  return `${y - 1}-${y}`;
+  return getBSFiscalYear(date).label;
 }
 
 function getFiscalYearLabel(date) {
-  const d = new Date(date);
-  const m = d.getMonth() + 1, y = d.getFullYear(), dy = d.getDate();
-  const startYear = (m > 7 || (m === 7 && dy >= 16)) ? y : y - 1;
-  return `${startYear % 100}/${(startYear + 1) % 100}`;
+  return getBSFiscalYear(date).label;
 }
 
 async function generateEmiNumber(companyId) {

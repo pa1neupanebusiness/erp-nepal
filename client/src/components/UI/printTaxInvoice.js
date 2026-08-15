@@ -229,7 +229,7 @@ table.invoice-table th { font-weight: bold; text-align: center; font-size: 12px;
       <div class="company-title">${companyName}</div>
       <div class="company-detail">${address}</div>
       <div class="company-detail">Phone: ${phone}${email}</div>
-      <div class="doc-title">Tax Invoice</div>
+      <div class="doc-title">Invoice</div>
     </div>
     ${bodyHtml}
     <div class="footer-section">

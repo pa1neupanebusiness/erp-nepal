@@ -23,6 +23,7 @@ export default function PaymentIn() {
   const [banks, setBanks] = useState([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [detail, setDetail] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -163,6 +164,7 @@ export default function PaymentIn() {
         <div className="form-group" style={{ margin: 0 }}><label style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b' }}>To</label><NepaliDatePicker value={endDate} onChange={setEndDate} /></div>
         <button className="btn btn-primary" onClick={load}>Apply Filter</button>
         {(startDate || endDate) && <button className="btn btn-secondary" onClick={() => { setStartDate(''); setEndDate(''); setTimeout(load, 0); }}>Clear</button>}
+        <input type="text" placeholder="Search customer / receipt..." value={search} onChange={e => setSearch(e.target.value)} style={{ padding: '0.4rem 0.7rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: 200 }} />
       </div>
 
       <div className="report-summary" style={{ marginBottom: '1.25rem', gridTemplateColumns: 'repeat(6, 1fr)' }}>
@@ -246,7 +248,7 @@ export default function PaymentIn() {
           <table className="table">
             <thead><tr><th>Receipt No</th><th>Date</th><th>Customer</th><th>Method</th><th>Applied To</th><th className="text-right">Amount</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
-              {items.map(p => {
+              {items.filter(p => !search || (p.customer?.name || '').toLowerCase().includes(search.toLowerCase()) || (p.receiptNumber || '').toLowerCase().includes(search.toLowerCase())).map(p => {
                 const ms = METHOD_STYLES[p.method] || METHOD_STYLES.cash;
                 return (
                 <tr key={p._id} style={{ cursor: 'pointer' }} onClick={() => setDetail(p)}>

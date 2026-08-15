@@ -37,8 +37,8 @@ export default function PurchaseReturn() {
 
   const submitReturn = async () => {
     const items = returnModal.items
-      .filter(it => parseFloat(returnForm[String(it.product)]) > 0)
-      .map(it => ({ product: it.product._id || it.product, quantity: parseFloat(returnForm[String(it.product)]) }));
+      .filter(it => parseFloat(returnForm[String(it.product?._id || it.product)]) > 0)
+      .map(it => ({ product: it.product?._id || it.product, quantity: parseFloat(returnForm[String(it.product?._id || it.product)]) }));
     if (items.length === 0) { addToast('Enter quantity to return for at least one item', 'error'); return; }
     try {
       await api.post(`/purchases/${returnModal._id}/return`, { items, reason: returnReason });
@@ -209,14 +209,19 @@ export default function PurchaseReturn() {
                 <thead><tr><th>Product</th><th>Purchased</th><th>Returned</th><th>Qty to Return</th></tr></thead>
                 <tbody>
                   {returnModal.items.map((it, i) => {
-                    const already = (returnModal.returns || []).filter(x => x.product && String(x.product) === String(it.product)).reduce((s, x) => s + x.quantity, 0);
+                    const productId = it.product?._id || it.product;
+                    const productName = it.product?.name || 'Unknown';
+                    const already = (returnModal.returns || []).filter(x => {
+                      const retId = x.product?._id || x.product;
+                      return retId && String(retId) === String(productId);
+                    }).reduce((s, x) => s + x.quantity, 0);
                     const max = Math.max(0, it.quantity - already);
                     return (
                       <tr key={i}>
-                        <td>{it.product?.name || 'Unknown'}</td>
+                        <td>{productName}</td>
                         <td>{it.quantity}</td>
                         <td>{already}</td>
-                        <td><input type="number" min="0" max={max} value={returnForm[String(it.product)] || ''} onChange={e => setReturnForm({ ...returnForm, [String(it.product)]: e.target.value })} placeholder={`0 / ${max}`} /></td>
+                        <td><input type="number" min="0" max={max} value={returnForm[String(productId)] || ''} onChange={e => setReturnForm({ ...returnForm, [String(productId)]: e.target.value })} placeholder={`0 / ${max}`} /></td>
                       </tr>
                     );
                   })}

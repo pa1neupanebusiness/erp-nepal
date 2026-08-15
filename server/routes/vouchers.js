@@ -4,13 +4,11 @@ const Company = require('../models/Company');
 const Account = require('../models/Account');
 const JournalEntry = require('../models/JournalEntry');
 const { protect } = require('../middleware/auth');
+const { getBSFiscalYear } = require('../utils/dateUtils');
 const router = express.Router();
 
 function getFiscalYear(date) {
-  const d = new Date(date);
-  const m = d.getMonth() + 1, y = d.getFullYear(), dy = d.getDate();
-  if (m > 7 || (m === 7 && dy >= 16)) return `${y}-${y + 1}`;
-  return `${y - 1}-${y}`;
+  return getBSFiscalYear(date).label;
 }
 
 function getFyLabel(date) {
@@ -22,7 +20,7 @@ function getFyLabel(date) {
 
 async function generateVoucherNo(companyId, type) {
   if (!companyId) throw new Error('No company assigned');
-  const fy = getFyLabel(new Date());
+  const fy = getBSFiscalYear().label;
   const prefix = { payment: 'PMT', receipt: 'RCT', contra: 'CTR', journal: 'JVR' }[type] || 'VCH';
   for (let i = 0; i < 10; i++) {
     const company = await Company.findOneAndUpdate(

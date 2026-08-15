@@ -13,6 +13,7 @@ export default function PaymentOut() {
   const [suppliers, setSuppliers] = useState([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [detail, setDetail] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -111,6 +112,7 @@ export default function PaymentOut() {
         <div className="form-group" style={{ margin: 0 }}><label>To</label><NepaliDatePicker value={endDate} onChange={setEndDate} /></div>
         <button className="btn btn-primary" onClick={load}>Filter</button>
         <button className="btn btn-secondary" onClick={() => { setStartDate(''); setEndDate(''); load(); }}>All</button>
+        <input type="text" placeholder="Search supplier / payment..." value={search} onChange={e => setSearch(e.target.value)} style={{ padding: '0.4rem 0.7rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: 200 }} />
       </div>
 
       <div className="report-summary" style={{ marginBottom: '1rem' }}>
@@ -177,7 +179,7 @@ export default function PaymentOut() {
           <table className="table">
             <thead><tr><th>Payment No</th><th>Date</th><th>Supplier</th><th>Method</th><th>Amount</th><th>Invoices</th><th>Status</th><th>Remarks</th><th>Actions</th></tr></thead>
             <tbody>
-              {items.map(p => (
+              {items.filter(p => !search || (p.supplier?.name || '').toLowerCase().includes(search.toLowerCase()) || (p.paymentNumber || '').toLowerCase().includes(search.toLowerCase())).map(p => (
                 <tr key={p._id} style={{ cursor: 'pointer' }} onClick={() => setDetail(p)}>
                   <td>{p.paymentNumber}</td>
                   <td>{new Date(p.date).toLocaleDateString('en-IN')}</td>

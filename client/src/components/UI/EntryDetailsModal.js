@@ -23,9 +23,9 @@ export default function EntryDetailsModal({ title, subtitle, meta = [], columns 
         <div className="modal-body">
           {subtitle && <div className="text-muted" style={{ marginBottom: '0.75rem' }}>{subtitle}</div>}
           {meta.length > 0 && (
-            <div className="form-grid" style={{ gridTemplateColumns: `repeat(${Math.min(meta.length, 3)}, 1fr)`, marginBottom: '0.75rem' }}>
+            <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', marginBottom: '0.75rem' }}>
               {meta.map((m, i) => (
-                <div key={i} style={{ fontSize: '0.85rem' }}>
+                <div key={i} style={{ fontSize: '0.85rem', overflow: 'hidden', wordBreak: 'break-word' }}>
                   <div className="text-muted" style={{ fontSize: '0.75rem' }}>{m.label}</div>
                   <strong>{m.value}</strong>
                 </div>

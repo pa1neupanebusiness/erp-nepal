@@ -12,6 +12,7 @@ export default function Purchases() {
   const [suppliers, setSuppliers] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [search, setSearch] = useState('');
   const [form, setForm] = useState({ date: adToBsStr(new Date()), type: 'direct', supplier: '', items: [{ product: '', quantity: 1, costPrice: 0, sellingPrice: 0, batch: '', subtotal: 0 }], discount: 0, vatPercent: 0, inclusiveVat: false, applyTds: false, paidAmount: 0, paymentMethod: 'cash', bank: '', chequeNumber: '', paymentRemarks: '', note: '' });
   const [detail, setDetail] = useState(null);
   const [detailsId, setDetailsId] = useState(null);
@@ -400,9 +401,8 @@ export default function Purchases() {
             </div>
             <div className="form-group"><label>Paid Amount</label><input type="number" value={form.paidAmount} onChange={e => setForm({ ...form, paidAmount: e.target.value })} /></div>
           </div>
-          {parseFloat(form.paidAmount) > 0 && (
-            <div className="form-group" style={{ marginTop: '0.75rem' }}>
-              <label>Payment From (choose account)</label>
+          <div className="form-group" style={{ marginTop: '0.75rem' }}>
+              <label>Payment Method</label>
               <div className="pay-method-toggle" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <button type="button" className={`pay-method-option ${form.paymentMethod === 'cash' ? 'active' : ''}`} onClick={() => setForm({ ...form, paymentMethod: 'cash', bank: '', splits: undefined })}>
                   <span className="pay-method-icon">💵</span>
@@ -445,7 +445,6 @@ export default function Purchases() {
                 </div>
               )}
             </div>
-          )}
           {vatPct > 0 && (
             <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr', marginTop: '0.5rem' }}>
               <div className="form-group"><label>{form.inclusiveVat ? 'VAT (included in prices)' : 'VAT Amount (Rs.)'}</label><div style={{ padding: '0.5rem 0', fontWeight: 600, color: '#dc2626' }}>{formatNPR(vatAmount)}</div></div>
@@ -479,10 +478,13 @@ export default function Purchases() {
       )}
 
       <div className="card">
+        <div style={{ padding: '0.5rem 0', marginBottom: '0.5rem' }}>
+          <input type="text" placeholder="Search supplier / PO number..." value={search} onChange={e => setSearch(e.target.value)} style={{ padding: '0.4rem 0.7rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: 250 }} />
+        </div>
         <table className="table">
           <thead><tr><th>PO#</th><th>Date</th><th>Type</th><th>Supplier</th><th>Items</th><th>Total</th><th>Paid</th><th>Due</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
-            {items.map(p => (
+            {items.filter(p => !search || (p.supplier?.name || '').toLowerCase().includes(search.toLowerCase()) || (p.purchaseNumber || '').toLowerCase().includes(search.toLowerCase())).map(p => (
               <tr key={p._id} onClick={() => setDetailsId(p._id)} style={{ cursor: 'pointer' }}>
                 <td><strong>{p.purchaseNumber}</strong></td>
                 <td>{new Date(p.date).toLocaleDateString('en-IN')}</td>

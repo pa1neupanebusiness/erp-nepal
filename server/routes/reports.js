@@ -18,10 +18,7 @@ const { getClientIp } = require('../utils/irdAudit');
 const router = express.Router();
 
 function getFiscalYear(date) {
-  const d = new Date(date);
-  const m = d.getMonth() + 1, y = d.getFullYear(), dy = d.getDate();
-  if (m > 7 || (m === 7 && dy >= 16)) return `${y}-${y + 1}`;
-  return `${y - 1}-${y}`;
+  return getBSFiscalYear(date).label;
 }
 
 function formatNPR(n) {
@@ -862,7 +859,7 @@ router.post('/pay-tax', protect, adminOnly, async (req, res) => {
     const ref = `${taxType.toUpperCase()}-PAY-${Date.now().toString(36).slice(-6).toUpperCase()}`;
 
     const { postJournalEntryAtomic } = require('../utils/postingEngine');
-    const { adToBikramSambat } = require('../utils/dateUtils');
+const { adToBikramSambat, getBSFiscalYear } = require('../utils/dateUtils');
 
     await postJournalEntryAtomic({
       companyId: req.companyId,

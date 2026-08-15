@@ -18,10 +18,7 @@ const { findOrCreateCustomerReceivable } = require('../utils/customerReceivable'
 const router = express.Router();
 
 function getFiscalYear(date) {
-  const d = new Date(date);
-  const m = d.getMonth() + 1, y = d.getFullYear(), dy = d.getDate();
-  if (m > 7 || (m === 7 && dy >= 16)) return `${y}-${y + 1}`;
-  return `${y - 1}-${y}`;
+  return getBSFiscalYear(date).label;
 }
 
 function getFiscalYearLabel(date) {
@@ -272,7 +269,8 @@ async function postRefundJournalEntry(sale, req, { remark }) {
     const cd = await Customer.findOne({ _id: sale.customer, ...req.companyFilter }).lean();
     if (cd) {
       const car = await findOrCreateCustomerReceivable(req.companyId, req.companyFilter, cd);
-      refundLines.push({ account: car._id, debit: 0, credit: sale.grandTotal });
+      const outstanding = Math.max(0, (sale.grandTotal || 0) - (sale.amountPaid || 0));
+      refundLines.push({ account: car._id, debit: 0, credit: outstanding });
     }
   } else if (sale.paymentMethod === 'qr' || sale.paymentMethod === 'bank') {
     refundLines.push({ account: bankAccount._id, debit: 0, credit: sale.grandTotal, bank: sale.bank || null });
@@ -317,7 +315,7 @@ router.get('/', protect, async (req, res) => {
     filter.createdAt = { ...filter.createdAt, $lte: new Date(req.query.endDate) };
   }
   const items = await Sale.find(filter)
-    .populate('customer', 'name phone')
+    .populate('customer', 'name phone pan address')
     .populate('cashier', 'name')
     .populate('items.product', 'name sku')
     .sort({ createdAt: -1 });
@@ -327,7 +325,8 @@ router.get('/', protect, async (req, res) => {
 router.get('/:id', protect, async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid ID' });
   const item = await Sale.findOne({ _id: req.params.id, ...req.companyFilter })
-    .populate('customer cashier')
+    .populate('customer', 'name phone pan address')
+    .populate('cashier', 'name')
     .populate('items.product');
   res.json(item);
 });
@@ -582,6 +581,8 @@ router.post('/refund-by-invoice', protect, adminOnly, async (req, res) => {
   if (sale.status === 'refunded') return res.status(400).json({ message: 'Sale already refunded' });
   sale.status = 'refunded';
   sale.refundRemark = remark;
+  sale.amountPaid = sale.grandTotal;
+  sale.dueAmount = 0;
   await sale.save();
   for (const item of sale.items) {
     const product = await Product.findOne({ _id: item.product, ...req.companyFilter });
@@ -610,6 +611,8 @@ router.post('/:id/refund', protect, adminOnly, async (req, res) => {
   if (sale.status === 'refunded') return res.status(400).json({ message: 'Sale already refunded' });
   sale.status = 'refunded';
   sale.refundRemark = remark;
+  sale.amountPaid = sale.grandTotal;
+  sale.dueAmount = 0;
   await sale.save();
   for (const item of sale.items) {
     const product = await Product.findOne({ _id: item.product, ...req.companyFilter });

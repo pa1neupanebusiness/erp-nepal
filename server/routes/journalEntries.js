@@ -4,17 +4,11 @@ const Account = require('../models/Account');
 const JournalEntry = require('../models/JournalEntry');
 const { protect, adminOnly } = require('../middleware/auth');
 const fiscalYearFilter = require('../middleware/fiscalYear');
-const { adToBikramSambat } = require('../utils/dateUtils');
+const { adToBikramSambat, getBSFiscalYear } = require('../utils/dateUtils');
 const router = express.Router();
 
 function getFiscalYear(date) {
-  const d = new Date(date);
-  const month = d.getMonth() + 1;
-  const year = d.getFullYear();
-  const day = d.getDate();
-  // Nepal F.Y. starts from Shrawan 1 (~July 16)
-  if (month > 7 || (month === 7 && day >= 16)) return `${year}-${year + 1}`;
-  return `${year - 1}-${year}`;
+  return getBSFiscalYear(date).label;
 }
 
 // Control accounts that require a Customer / Vendor sub-ledger on every line.

@@ -9,7 +9,7 @@ const Company = require('../models/Company');
 const FiscalYear = require('../models/FiscalYear');
 const { protect } = require('../middleware/auth');
 const { getPrintStyles } = require('../utils/printStyles');
-const { adToBikramSambat } = require('../utils/dateUtils');
+const { adToBikramSambat, getBSFiscalYear } = require('../utils/dateUtils');
 const router = express.Router();
 
 /* ───────────────────────────── HELPERS ────────────────────────── */
@@ -24,17 +24,11 @@ function fmtDate(d) {
 }
 
 function getFiscalYear(date) {
-  const d = new Date(date);
-  const m = d.getMonth() + 1, y = d.getFullYear(), dy = d.getDate();
-  const adStart = (m > 7 || (m === 7 && dy >= 16)) ? y : y - 1;
-  return `${adStart}-${adStart + 1}`;
+  return getBSFiscalYear(date).label;
 }
 
 function getFiscalYearLabel(date) {
-  const d = new Date(date);
-  const m = d.getMonth() + 1, y = d.getFullYear(), dy = d.getDate();
-  const startYear = (m > 7 || (m === 7 && dy >= 16)) ? y : y - 1;
-  return `${startYear % 100}/${(startYear + 1) % 100}`;
+  return getBSFiscalYear(date).label;
 }
 
 function escapeHtml(str) {

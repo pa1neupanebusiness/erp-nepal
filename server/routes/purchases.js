@@ -35,10 +35,7 @@ async function generatePurchaseNo(companyId) {
 }
 
 function getFiscalYear(date) {
-  const d = new Date(date);
-  const m = d.getMonth() + 1, y = d.getFullYear(), dy = d.getDate();
-  if (m > 7 || (m === 7 && dy >= 16)) return `${y}-${y + 1}`;
-  return `${y - 1}-${y}`;
+  return getBSFiscalYear(date).label;
 }
 
 function getFiscalYearLabel(date) {
@@ -152,8 +149,17 @@ router.post('/', protect, async (req, res) => {
     }
     // Cash/Bank credit for payment
     if (paidAmount > 0) {
-      const cashOrBank = paymentMethod === 'bank' ? bankAccount : cashAccount;
-      lines.push({ account: cashOrBank?._id, debit: 0, credit: paidAmount, bank: paymentMethod === 'bank' ? (bank || null) : null });
+      if (paymentMethod === 'split' && req.body.splits && req.body.splits.length > 0) {
+        for (const sp of req.body.splits) {
+          if (!sp.amount || sp.amount <= 0) continue;
+          const spAccount = sp.method === 'bank' ? bankAccount : cashAccount;
+          lines.push({ account: spAccount?._id, debit: 0, credit: sp.amount, bank: sp.method === 'bank' ? (sp.bank || null) : null });
+        }
+      } else if (paymentMethod === 'bank') {
+        lines.push({ account: bankAccount?._id, debit: 0, credit: paidAmount, bank: bank || null });
+      } else {
+        lines.push({ account: cashAccount?._id, debit: 0, credit: paidAmount });
+      }
     }
     // TDS Payable credit
     if (tds > 0 && tdsAccount) {
@@ -187,8 +193,17 @@ router.post('/', protect, async (req, res) => {
         dayLines.push({ account: payableAccount._id, accountName: payableAccount?.name || 'Accounts Payable', debit: paidAmount, credit: 0, partyType: 'supplier', partyId: supplier, partyName: supplierDoc?.name || '' });
       }
       if (paidAmount > 0) {
-        const cashOrBank = paymentMethod === 'bank' ? bankAccount : cashAccount;
-        dayLines.push({ account: cashOrBank?._id, accountName: cashOrBank?.name || 'Cash (Teji/Nagad)', debit: 0, credit: paidAmount });
+        if (paymentMethod === 'split' && req.body.splits && req.body.splits.length > 0) {
+          for (const sp of req.body.splits) {
+            if (!sp.amount || sp.amount <= 0) continue;
+            const spAccount = sp.method === 'bank' ? bankAccount : cashAccount;
+            dayLines.push({ account: spAccount?._id, accountName: spAccount?.name || (sp.method === 'bank' ? 'Bank' : 'Cash'), debit: 0, credit: sp.amount, bank: sp.method === 'bank' ? (sp.bank || null) : null });
+          }
+        } else if (paymentMethod === 'bank') {
+          dayLines.push({ account: bankAccount?._id, accountName: bankAccount?.name || 'Bank', debit: 0, credit: paidAmount, bank: bank || null });
+        } else {
+          dayLines.push({ account: cashAccount?._id, accountName: cashAccount?.name || 'Cash (Teji/Nagad)', debit: 0, credit: paidAmount });
+        }
       }
       if (tds > 0 && tdsAccount) {
         dayLines.push({ account: tdsAccount._id, accountName: tdsAccount.name, debit: 0, credit: tds });
@@ -225,6 +240,13 @@ router.post('/', protect, async (req, res) => {
         },
       });
       if (paymentMethod === 'bank' && paidAmount > 0 && bank) await adjustBankBalance(bank, -paidAmount, req.companyFilter).catch(() => {});
+      if (paymentMethod === 'split' && req.body.splits && req.body.splits.length > 0) {
+        for (const sp of req.body.splits) {
+          if (sp.method === 'bank' && sp.amount > 0 && sp.bank) {
+            await adjustBankBalance(sp.bank, -sp.amount, req.companyFilter).catch(() => {});
+          }
+        }
+      }
     }
   } catch (err) { console.error('Purchase journal error:', err.message); }
 
@@ -397,8 +419,19 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     const apCredit = (updated.grandTotal || 0) - (updated.tds || 0);
     if (payableAccount && apCredit > 0) lines.push({ account: payableAccount._id, debit: 0, credit: apCredit, subLedger: { supplier: updated.supplier } });
     if (payableAccount && updated.paidAmount > 0) lines.push({ account: payableAccount._id, debit: updated.paidAmount, credit: 0, subLedger: { supplier: updated.supplier } });
-    const paidAcc = updated.paymentMethod === 'bank' ? bankAccount : cashAccount;
-    if (paidAcc && updated.paidAmount > 0) lines.push({ account: paidAcc._id, debit: 0, credit: updated.paidAmount });
+    if (updated.paidAmount > 0) {
+      if (updated.paymentMethod === 'split' && updated.paymentSplits && updated.paymentSplits.length > 0) {
+        for (const sp of updated.paymentSplits) {
+          if (!sp.amount || sp.amount <= 0) continue;
+          const spAccount = sp.method === 'bank' ? bankAccount : cashAccount;
+          lines.push({ account: spAccount?._id, debit: 0, credit: sp.amount, bank: sp.method === 'bank' ? (sp.bank || null) : null });
+        }
+      } else if (updated.paymentMethod === 'bank') {
+        lines.push({ account: bankAccount?._id, debit: 0, credit: updated.paidAmount, bank: updated.bank || null });
+      } else {
+        lines.push({ account: cashAccount?._id, debit: 0, credit: updated.paidAmount });
+      }
+    }
     if (updated.tds > 0) {
       const tdsAcc = await Account.findOne({ code: '20300', ...req.companyFilter });
       if (tdsAcc) lines.push({ account: tdsAcc._id, debit: 0, credit: updated.tds });
