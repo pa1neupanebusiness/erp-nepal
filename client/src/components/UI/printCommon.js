@@ -32,8 +32,8 @@ table.data-table th { background-color: #f0f0f0; font-weight: bold; }
 .report-subtitle { text-align: center; color: #555; font-size: 13px; margin: 4px 0 12px; }
 .footer-text { font-size: 10px; color: #888; }
 .avoid-break { page-break-inside: avoid; }
-.meta-list { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; margin-bottom: 16px; }
-.meta-item { display: flex; justify-content: space-between; border-bottom: 1px dotted #ccc; padding: 3px 0; font-size: 12px; }
+.meta-list { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; margin-bottom: 16px; }
+.meta-item { display: inline-flex; gap: 6px; border-bottom: 1px dotted #ccc; padding: 3px 0; font-size: 12px; white-space: nowrap; }
 .mlabel { color: #555; }
 .mvalue { font-weight: bold; }
 .emi-meta { margin: 4px 0 14px; line-height: 1.7; font-size: 12px; }
