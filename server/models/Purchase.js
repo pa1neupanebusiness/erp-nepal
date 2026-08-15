@@ -30,7 +30,12 @@ const purchaseSchema = new mongoose.Schema({
   status: { type: String, enum: ['pending', 'received', 'cancelled'], default: 'received' },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   note: { type: String },
-  paymentMethod: { type: String, enum: ['cash', 'bank', ''], default: '' },
+  paymentMethod: { type: String, enum: ['cash', 'bank', 'split', ''], default: '' },
+  paymentSplits: [{
+    method: { type: String, enum: ['cash', 'bank'], required: true },
+    amount: { type: Number, required: true },
+    bank: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank' },
+  }],
   bank: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank' },
   chequeNumber: { type: String, default: '' },
   paymentRemarks: { type: String, default: '' },

@@ -72,6 +72,18 @@ function adToBikramSambat(adDate) {
   return `${bsYear}-${pad(bsMonth)}-${pad(bsDay)}`;
 }
 
+function getBSFiscalYear(date) {
+  const bsStr = adToBikramSambat(date || new Date());
+  if (!bsStr) return { startYear: 2083, endYear: 2084, label: '2083/84' };
+  const [bsYearStr, bsMonthStr] = bsStr.split('-');
+  const bsYear = parseInt(bsYearStr, 10);
+  const bsMonth = parseInt(bsMonthStr, 10);
+  if (bsMonth >= 4) {
+    return { startYear: bsYear, endYear: bsYear + 1, label: `${bsYear}/${String(bsYear + 1).slice(-2)}` };
+  }
+  return { startYear: bsYear - 1, endYear: bsYear, label: `${bsYear - 1}/${String(bsYear).slice(-2)}` };
+}
+
 function formatNPR(n) {
   return 'Rs. ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
 }
@@ -112,6 +124,7 @@ function buildIRDPayload({ invoiceNumber, miti, adDate, transactionType, seller,
 module.exports = {
   pad,
   adToBikramSambat,
+  getBSFiscalYear,
   formatNPR,
   round100,
   buildIRDPayload,

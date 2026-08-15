@@ -11,14 +11,14 @@ const { protect, adminOnly } = require('../middleware/auth');
 const { postDaybookEntries, cancelDaybookEntries } = require('../utils/daybookService');
 const { getClientIp } = require('../utils/irdAudit');
 const { adjustBankBalance } = require('../utils/bankService');
-const { adToBikramSambat } = require('../utils/dateUtils');
+const { adToBikramSambat, getBSFiscalYear } = require('../utils/dateUtils');
 const { postJournalEntryAtomic } = require('../utils/postingEngine');
 const { createNotification } = require('../utils/notifyService');
 const router = express.Router();
 
 async function generatePurchaseNo(companyId) {
   if (!companyId) throw new Error('No company assigned');
-  const fy = getFiscalYearLabel(new Date());
+  const fy = getBSFiscalYear().label;
   for (let i = 0; i < 10; i++) {
     const company = await Company.findOneAndUpdate(
       { _id: companyId },
@@ -42,10 +42,7 @@ function getFiscalYear(date) {
 }
 
 function getFiscalYearLabel(date) {
-  const d = new Date(date);
-  const m = d.getMonth() + 1, y = d.getFullYear(), dy = d.getDate();
-  const startYear = (m > 7 || (m === 7 && dy >= 16)) ? y : y - 1;
-  return `${startYear % 100}/${(startYear + 1) % 100}`;
+  return getBSFiscalYear(date).label;
 }
 
 router.get('/', protect, async (req, res) => {

@@ -65,10 +65,20 @@ router.get('/:id/fy-total', protect, async (req, res) => {
 });
 
 router.post('/:id/pay', protect, adminOnly, async (req, res) => {
-  const { amount, method, bank, chequeNumber, remarks } = req.body;
+  const { amount, method, bank, chequeNumber, remarks, splits } = req.body;
   if (!amount || amount <= 0) return res.status(400).json({ message: 'Invalid amount' });
-  if (method === 'bank' && !chequeNumber) return res.status(400).json({ message: 'Cheque number required for bank payment' });
-  if (method === 'bank' && !bank) return res.status(400).json({ message: 'Bank is required for bank payment' });
+
+  const isSplit = method === 'split' && splits && splits.length > 0;
+  if (!isSplit) {
+    if (method === 'bank' && !chequeNumber) return res.status(400).json({ message: 'Cheque number required for bank payment' });
+    if (method === 'bank' && !bank) return res.status(400).json({ message: 'Bank is required for bank payment' });
+  } else {
+    const totalSplit = splits.reduce((s, sp) => s + (sp.amount || 0), 0);
+    if (Math.abs(totalSplit - amount) > 0.01) return res.status(400).json({ message: `Split total (${totalSplit}) must equal payment amount (${amount})` });
+    for (const sp of splits) {
+      if ((sp.method === 'bank' || sp.method === 'qr') && !sp.bank) return res.status(400).json({ message: 'Bank is required for QR/Bank split payments' });
+    }
+  }
 
   const purchases = await Purchase.find({ supplier: req.params.id, dueAmount: { $gt: 0 }, ...req.companyFilter }).sort({ date: 1 });
   if (purchases.length === 0) return res.status(400).json({ message: 'No outstanding dues for this supplier' });
@@ -82,9 +92,14 @@ router.post('/:id/pay', protect, adminOnly, async (req, res) => {
     const payAgainst = Math.min(remaining, purchase.dueAmount);
     purchase.paidAmount = (purchase.paidAmount || 0) + payAgainst;
     purchase.dueAmount = Math.round((purchase.dueAmount - payAgainst) * 100) / 100;
-    purchase.paymentMethod = method || 'cash';
-    if (chequeNumber) purchase.chequeNumber = chequeNumber;
-    if (remarks) purchase.paymentRemarks = remarks;
+    purchase.paymentMethod = isSplit ? 'split' : (method || 'cash');
+    if (!isSplit) {
+      if (chequeNumber) purchase.chequeNumber = chequeNumber;
+      if (remarks) purchase.paymentRemarks = remarks;
+    } else {
+      purchase.paymentSplits = splits.filter(sp => sp.amount > 0);
+      if (remarks) purchase.paymentRemarks = remarks;
+    }
     await purchase.save();
     remaining = Math.round((remaining - payAgainst) * 100) / 100;
   }
@@ -94,38 +109,65 @@ router.post('/:id/pay', protect, adminOnly, async (req, res) => {
     const payableAccount = await findOrCreateSupplierPayable(req.companyId, req.companyFilter, supplier);
     const cashAccount = await Account.findOne({ code: '10100', ...req.companyFilter });
     const bankAccount = await Account.findOne({ code: '10200', ...req.companyFilter });
-    const acct = method === 'bank' ? bankAccount : cashAccount;
-    if (payableAccount && acct) {
-      const now = new Date();
-      await postJournalEntryAtomic({
-        companyId: req.companyId,
-        date: now,
-        reference: `SUPP-PAY-${Date.now()}`,
-        description: `Payment to supplier ${supplier?.name || ''}${chequeNumber ? ' (Chq: ' + chequeNumber + ')' : ''}`,
-        lines: [
-          { account: payableAccount._id, debit: amount, credit: 0, subLedger: { supplier: supplier._id } },
-          { account: acct._id, debit: 0, credit: amount, bank: method === 'bank' ? (bank || null) : null },
-        ],
-        createdBy: req.user._id,
-        fiscalYear: getFiscalYear(now),
-        fiscalYearId: req.fiscalYearId || undefined,
-        miti: adToBikramSambat(now),
-        companyFilter: req.companyFilter,
-        daybook: {
-          date: now,
-          sourceModule: 'SUPPLIER_PAYMENT',
-          daybookType: 'CASH_BOOK',
-          documentNumber: `SUPP-PAY-${Date.now()}`,
-          sourceRef: String(req.params.id),
-          narration: `Payment to supplier ${supplier?.name || ''}`,
+    const now = new Date();
+
+    if (isSplit) {
+      for (const sp of splits) {
+        if (!sp.amount || sp.amount <= 0) continue;
+        const acct = (sp.method === 'bank' || sp.method === 'qr') ? bankAccount : cashAccount;
+        if (payableAccount && acct) {
+          await postJournalEntryAtomic({
+            companyId: req.companyId, date: now,
+            reference: `SUPP-PAY-${Date.now()}`,
+            description: `Payment to supplier ${supplier?.name || ''} (${sp.method})`,
+            lines: [
+              { account: payableAccount._id, debit: sp.amount, credit: 0, subLedger: { supplier: supplier._id } },
+              { account: acct._id, debit: 0, credit: sp.amount, bank: (sp.method === 'bank' || sp.method === 'qr') ? (sp.bank || null) : null },
+            ],
+            createdBy: req.user._id, fiscalYear: getFiscalYear(now),
+            fiscalYearId: req.fiscalYearId || undefined, miti: adToBikramSambat(now),
+            companyFilter: req.companyFilter,
+            daybook: {
+              date: now, sourceModule: 'SUPPLIER_PAYMENT', daybookType: 'CASH_BOOK',
+              documentNumber: `SUPP-PAY-${Date.now()}`, sourceRef: String(req.params.id),
+              narration: `Payment to supplier ${supplier?.name || ''} (${sp.method})`,
+              lines: [
+                { account: payableAccount._id, accountName: payableAccount.name, debit: sp.amount, credit: 0, partyType: 'supplier', partyId: supplier._id, partyName: supplier?.name || '' },
+                { account: acct._id, accountName: acct.name || ((sp.method === 'bank' || sp.method === 'qr') ? 'Bank' : 'Cash'), debit: 0, credit: sp.amount },
+              ],
+              createdBy: req.user._id,
+            },
+          });
+          if ((sp.method === 'bank' || sp.method === 'qr') && sp.bank) await adjustBankBalance(sp.bank, -sp.amount, req.companyFilter).catch(() => {});
+        }
+      }
+    } else {
+      const acct = method === 'bank' ? bankAccount : cashAccount;
+      if (payableAccount && acct) {
+        await postJournalEntryAtomic({
+          companyId: req.companyId, date: now,
+          reference: `SUPP-PAY-${Date.now()}`,
+          description: `Payment to supplier ${supplier?.name || ''}${chequeNumber ? ' (Chq: ' + chequeNumber + ')' : ''}`,
           lines: [
-            { account: payableAccount._id, accountName: payableAccount.name, debit: amount, credit: 0, partyType: 'supplier', partyId: supplier._id, partyName: supplier?.name || '' },
-            { account: acct._id, accountName: acct.name || (method === 'bank' ? 'Bank' : 'Cash'), debit: 0, credit: amount },
+            { account: payableAccount._id, debit: amount, credit: 0, subLedger: { supplier: supplier._id } },
+            { account: acct._id, debit: 0, credit: amount, bank: method === 'bank' ? (bank || null) : null },
           ],
-          createdBy: req.user._id,
-        },
-      });
-      if (method === 'bank' && bank) await adjustBankBalance(bank, -amount, req.companyFilter).catch(() => {});
+          createdBy: req.user._id, fiscalYear: getFiscalYear(now),
+          fiscalYearId: req.fiscalYearId || undefined, miti: adToBikramSambat(now),
+          companyFilter: req.companyFilter,
+          daybook: {
+            date: now, sourceModule: 'SUPPLIER_PAYMENT', daybookType: 'CASH_BOOK',
+            documentNumber: `SUPP-PAY-${Date.now()}`, sourceRef: String(req.params.id),
+            narration: `Payment to supplier ${supplier?.name || ''}`,
+            lines: [
+              { account: payableAccount._id, accountName: payableAccount.name, debit: amount, credit: 0, partyType: 'supplier', partyId: supplier._id, partyName: supplier?.name || '' },
+              { account: acct._id, accountName: acct.name || (method === 'bank' ? 'Bank' : 'Cash'), debit: 0, credit: amount },
+            ],
+            createdBy: req.user._id,
+          },
+        });
+        if (method === 'bank' && bank) await adjustBankBalance(bank, -amount, req.companyFilter).catch(() => {});
+      }
     }
   } catch (err) { console.error('Supplier payment journal error:', err.message); }
 

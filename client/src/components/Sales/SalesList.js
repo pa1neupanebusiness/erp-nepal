@@ -96,7 +96,7 @@ export default function SalesList() {
         <div className="table-responsive">
           <table className="table">
             <thead>
-              <tr><th>Invoice</th><th>Date</th><th>Customer</th><th>Items</th><th>Subtotal</th><th>Discount</th><th>Payment</th><th>Amount</th><th>Status</th><th>Cashier</th><th>Actions</th></tr>
+              <tr><th>Invoice</th><th>Date</th><th>Customer</th><th>Items</th><th>Subtotal</th><th>Discount</th><th>Payment</th><th>Amount</th><th>Paid</th><th>Due</th><th>Status</th><th>Cashier</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {items.map(s => (
@@ -109,7 +109,9 @@ export default function SalesList() {
                   <td>{s.discount > 0 ? <span style={{ color: '#dc2626' }}>-{formatNPR(s.discount)}</span> : '-'}</td>
                   <td>{s.kind === 'emi' ? <span className="badge badge-info">EMI</span> : s.paymentMethod === 'split' ? (s.paymentSplits || []).map(sp => sp.method).join('+') : s.paymentMethod}</td>
                   <td>{formatNPR(s.grandTotal)}</td>
-                  <td><span className={`badge ${s.status === 'completed' ? 'badge-success' : s.status === 'refunded' ? 'badge-warning' : 'badge-danger'}`}>{s.status}</span></td>
+                  <td>{formatNPR(s.amountPaid)}</td>
+                  <td>{(s.dueAmount || 0) > 0 ? <span style={{ color: '#dc2626', fontWeight: 600 }}>{formatNPR(s.dueAmount)}</span> : '-'}</td>
+                  <td><span className={`badge ${s.status === 'refunded' ? 'badge-warning' : s.status === 'cancelled' ? 'badge-danger' : (s.paymentStatus === 'paid' || (s.dueAmount || 0) <= 0) ? 'badge-success' : (s.paymentStatus === 'partial' || s.amountPaid > 0) ? 'badge-warning' : 'badge-info'}`}>{s.status === 'refunded' ? 'refunded' : s.status === 'cancelled' ? 'cancelled' : s.paymentStatus || ((s.dueAmount || 0) <= 0 ? 'paid' : s.amountPaid > 0 ? 'partial' : 'unpaid')}</span></td>
                   <td>{s.cashier?.name || '-'}</td>
                   <td>
                     <button className="btn btn-sm" onClick={() => setDetail(detail?._id === s._id ? null : s)}>View</button>
@@ -130,7 +132,7 @@ export default function SalesList() {
                   </td>
                 </tr>
               ))}
-              {items.length === 0 && <tr><td colSpan="11" className="text-center">No sales found</td></tr>}
+              {items.length === 0 && <tr><td colSpan="13" className="text-center">No sales found</td></tr>}
             </tbody>
           </table>
         </div>

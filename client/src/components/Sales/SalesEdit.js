@@ -90,6 +90,12 @@ export default function SalesEdit() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (rows.length === 0 || rows.every(r => !r.product)) return addToast('Add at least one product', 'error');
+    const totalPaid = Number(amountPaid) || 0;
+    const dueAmt = Math.max(0, grandTotal - totalPaid);
+    if (!customer && dueAmt > 0) {
+      addToast('A customer name is required when there is a due amount. Please select or add a customer.', 'error');
+      return;
+    }
     setSaving(true);
     try {
       const items = rows.filter(r => r.product).map(r => ({ product: r.product, quantity: Number(r.qty), price: Number(r.rate), subtotal: Number(r.qty) * Number(r.rate) }));

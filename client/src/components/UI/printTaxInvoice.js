@@ -25,24 +25,36 @@ function paymentLabel(method) {
 }
 
 export function renderTaxInvoiceHtml(sale, company) {
-  const items = (sale.items || []).map(i => ({
-    name: i.product?.name || i.name || 'Item',
-    hsCode: i.hsCode || i.product?.hsCode || '',
-    qty: i.quantity || 0,
-    rate: i.price || 0,
-    discount: i.discount || 0,
-    amount: (i.price || 0) * (i.quantity || 0) - (i.discount || 0),
-  }));
-
   const vatRate = company?.vatRate || 13;
   const discount = sale.discount || 0;
   const taxTotal = sale.taxTotal || 0;
   const grandTotal = sale.grandTotal || 0;
 
-  const subTotalGross = items.reduce((s, it) => s + (it.rate * it.qty), 0);
-  const afterDiscount = Math.max(0, subTotalGross - discount);
-  const looksExclusive = Math.abs((afterDiscount + taxTotal) - grandTotal) < 0.5;
+  const rawItems = (sale.items || []).map(i => ({
+    name: i.product?.name || i.name || 'Item',
+    hsCode: i.hsCode || i.product?.hsCode || '',
+    qty: i.quantity || 0,
+    rawRate: i.price || 0,
+    discount: i.discount || 0,
+  }));
+
+  const rawSubTotalGross = rawItems.reduce((s, it) => s + (it.rawRate * it.qty), 0);
+  const rawAfterDiscount = Math.max(0, rawSubTotalGross - discount);
+  const looksExclusive = Math.abs((rawAfterDiscount + taxTotal) - grandTotal) < 0.5;
   const isInclusive = !looksExclusive;
+
+  const items = rawItems.map(i => {
+    const rawAmount = i.rawRate * i.qty - (i.discount || 0);
+    if (isInclusive && vatRate > 0) {
+      const beforeVatRate = Math.round((i.rawRate / (1 + vatRate / 100)) * 100) / 100;
+      const beforeVatAmount = Math.round((beforeVatRate * i.qty - (i.discount || 0)) * 100) / 100;
+      return { ...i, rate: beforeVatRate, amount: beforeVatAmount };
+    }
+    return { ...i, rate: i.rawRate, amount: rawAmount };
+  });
+
+  const subTotalGross = rawSubTotalGross;
+  const afterDiscount = Math.max(0, subTotalGross - discount);
   const taxableAmount = isInclusive ? Math.max(0, afterDiscount - taxTotal) : afterDiscount;
   const discountPct = subTotalGross > 0 ? (discount / subTotalGross) * 100 : 0;
 

@@ -8,7 +8,7 @@ const InventoryMovement = require('../models/InventoryMovement');
 const Company = require('../models/Company');
 const Customer = require('../models/Customer');
 const { protect, adminOnly, requirePANForLargeTx } = require('../middleware/auth');
-const { round100, buildIRDPayload, adToBikramSambat } = require('../utils/dateUtils');
+const { round100, buildIRDPayload, adToBikramSambat, getBSFiscalYear } = require('../utils/dateUtils');
 const { postDaybookEntries, cancelDaybookEntries } = require('../utils/daybookService');
 const { getClientIp } = require('../utils/irdAudit');
 const { adjustBankBalance } = require('../utils/bankService');
@@ -25,15 +25,12 @@ function getFiscalYear(date) {
 }
 
 function getFiscalYearLabel(date) {
-  const d = new Date(date);
-  const m = d.getMonth() + 1, y = d.getFullYear(), dy = d.getDate();
-  const startYear = (m > 7 || (m === 7 && dy >= 16)) ? y : y - 1;
-  return `${startYear % 100}/${(startYear + 1) % 100}`;
+  return getBSFiscalYear(date).label;
 }
 
 async function generateInvoice(companyId) {
   if (!companyId) throw new Error('No company assigned to this account');
-  const fy = `${new Date().getFullYear() % 100}${(new Date().getFullYear() + 1) % 100}`;
+  const fy = getBSFiscalYear().label;
   for (let i = 0; i < 10; i++) {
     const company = await Company.findOneAndUpdate(
       { _id: companyId },
@@ -338,6 +335,12 @@ router.get('/:id', protect, async (req, res) => {
 router.post('/', protect, requirePANForLargeTx, async (req, res) => {
   const { items, subtotal, taxTotal, discount, grandTotal, amountPaid, change, paymentMethod, paymentSplits, customer, bank, invoiceNumber, date, notes, images, source } = req.body;
 
+  const totalPaid = paymentMethod === 'split' && paymentSplits?.length
+    ? paymentSplits.reduce((s, sp) => s + (sp.amount || 0), 0)
+    : (amountPaid || 0);
+  const dueAmount = Math.round(Math.max(0, grandTotal - totalPaid) * 100) / 100;
+  const paymentStatus = dueAmount <= 0 ? 'paid' : totalPaid > 0 ? 'partial' : 'unpaid';
+
   for (const item of items) {
     const product = await Product.findOne({ _id: item.product, ...req.companyFilter });
     if (!product || product.stock < item.quantity) {
@@ -371,7 +374,7 @@ router.post('/', protect, requirePANForLargeTx, async (req, res) => {
       sale = await Sale.create({
         invoiceNumber: invNo,
         items, subtotal, taxTotal, discount, grandTotal,
-        amountPaid, change, paymentMethod,
+        amountPaid: totalPaid, dueAmount, paymentStatus, change, paymentMethod,
         paymentSplits: paymentMethod === 'split' ? (paymentSplits || []) : [],
         customer: customer || null,
         bank: (paymentMethod === 'qr' || paymentMethod === 'bank') ? (bank || null) : null,
@@ -461,6 +464,11 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
         if (cust) { sale.customerPan = cust.pan || ''; sale.customerAddress = cust.address || ''; }
       }
     }
+    const editTotalPaid = sale.paymentMethod === 'split' && sale.paymentSplits?.length
+      ? sale.paymentSplits.reduce((s, sp) => s + (sp.amount || 0), 0)
+      : (sale.amountPaid || 0);
+    sale.dueAmount = Math.round(Math.max(0, sale.grandTotal - editTotalPaid) * 100) / 100;
+    sale.paymentStatus = sale.dueAmount <= 0 ? 'paid' : editTotalPaid > 0 ? 'partial' : 'unpaid';
     await sale.save();
 
     try {

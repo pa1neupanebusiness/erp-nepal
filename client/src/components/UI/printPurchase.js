@@ -14,12 +14,24 @@ function getMiti(date) {
 }
 
 export function renderPurchaseHtml(p, company) {
-  const items = (p.items || []).map(it => ({
+  const vatPct = p.vatPercent || 13;
+  const isInclusive = !!p.inclusiveVat;
+
+  const rawItems = (p.items || []).map(it => ({
     name: it.product?.name || it.name || 'Item',
     qty: it.quantity || 0,
-    rate: it.costPrice || it.price || 0,
-    amount: it.subtotal || (it.quantity || 0) * (it.costPrice || it.price || 0),
+    rawRate: it.costPrice || it.price || 0,
+    rawAmount: it.subtotal || (it.quantity || 0) * (it.costPrice || it.price || 0),
   }));
+
+  const items = rawItems.map(it => {
+    if (isInclusive && vatPct > 0) {
+      const beforeVatRate = Math.round((it.rawRate / (1 + vatPct / 100)) * 100) / 100;
+      const beforeVatAmount = Math.round((beforeVatRate * it.qty) * 100) / 100;
+      return { ...it, rate: beforeVatRate, amount: beforeVatAmount };
+    }
+    return { ...it, rate: it.rawRate, amount: it.rawAmount };
+  });
 
   const subTotal = p.subtotal || items.reduce((s, it) => s + (Number(it.amount) || 0), 0);
   const tax = p.tax || 0;

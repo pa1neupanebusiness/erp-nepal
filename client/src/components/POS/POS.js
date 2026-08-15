@@ -110,23 +110,22 @@ export default function POS() {
   const handleCheckout = useCallback(async () => {
     if (cart.length === 0) return;
     if ((paymentMethod === 'qr' || paymentMethod === 'bank') && !bank) {
-      setMessage({ type: 'error', text: 'Please choose a bank for this payment' });
+      addToast('Please choose a bank for this payment', 'error');
       return;
     }
     if (paymentMethod === 'split') {
       const totalSplit = splits.reduce((s, sp) => s + (sp.amount || 0), 0);
       if (Math.abs(totalSplit - grandTotal) > 0.01) {
-        setMessage({ type: 'error', text: `Split total (${formatNPR(totalSplit)}) must equal grand total (${formatNPR(grandTotal)})` });
+        addToast(`Split total (${formatNPR(totalSplit)}) must equal grand total (${formatNPR(grandTotal)})`, 'error');
         return;
       }
       const hasBank = splits.find(sp => (sp.method === 'qr' || sp.method === 'bank') && !sp.bank);
       if (hasBank) {
-        setMessage({ type: 'error', text: 'Please choose a bank for QR/Bank split payments' });
+        addToast('Please choose a bank for QR/Bank split payments', 'error');
         return;
       }
     }
     setLoading(true);
-    setMessage(null);
     try {
       const totalPaid = paymentMethod === 'split'
         ? splits.reduce((s, sp) => s + (sp.amount || 0), 0)
@@ -152,11 +151,11 @@ export default function POS() {
       setSplits([{ method: 'cash', amount: 0, bank: '' }]);
       setPaymentMethod('cash');
       setDiscountValue(0);
-      setMessage({ type: 'success', text: `Sale completed! Invoice: ${data.invoiceNumber}` });
+      addToast(`Sale completed! Invoice: ${data.invoiceNumber}`, 'success');
       api.get('/products').then(r => setProducts(r.data));
       api.get('/reports/pos-summary').then(r => { setTodaySales(r.data.netSales); setTodaySummary(r.data); }).catch(() => {});
     } catch (err) {
-      setMessage({ type: 'error', text: err.response?.data?.message || 'Checkout failed' });
+      addToast(err.response?.data?.message || 'Checkout failed', 'error');
     } finally {
       setLoading(false);
     }
@@ -172,10 +171,10 @@ export default function POS() {
       setCart([]);
       setDiscountValue(0);
       setHoldNote('');
-      setMessage({ type: 'success', text: 'Bill held successfully' });
+      addToast('Bill held successfully', 'success');
       api.get('/heldbills').then(r => setHeldBills(r.data));
     } catch (err) {
-      setMessage({ type: 'error', text: 'Failed to hold bill' });
+      addToast('Failed to hold bill', 'error');
     }
   };
 
@@ -187,7 +186,7 @@ export default function POS() {
       setDiscountMode(data.discountMode);
       setCustomer(data.customer?._id || '');
       setShowHeld(false);
-      setMessage({ type: 'success', text: `Loaded bill ${data.billNumber}` });
+      addToast(`Loaded bill ${data.billNumber}`, 'success');
     } catch (err) { addToast('Failed to load bill', 'error'); }
   };
 
@@ -199,12 +198,12 @@ export default function POS() {
     if (!returnSale) return;
     try {
       const { data } = await api.post('/sales/refund-by-invoice', { invoiceNumber: returnSale });
-      setMessage({ type: 'success', text: `Sale ${data.invoiceNumber} refunded` });
+      addToast(`Sale ${data.invoiceNumber} refunded`, 'success');
       setReturnSale('');
       setReturnMode(false);
       api.get('/products').then(r => setProducts(r.data));
     } catch (err) {
-      setMessage({ type: 'error', text: err.response?.data?.message || 'Refund failed' });
+      addToast(err.response?.data?.message || 'Refund failed', 'error');
     }
   };
 
@@ -481,12 +480,9 @@ export default function POS() {
               {amountPaid && <div className="summary-row"><span>Change:</span><span>{formatNPR(change)}</span></div>}
             </>
           )}
-          {message && (
-            <div className={`alert alert-${message.type}`}>
-              {message.text}
-              {message.type === 'success' && lastSale && (
-                <button className="btn btn-sm btn-primary" style={{ marginLeft: '0.5rem' }} onClick={() => printInvoice(lastSale, company)}>Print Invoice</button>
-              )}
+          {message && message.type === 'success' && lastSale && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <button className="btn btn-sm btn-primary" onClick={() => printInvoice(lastSale, company)}>Print Invoice</button>
             </div>
           )}
           <div style={{ display: 'flex', gap: '0.35rem' }}>

@@ -17,6 +17,8 @@ const saleSchema = new mongoose.Schema({
   discount: { type: Number, default: 0 },
   grandTotal: { type: Number, required: true },
   amountPaid: { type: Number, required: true },
+  dueAmount: { type: Number, default: 0 },
+  paymentStatus: { type: String, enum: ['paid', 'partial', 'unpaid'], default: 'paid' },
   change: { type: Number, default: 0 },
   paymentMethod: { type: String, enum: ['cash', 'qr', 'bank', 'credit', 'other', 'split'], default: 'cash' },
   paymentSplits: [{

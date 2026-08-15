@@ -263,11 +263,16 @@ export default function CreateSalesInvoice() {
         return;
       }
     }
+    const totalPaid = paymentMethod === 'split'
+      ? splits.reduce((s, sp) => s + (sp.amount || 0), 0)
+      : Math.round(paid * 100) / 100;
+    const dueAmount = Math.max(0, grandTotal - totalPaid);
+    if (!customer && dueAmount > 0) {
+      addToast('A customer name is required when there is a due amount. Please select or add a customer.', 'error');
+      return;
+    }
     setSaving(true);
     try {
-      const totalPaid = paymentMethod === 'split'
-        ? splits.reduce((s, sp) => s + (sp.amount || 0), 0)
-        : Math.round(paid * 100) / 100;
       const payload = {
         items: validRows.map(r => ({
           product: r.product,
@@ -539,6 +544,20 @@ export default function CreateSalesInvoice() {
               </div>
               {discount > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ opacity: 0.8 }}>After Discount</span><span>{formatMoney(netAmount)}</span></div>}
               {taxTotal > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ opacity: 0.8 }}>VAT</span><span>{formatMoney(taxTotal)}</span></div>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: '0.5rem' }}><span>Grand Total</span><span>{formatMoney(grandTotal)}</span></div>
+              {paymentMethod !== 'split' && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ opacity: 0.8 }}>Paid</span><span>{formatMoney(paid)}</span></div>
+                  {change > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ opacity: 0.8 }}>Change</span><span style={{ color: '#86efac' }}>{formatMoney(change)}</span></div>}
+                  {grandTotal - paid > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ opacity: 0.8 }}>Due</span><span style={{ color: '#fca5a5', fontWeight: 700 }}>{formatMoney(grandTotal - paid)}</span></div>}
+                </>
+              )}
+              {paymentMethod === 'split' && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ opacity: 0.8 }}>Paid</span><span>{formatMoney(splits.reduce((s, sp) => s + (sp.amount || 0), 0))}</span></div>
+                  {grandTotal - splits.reduce((s, sp) => s + (sp.amount || 0), 0) > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ opacity: 0.8 }}>Due</span><span style={{ color: '#fca5a5', fontWeight: 700 }}>{formatMoney(grandTotal - splits.reduce((s, sp) => s + (sp.amount || 0), 0))}</span></div>}
+                </>
+              )}
               <div style={{ borderTop: '1px solid rgba(255,255,255,0.15)', marginTop: '0.25rem', paddingTop: '0.65rem' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', cursor: 'pointer', color: '#e2e8f0' }}>
                   <input type="checkbox" checked={applyVat} onChange={e => { setApplyVat(e.target.checked); if (!e.target.checked) setInclusiveVat(false); }} style={{ width: 15, height: 15 }} />

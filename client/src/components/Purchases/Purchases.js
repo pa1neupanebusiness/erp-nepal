@@ -21,7 +21,7 @@ export default function Purchases() {
   const [payModal, setPayModal] = useState(null);
   const [payForm, setPayForm] = useState({ amount: '', method: 'cash', bank: '', chequeNumber: '', remarks: '' });
   const [supplierPay, setSupplierPay] = useState({ supplier: '', outstanding: null, loading: false });
-  const [supplierPayForm, setSupplierPayForm] = useState({ amount: '', method: 'cash', bank: '', chequeNumber: '', remarks: '' });
+  const [supplierPayForm, setSupplierPayForm] = useState({ amount: '', method: 'cash', bank: '', chequeNumber: '', remarks: '', splits: [] });
   const [paying, setPaying] = useState(false);
   const [supplierFyTotal, setSupplierFyTotal] = useState(0);
   const [banks, setBanks] = useState([]);
@@ -257,9 +257,10 @@ export default function Purchases() {
                     max={supplierPay.outstanding.totalDue} placeholder="Enter amount" />
                 </div>
                 <div className="form-group"><label>Method</label>
-                  <select value={supplierPayForm.method} onChange={e => setSupplierPayForm({ ...supplierPayForm, method: e.target.value, bank: e.target.value === 'cash' ? '' : supplierPayForm.bank })}>
+                  <select value={supplierPayForm.method} onChange={e => setSupplierPayForm({ ...supplierPayForm, method: e.target.value, bank: e.target.value === 'cash' ? '' : supplierPayForm.bank, splits: e.target.value === 'split' ? [{ method: 'cash', amount: 0, bank: '' }] : undefined })}>
                     <option value="cash">Cash (Nagad)</option>
                     <option value="bank">Bank (Cheque)</option>
+                    <option value="split">Split (Cash + Bank)</option>
                   </select>
                 </div>
                 {supplierPayForm.method === 'cash' && <div className="form-group"><label>Remarks</label>
@@ -275,24 +276,59 @@ export default function Purchases() {
                   <input value={supplierPayForm.chequeNumber} onChange={e => setSupplierPayForm({ ...supplierPayForm, chequeNumber: e.target.value })} required placeholder="Enter cheque number" />
                 </div>}
               </div>
+              {supplierPayForm.method === 'split' && (
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: '0.75rem', marginTop: '0.75rem', background: '#f8fafc' }}>
+                  {(supplierPayForm.splits || []).map((sp, idx) => (
+                    <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <select value={sp.method} onChange={e => { const next = [...(supplierPayForm.splits || [])]; next[idx] = { ...next[idx], method: e.target.value, bank: '' }; setSupplierPayForm({ ...supplierPayForm, splits: next }); }} style={{ ...input, flex: 1, width: 'auto' }}>
+                        <option value="cash">Cash</option>
+                        <option value="bank">Bank</option>
+                      </select>
+                      <input type="number" value={sp.amount || ''} onChange={e => { const next = [...(supplierPayForm.splits || [])]; next[idx] = { ...next[idx], amount: parseFloat(e.target.value) || 0 }; setSupplierPayForm({ ...supplierPayForm, splits: next }); }} placeholder="Amount" style={{ ...input, flex: 1, width: 'auto', textAlign: 'right' }} />
+                      {sp.method === 'bank' && (
+                        <select value={sp.bank} onChange={e => { const next = [...(supplierPayForm.splits || [])]; next[idx] = { ...next[idx], bank: e.target.value }; setSupplierPayForm({ ...supplierPayForm, splits: next }); }} style={{ ...input, flex: 1, width: 'auto' }}>
+                          <option value="">-- Bank --</option>
+                          {banks.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+                        </select>
+                      )}
+                      {(supplierPayForm.splits || []).length > 1 && <button className="btn btn-sm btn-danger" onClick={() => { const next = (supplierPayForm.splits || []).filter((_, i) => i !== idx); setSupplierPayForm({ ...supplierPayForm, splits: next }); }}>&times;</button>}
+                    </div>
+                  ))}
+                  <button className="btn btn-sm btn-secondary" onClick={() => setSupplierPayForm({ ...supplierPayForm, splits: [...(supplierPayForm.splits || []), { method: 'cash', amount: 0, bank: '' }] })}>+ Add Split</button>
+                  <div style={{ fontSize: '0.85rem', marginTop: '0.5rem', fontWeight: 600, color: Math.abs((supplierPayForm.splits || []).reduce((s, sp) => s + (sp.amount || 0), 0) - parseFloat(supplierPayForm.amount || 0)) < 0.01 ? '#16a34a' : '#dc2626' }}>
+                    Split Total: {formatNPR((supplierPayForm.splits || []).reduce((s, sp) => s + (sp.amount || 0), 0))} / {formatNPR(parseFloat(supplierPayForm.amount || 0))}
+                  </div>
+                </div>
+              )}
               <button className="btn btn-primary" style={{ marginTop: '1rem' }} disabled={paying} onClick={async () => {
                 const amt = parseFloat(supplierPayForm.amount);
                 if (!amt || amt <= 0) { addToast('Enter a valid amount', 'error'); return; }
                 if (amt > supplierPay.outstanding.totalDue) { addToast(`Amount exceeds total due ${formatNPR(supplierPay.outstanding.totalDue)}`, 'error'); return; }
                 if (supplierPayForm.method === 'bank' && !supplierPayForm.chequeNumber) { addToast('Cheque number required', 'error'); return; }
                 if (supplierPayForm.method === 'bank' && !supplierPayForm.bank) { addToast('Choose a bank', 'error'); return; }
+                if (supplierPayForm.method === 'split') {
+                  const totalSplit = (supplierPayForm.splits || []).reduce((s, sp) => s + (sp.amount || 0), 0);
+                  if (Math.abs(totalSplit - amt) > 0.01) { addToast(`Split total (${formatNPR(totalSplit)}) must equal payment amount (${formatNPR(amt)})`, 'error'); return; }
+                  const hasBank = (supplierPayForm.splits || []).find(sp => sp.method === 'bank' && !sp.bank);
+                  if (hasBank) { addToast('Choose a bank for bank split payments', 'error'); return; }
+                }
                 setPaying(true);
                 try {
-                  await api.post(`/suppliers/${supplierPay.supplier}/pay`, {
+                  const payload = {
                     amount: amt, method: supplierPayForm.method,
-                    bank: supplierPayForm.method === 'bank' ? supplierPayForm.bank : null,
-                    chequeNumber: supplierPayForm.chequeNumber,
                     remarks: supplierPayForm.remarks,
-                  });
+                  };
+                  if (supplierPayForm.method === 'split') {
+                    payload.splits = supplierPayForm.splits.filter(sp => sp.amount > 0);
+                  } else {
+                    payload.bank = supplierPayForm.method === 'bank' ? supplierPayForm.bank : null;
+                    payload.chequeNumber = supplierPayForm.chequeNumber;
+                  }
+                  await api.post(`/suppliers/${supplierPay.supplier}/pay`, payload);
                   addToast('Payment recorded', 'success');
                   const res = await api.get(`/suppliers/${supplierPay.supplier}/outstanding`);
                   setSupplierPay({ ...supplierPay, outstanding: res.data });
-                  setSupplierPayForm({ amount: '', method: 'cash', bank: '', chequeNumber: '', remarks: '' });
+                  setSupplierPayForm({ amount: '', method: 'cash', bank: '', chequeNumber: '', remarks: '', splits: [] });
                   load();
                 } catch (err) { addToast(err.response?.data?.message || 'Payment failed', 'error'); }
                 setPaying(false);
@@ -381,7 +417,7 @@ export default function Purchases() {
           )}
           {vatPct > 0 && (
             <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr', marginTop: '0.5rem' }}>
-              <div className="form-group"><label>VAT Amount (Rs.)</label><div style={{ padding: '0.5rem 0', fontWeight: 600, color: '#dc2626' }}>{formatNPR(vatAmount)}</div></div>
+              <div className="form-group"><label>{form.inclusiveVat ? 'VAT (included in prices)' : 'VAT Amount (Rs.)'}</label><div style={{ padding: '0.5rem 0', fontWeight: 600, color: '#dc2626' }}>{formatNPR(vatAmount)}</div></div>
               <div className="form-group">
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}>
                   <input type="checkbox" checked={!!form.applyTds} onChange={e => setForm({ ...form, applyTds: e.target.checked })} />
@@ -396,7 +432,9 @@ export default function Purchases() {
           )}
           {vatPct > 0 && form.supplier && (
             <p className="text-muted" style={{ fontSize: '0.78rem', marginTop: '0.4rem' }}>
-              TDS is optional. Check &ldquo;Apply TDS&rdquo; to deduct 1.5% on this bill. Only bills with TDS applied appear in the TDS report.
+              {form.inclusiveVat
+                ? 'VAT is already included in the item prices above. The VAT amount shown is extracted from the total, not added on top.'
+                : 'TDS is optional. Check "Apply TDS" to deduct 1.5% on this bill. Only bills with TDS applied appear in the TDS report.'}
             </p>
           )}
           {vatPct === 0 && (
