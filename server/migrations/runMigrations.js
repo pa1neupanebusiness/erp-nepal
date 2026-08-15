@@ -6,7 +6,10 @@ const Emi = require('../models/Emi');
 const Migration = require('../models/Migration');
 const Company = require('../models/Company');
 const User = require('../models/User');
+const Purchase = require('../models/Purchase');
+const Sale = require('../models/Sale');
 const { getChartOfAccounts } = require('../utils/chartOfAccounts');
+const { getBSFiscalYear } = require('../utils/dateUtils');
 const { DEFAULT_MODULES } = Company;
 
 const SUPER_ADMIN_EMAIL = 'pa1neupane.business@gmail.com';
@@ -292,6 +295,43 @@ async function fixTdsAccountNames() {
   console.log('TDS account name fix complete.');
 }
 
+async function fixFiscalYearLabels() {
+  const badPurchases = await Purchase.find({
+    $or: [
+      { fiscalYear: { $regex: /^196[6-9]\// } },
+      { purchaseNumber: { $regex: /196[6-9]\// } },
+    ],
+  }).select('purchaseNumber fiscalYear date company');
+  console.log(`FiscalYear fix: ${badPurchases.length} purchase(s) with wrong label`);
+
+  for (const p of badPurchases) {
+    const correctFY = getBSFiscalYear(p.date || new Date());
+    const counterMatch = p.purchaseNumber.match(/-(\d{4,})$/);
+    const counter = counterMatch ? counterMatch[1] : '0001';
+    const newPurchaseNo = `PUR-${correctFY.label}-${counter}`;
+    await Purchase.updateOne({ _id: p._id }, { $set: { fiscalYear: correctFY.label, purchaseNumber: newPurchaseNo } });
+    console.log(`  ${p.purchaseNumber} → ${newPurchaseNo}`);
+  }
+
+  const badSales = await Sale.find({
+    $or: [
+      { fiscalYear: { $regex: /^196[6-9]\// } },
+      { invoiceNumber: { $regex: /196[6-9]\// } },
+    ],
+  }).select('invoiceNumber fiscalYear date company');
+  console.log(`FiscalYear fix: ${badSales.length} sale(s) with wrong label`);
+
+  for (const s of badSales) {
+    const correctFY = getBSFiscalYear(s.date || new Date());
+    const counterMatch = s.invoiceNumber.match(/-(\d{3,})$/);
+    const counter = counterMatch ? counterMatch[1] : '001';
+    const newInvNo = `${correctFY.label}-${counter}`;
+    await Sale.updateOne({ _id: s._id }, { $set: { fiscalYear: correctFY.label, invoiceNumber: newInvNo } });
+    console.log(`  ${s.invoiceNumber} → ${newInvNo}`);
+  }
+  console.log('FiscalYear label fix complete.');
+}
+
 const migrations = [
   { name: 'setupSuperAdminAndModules', run: setupSuperAdminAndModules },
   { name: 'seedMissingChartAccounts', run: seedMissingChartAccounts },
@@ -302,6 +342,7 @@ const migrations = [
   { name: 'companyScopedIndexes', run: companyScopedIndexes },
   { name: 'backfillCompanyShortNames', run: backfillCompanyShortNames },
   { name: 'fixTdsAccountNames', run: fixTdsAccountNames },
+  { name: 'fixFiscalYearLabels', run: fixFiscalYearLabels },
 ];
 
 async function runMigrations() {

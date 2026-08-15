@@ -61,6 +61,54 @@ app.use('/api/audit', require('./routes/audit'));
 app.use('/api/backup', require('./routes/backup'));
 app.use('/api', require('./routes/assistant'));
 
+const { protect } = require('./middleware/auth');
+const Purchase = require('./models/Purchase');
+const Sale = require('./models/Sale');
+const { getBSFiscalYear } = require('./utils/dateUtils');
+
+app.post('/api/admin/fix-fiscal-year-labels', protect, async (req, res) => {
+  if (req.user.role !== 'super_admin') return res.status(403).json({ message: 'Super admin only' });
+  try {
+    const badPurchases = await Purchase.find({
+      $or: [
+        { fiscalYear: { $regex: /^196[6-9]\// } },
+        { purchaseNumber: { $regex: /196[6-9]\// } },
+      ],
+    }).select('purchaseNumber fiscalYear date company');
+
+    const purchaseFixes = [];
+    for (const p of badPurchases) {
+      const correctFY = getBSFiscalYear(p.date || new Date());
+      const counterMatch = p.purchaseNumber.match(/-(\d{4,})$/);
+      const counter = counterMatch ? counterMatch[1] : '0001';
+      const newPurchaseNo = `PUR-${correctFY.label}-${counter}`;
+      await Purchase.updateOne({ _id: p._id }, { $set: { fiscalYear: correctFY.label, purchaseNumber: newPurchaseNo } });
+      purchaseFixes.push({ from: p.purchaseNumber, to: newPurchaseNo });
+    }
+
+    const badSales = await Sale.find({
+      $or: [
+        { fiscalYear: { $regex: /^196[6-9]\// } },
+        { invoiceNumber: { $regex: /196[6-9]\// } },
+      ],
+    }).select('invoiceNumber fiscalYear date company');
+
+    const saleFixes = [];
+    for (const s of badSales) {
+      const correctFY = getBSFiscalYear(s.date || new Date());
+      const counterMatch = s.invoiceNumber.match(/-(\d{3,})$/);
+      const counter = counterMatch ? counterMatch[1] : '001';
+      const newInvNo = `${correctFY.label}-${counter}`;
+      await Sale.updateOne({ _id: s._id }, { $set: { fiscalYear: correctFY.label, invoiceNumber: newInvNo } });
+      saleFixes.push({ from: s.invoiceNumber, to: newInvNo });
+    }
+
+    res.json({ purchasesFixed: purchaseFixes.length, salesFixed: saleFixes.length, purchaseFixes, saleFixes });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'ERP System is running', version: '1.0.0' });
 });
