@@ -320,6 +320,9 @@ export default function ProductList() {
               { label: 'Min Stock', value: String(p.minStock) },
               { label: 'VAT', value: p.vatEnabled ? `${p.taxRate}% ${p.priceIncludesTax ? 'Incl' : 'Excl'}` : 'Disabled' },
             ]}
+            actions={[
+              <button className="btn btn-sm btn-primary" onClick={() => setAddStockModal(p)}>Add Stock</button>
+            ]}
             columns={[
               { key: 'createdAt', label: 'Date', render: (d) => new Date(d).toLocaleString('en-IN') },
               { key: 'type', label: 'Type', render: (v) => v === 'in' ? 'In' : 'Out' },
