@@ -172,6 +172,7 @@ export default function AgingReport() {
             { label: 'Grand Total', value: formatNPR(detail.grandTotal) },
             { label: 'Paid', value: formatNPR(detail.amountPaid) },
             { label: 'Due', value: formatNPR((detail.grandTotal || 0) - (detail.amountPaid || 0)) },
+            ...(detail.notes ? [{ label: 'Notes', value: detail.notes }] : []),
           ]}
           columns={[
             { key: 'product', label: 'Item', wide: true, render: (v) => v?.name || v || 'Unknown' },
@@ -199,6 +200,8 @@ export default function AgingReport() {
             { label: 'Grand Total', value: formatNPR(detail.grandTotal) },
             { label: 'Paid', value: formatNPR(detail.paidAmount) },
             { label: 'Due', value: formatNPR(detail.dueAmount) },
+            ...(detail.paymentRemarks ? [{ label: 'Remarks', value: detail.paymentRemarks }] : []),
+            ...(detail.note ? [{ label: 'Note', value: detail.note }] : []),
           ]}
           columns={[
             { key: 'product', label: 'Product', render: (v) => v?.name || v || 'Unknown' },
@@ -231,6 +234,7 @@ export default function AgingReport() {
             { label: 'Down Payment', value: formatNPR(detail.downPayment) },
             { label: 'Remaining', value: formatNPR(detail.remainingAmount) },
             { label: 'Status', value: detail.paidStatus || 'pending' },
+            ...(detail.remarks ? [{ label: 'Remarks', value: detail.remarks }] : []),
           ]}
           columns={[]}
           rows={[]}

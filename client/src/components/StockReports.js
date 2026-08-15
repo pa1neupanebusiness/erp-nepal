@@ -167,7 +167,7 @@ export default function StockReports() {
                   <td className="text-right">{fmtQty(r.purchaseReturn)}</td>
                   <td className="text-right"><strong>{fmtQty(r.remaining)}</strong> <small style={{ color: '#94a3b8' }}>{r.unit}</small></td>
                   <td className="text-right">{fmtQty(r.minStock)}</td>
-                  <td className="text-right">{fmtP(r.costPrice)}</td>
+                  <td className="text-right" style={{ fontStyle: 'italic', color: '#64748b' }} title="Weighted average cost">{fmtP(r.costPrice)}<br/><small style={{ fontSize: '0.7rem' }}>avg. cost</small></td>
                   <td className="text-right">{fmtP(r.sellingPrice)}</td>
                   <td>{stockBadge(r.stockLevel)}</td>
                   <td className="action-cell" onClick={e => e.stopPropagation()}>
@@ -194,7 +194,7 @@ export default function StockReports() {
             { label: 'Purchase Return', value: fmtQty(detailRow.purchaseReturn) },
             { label: 'Remaining', value: `${fmtQty(detailRow.remaining)} ${detailRow.unit}` },
             { label: 'Min Stock', value: fmtQty(detailRow.minStock) },
-            { label: 'Cost Price', value: fmtP(detailRow.costPrice) },
+            { label: 'Avg. Cost Price', value: fmtP(detailRow.costPrice) },
             { label: 'Sell Price', value: fmtP(detailRow.sellingPrice) },
             { label: 'Valuation', value: fmtP(detailRow.valuation) },
             { label: 'Status', value: detailRow.status },
@@ -228,9 +228,9 @@ export default function StockReports() {
             <div className="modal-body">
               <p style={{ marginBottom: '0.5rem' }}>{editRow.name} <small className="text-muted">({editRow.sku})</small></p>
               <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                <div className="form-group"><label>Stock</label><input type="number" value={editForm.stock} onChange={e => setEditForm({ ...editForm, stock: e.target.value })} /></div>
+                <div className="form-group"><label>Current Stock</label><div style={{ padding: '0.5rem 0', fontWeight: 600 }}>{editForm.stock} <small className="text-muted">Use "Add Stock" to adjust</small></div></div>
                 <div className="form-group"><label>Min Stock</label><input type="number" value={editForm.minStock} onChange={e => setEditForm({ ...editForm, minStock: e.target.value })} /></div>
-                <div className="form-group"><label>Cost Price</label><input type="number" step="0.01" value={editForm.costPrice} onChange={e => setEditForm({ ...editForm, costPrice: e.target.value })} /></div>
+                <div className="form-group"><label>Avg. Cost Price</label><input type="number" step="0.01" value={editForm.costPrice} onChange={e => setEditForm({ ...editForm, costPrice: e.target.value })} /></div>
                 <div className="form-group"><label>Selling Price</label><input type="number" step="0.01" value={editForm.sellingPrice} onChange={e => setEditForm({ ...editForm, sellingPrice: e.target.value })} /></div>
               </div>
               <p className="text-muted" style={{ fontSize: '0.78rem', marginTop: '0.5rem' }}>Stock value is recomputed as Remaining × Cost Price after saving.</p>

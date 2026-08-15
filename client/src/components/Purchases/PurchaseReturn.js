@@ -174,6 +174,8 @@ export default function PurchaseReturn() {
             { label: 'Grand Total', value: fmt(detail.grandTotal) },
             { label: 'Paid', value: fmt(detail.paidAmount) },
             { label: 'Due', value: fmt(detail.dueAmount) },
+            ...(detail.paymentRemarks ? [{ label: 'Remarks', value: detail.paymentRemarks }] : []),
+            ...(detail.note ? [{ label: 'Note', value: detail.note }] : []),
           ]}
           columns={[
             { key: 'product', label: 'Product', render: (v) => v?.name || v || 'Unknown' },

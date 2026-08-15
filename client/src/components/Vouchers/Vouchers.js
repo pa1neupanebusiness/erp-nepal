@@ -205,6 +205,7 @@ export default function Vouchers() {
               { label: 'Account', value: accountName },
               { label: 'Status', value: v.status },
               { label: 'Reference', value: v.reference || '-' },
+              ...(v.description ? [{ label: 'Description', value: v.description }] : []),
             ]}
             columns={[
               { key: 'method', label: 'Method' },

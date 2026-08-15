@@ -127,6 +127,11 @@ export default function PaymentOut() {
             <div className="form-group"><label>Date</label><NepaliDatePicker value={form.date} onChange={v => setForm({ ...form, date: v })} /></div>
             <div className="form-group"><label>Supplier *</label>
               <SearchableSelect options={suppliers.map(s => ({ value: s._id, label: s.name }))} value={form.supplier} onChange={v => setForm({ ...form, supplier: v })} placeholder="Search supplier..." required />
+              {form.supplier && outstanding.balance !== undefined && outstanding.balance !== 0 && (
+                <div style={{ marginTop: 4, fontSize: '0.8rem', fontWeight: 600, color: outstanding.balance > 0 ? '#dc2626' : '#16a34a' }}>
+                  Balance: {fmt(Math.abs(outstanding.balance))} {outstanding.balance > 0 ? 'Cr' : 'Dr'}
+                </div>
+              )}
             </div>
             <div className="form-group"><label>Amount *</label><input type="number" step="0.01" min="0" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} required /></div>
             <div className="form-group"><label>Method</label>

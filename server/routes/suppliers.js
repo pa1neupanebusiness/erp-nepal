@@ -52,7 +52,17 @@ router.get('/:id/outstanding', protect, async (req, res) => {
     paid: p.paidAmount,
     due: p.dueAmount,
   }));
-  res.json({ purchases, invoices, totalDue });
+  let balance = 0;
+  try {
+    const Supplier = require('../models/Supplier');
+    const Account = require('../models/Account');
+    const sup = await Supplier.findOne({ _id: req.params.id, ...req.companyFilter }).select('name');
+    if (sup) {
+      const apAcc = await Account.findOne({ name: `Accounts Payable - ${sup.name}`, ...req.companyFilter }).select('balance');
+      if (apAcc) balance = apAcc.balance || 0;
+    }
+  } catch (e) { /* ignore */ }
+  res.json({ purchases, invoices, totalDue, balance });
 });
 
 router.get('/:id/fy-total', protect, async (req, res) => {

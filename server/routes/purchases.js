@@ -342,8 +342,16 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
   }
 
   const oldItems = purchased.items;
-    const { items: newItems, ...otherFields } = req.body;
+    const { items: newItems, splits: reqSplits, ...otherFields } = req.body;
     if (req.body.applyTds !== true) { otherFields.tds = 0; otherFields.tdsRate = 0; }
+    if (reqSplits !== undefined) {
+      otherFields.paymentSplits = otherFields.paymentMethod === 'split' ? (reqSplits || []).filter(sp => sp.amount > 0) : [];
+    }
+    if (otherFields.paymentMethod === 'bank' && otherFields.bank) {
+      // keep bank as-is
+    } else if (otherFields.paymentMethod !== 'bank') {
+      otherFields.bank = null;
+    }
 
   if (newItems) {
     for (const oldItem of oldItems) {

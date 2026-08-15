@@ -320,6 +320,7 @@ export default function FixedAssets() {
             { label: 'Serial', value: details.serialNumber || '-' },
             ...(details.sourceProduct ? [{ label: 'Source', value: `Stock (${details.stockQuantity || 1} units from ${details.sourceProduct.name || 'Product'})` }] : []),
             { label: 'Asset Account', value: details.assetAccount ? `${details.assetAccount.code} - ${details.assetAccount.name}` : '-' },
+            ...(details.description ? [{ label: 'Description', value: details.description }] : []),
           ]}
             columns={[
               { key: 'date', label: 'Date', render: (d) => new Date(d).toLocaleDateString('en-IN') },

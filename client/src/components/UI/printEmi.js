@@ -38,6 +38,7 @@ export function printEmiRecord(i, companyArg) {
       <div><span class="mlabel">Customer PAN:</span> <span class="mvalue">${escapeHtml(e.customer?.pan || e.customerPan || '-')}</span></div>
       <div><span class="mlabel">Bank / Finance:</span> <span class="mvalue">${escapeHtml(bankLabel)}</span></div>
       <div><span class="mlabel">Cashier:</span> <span class="mvalue">${escapeHtml(e.createdBy?.name || '-')}</span></div>
+      ${e.remarks ? `<div><span class="mlabel">Remarks:</span> <span class="mvalue">${escapeHtml(e.remarks)}</span></div>` : ''}
       <div style={{ marginTop: '0.5rem' }}>
         <span class="mlabel">Company PAN:</span> <span class="mvalue">${escapeHtml(company?.pan || '-')}</span>
         <span class="mlabel">VAT:</span> <span class="mvalue">${company?.vatRate || 13}%</span>

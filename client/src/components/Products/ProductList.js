@@ -26,6 +26,9 @@ export default function ProductList() {
   const [catSaving, setCatSaving] = useState(false);
   const [dragId, setDragId] = useState(null);
   const [dropCat, setDropCat] = useState(null);
+  const [addStockModal, setAddStockModal] = useState(null);
+  const [addStockQty, setAddStockQty] = useState('');
+  const [addStockNote, setAddStockNote] = useState('');
   const addToast = useToast();
   const formRef = useRef(null);
 
@@ -181,7 +184,6 @@ export default function ProductList() {
             <div className="form-group"><label>Min Stock</label><input type="number" value={form.minStock} onChange={e => setForm({ ...form, minStock: parseInt(e.target.value) || 0 })} /></div>
             <div className="form-group"><label>Cost Price (Rs.)</label><input type="number" step="0.01" value={form.costPrice} onChange={e => setForm({ ...form, costPrice: parseFloat(e.target.value) || 0 })} /></div>
             <div className="form-group"><label>Selling Price (Rs.)</label><input type="number" step="0.01" value={form.sellingPrice} onChange={e => setForm({ ...form, sellingPrice: parseFloat(e.target.value) || 0 })} /></div>
-            {editing && <div className="form-group"><label>Stock</label><input type="number" value={form.stock} onChange={e => setForm({ ...form, stock: parseInt(e.target.value) || 0 })} /></div>}
             <div className="form-group">
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
                 <input type="checkbox" checked={form.vatEnabled} onChange={e => setForm({ ...form, vatEnabled: e.target.checked })} />
@@ -242,10 +244,11 @@ export default function ProductList() {
                       <span className="badge badge-warning">Uncategorized</span>
                     )}
                   </td>
-                  <td>{formatNPR(p.costPrice)}</td><td>{formatNPR(p.sellingPrice)}</td>
+                  <td style={{ fontStyle: 'italic', color: '#64748b' }} title="Weighted average cost">{formatNPR(p.costPrice)}<br/><small style={{ fontSize: '0.7rem' }}>avg. cost</small></td><td>{formatNPR(p.sellingPrice)}</td>
                   <td>{p.vatEnabled ? <span className={`badge ${p.priceIncludesTax ? 'badge-success' : 'badge-secondary'}`}>{p.taxRate}% {p.priceIncludesTax ? 'Incl' : 'Excl'}</span> : '-'}</td>
                   <td><span className={`badge ${p.stock <= p.minStock ? 'badge-danger' : 'badge-success'}`}>{p.stock}</span></td>
                   <td className="action-cell">
+                    <button className="btn btn-sm" onClick={(e) => { e.stopPropagation(); setAddStockModal(p); setAddStockQty(''); setAddStockNote(''); }}>Add Stock</button>
                     <button className="btn btn-sm" onClick={(e) => { e.stopPropagation(); edit(p); }}>Edit</button>
                     <button className="btn btn-sm btn-danger" onClick={(e) => { e.stopPropagation(); remove(p._id); }}>Del</button>
                   </td>
@@ -258,6 +261,32 @@ export default function ProductList() {
       </div>
 
       {showUpload && <UploadModal endpoint="products" label="Products" onClose={() => setShowUpload(false)} onSuccess={load} />}
+
+      {addStockModal && (
+        <div className="modal-overlay" onClick={() => setAddStockModal(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+            <div className="modal-header"><h3>Add Stock - {addStockModal.name}</h3><button className="btn btn-sm modal-close-x" onClick={() => setAddStockModal(null)}>×</button></div>
+            <div className="modal-body">
+              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.75rem' }}>Current stock: <strong>{addStockModal.stock}</strong></p>
+              <div className="form-group"><label>Quantity to Add *</label><input type="number" min="1" value={addStockQty} onChange={e => setAddStockQty(e.target.value)} placeholder="Enter quantity" autoFocus /></div>
+              <div className="form-group"><label>Note (optional)</label><input value={addStockNote} onChange={e => setAddStockNote(e.target.value)} placeholder="e.g. Physical count adjustment" /></div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={() => setAddStockModal(null)}>Cancel</button>
+              <button className="btn-primary" onClick={async () => {
+                const qty = parseInt(addStockQty);
+                if (!qty || qty <= 0) { addToast('Enter a valid quantity', 'error'); return; }
+                try {
+                  await api.post(`/products/${addStockModal._id}/adjust-stock`, { quantity: qty, type: 'in', note: addStockNote });
+                  addToast(`Added ${qty} units to ${addStockModal.name}`, 'success');
+                  setAddStockModal(null);
+                  load();
+                } catch (err) { addToast(err.response?.data?.message || 'Failed to add stock', 'error'); }
+              }}>Add Stock</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {catModal && (
         <div className="modal-overlay" onClick={() => setCatModal(false)}>

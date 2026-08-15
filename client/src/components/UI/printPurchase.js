@@ -99,7 +99,11 @@ export function renderPurchaseHtml(p, company) {
       <div><strong>Supplier:</strong> ${escapeHtml(supplierName)}</div>
       ${supplierPan ? `<div><strong>Supplier PAN No:</strong> <div class="pan-boxes">${supplierPanBoxes}</div></div>` : ''}
       <div><strong>Supplier Invoice No:</strong> ${escapeHtml(supplierInvoice)}</div>
-      <div><strong>Payment Mode:</strong> ${escapeHtml(p.paymentMethod === 'bank' ? 'Bank' : p.paymentMethod === 'credit' ? 'Credit' : 'Cash')}</div>
+      <div><strong>Payment Mode:</strong> ${escapeHtml(p.paymentMethod === 'bank' ? 'Bank' : p.paymentMethod === 'split' ? 'Split' : p.paymentMethod === 'credit' ? 'Credit' : 'Cash')}</div>
+      ${p.paymentMethod === 'split' && p.paymentSplits?.length ? `<div><strong>Split Details:</strong> ${p.paymentSplits.map(sp => `${sp.method === 'bank' ? 'Bank' : 'Cash'}: ${num(sp.amount)}${sp.bank?.name ? ` (${escapeHtml(sp.bank.name)})` : ''}`).join(' + ')}</div>` : ''}
+      ${p.chequeNumber ? `<div><strong>Cheque No:</strong> ${escapeHtml(p.chequeNumber)}</div>` : ''}
+      ${p.paymentRemarks ? `<div><strong>Remarks:</strong> ${escapeHtml(p.paymentRemarks)}</div>` : ''}
+      ${p.note ? `<div><strong>Note:</strong> ${escapeHtml(p.note)}</div>` : ''}
       <div><strong>Status:</strong> ${escapeHtml(p.status || '-')}</div>
     </div>
 

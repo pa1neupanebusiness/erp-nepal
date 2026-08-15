@@ -52,10 +52,12 @@ router.get('/:id', protect, async (req, res) => {
 // Open receivables for a customer (credit invoices + EMI balances).
 router.get('/outstanding', protect, async (req, res) => {
   const customer = req.query.customerId;
-  if (!customer) return res.json({ invoices: [], totalDue: 0 });
-  const [sales, emis] = await Promise.all([
+  if (!customer) return res.json({ invoices: [], totalDue: 0, balance: 0 });
+  const [sales, emis, Customer, Account] = await Promise.all([
     Sale.find({ customer, status: 'completed', ...req.companyFilter }).select('invoiceNumber grandTotal amountPaid invoiceDate'),
     Emi.find({ customer, remainingAmount: { $gt: 0 }, ...req.companyFilter }).select('emiNumber netAmount remainingAmount product'),
+    require('../models/Customer'),
+    require('../models/Account'),
   ]);
   const invoices = [
     ...sales.filter(s => (s.grandTotal || 0) - (s.amountPaid || 0) > 0)
@@ -63,7 +65,15 @@ router.get('/outstanding', protect, async (req, res) => {
     ...emis.map(e => ({ type: 'emi', _id: e._id, ref: e.emiNumber, date: e.createdAt, total: e.netAmount, paid: e.netAmount - e.remainingAmount, due: e.remainingAmount })),
   ].sort((a, b) => new Date(a.date) - new Date(b.date));
   const totalDue = invoices.reduce((s, i) => s + i.due, 0);
-  res.json({ invoices, totalDue });
+  let balance = 0;
+  try {
+    const cust = await Customer.findOne({ _id: customer, ...req.companyFilter }).select('name');
+    if (cust) {
+      const arAcc = await Account.findOne({ name: `Accounts Receivable - ${cust.name}`, ...req.companyFilter }).select('balance');
+      if (arAcc) balance = arAcc.balance || 0;
+    }
+  } catch (e) { /* ignore */ }
+  res.json({ invoices, totalDue, balance });
 });
 
 router.post('/', protect, adminOnly, async (req, res) => {

@@ -181,6 +181,11 @@ export default function PaymentIn() {
             <div className="form-group"><label>Date</label><NepaliDatePicker value={form.date} onChange={v => setForm({ ...form, date: v })} /></div>
             <div className="form-group"><label>Customer *</label>
               <SearchableSelect options={customers.map(c => ({ value: c._id, label: c.name }))} value={form.customer} onChange={v => setForm({ ...form, customer: v })} placeholder="Search customer..." required />
+              {form.customer && outstanding.balance !== undefined && outstanding.balance !== 0 && (
+                <div style={{ marginTop: 4, fontSize: '0.8rem', fontWeight: 600, color: outstanding.balance > 0 ? '#dc2626' : '#16a34a' }}>
+                  Balance: {fmt(Math.abs(outstanding.balance))} {outstanding.balance > 0 ? 'Dr' : 'Cr'}
+                </div>
+              )}
             </div>
             <div className="form-group"><label>Amount *</label><input type="number" step="0.01" min="0" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} required /></div>
             <div className="form-group"><label>Method</label>

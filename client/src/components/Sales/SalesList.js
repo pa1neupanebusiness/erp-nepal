@@ -149,6 +149,7 @@ export default function SalesList() {
             { label: 'Grand Total', value: formatNPR(detail.grandTotal) },
             { label: 'Paid', value: formatNPR(detail.amountPaid) },
             { label: 'Change', value: formatNPR(detail.change) },
+            ...(detail.notes ? [{ label: 'Notes', value: detail.notes }] : []),
           ]}
           columns={[
             { key: 'product', label: 'Item', wide: true, render: (v) => v?.name || v || 'Unknown' },

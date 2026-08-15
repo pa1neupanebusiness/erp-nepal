@@ -75,8 +75,11 @@ export default function Purchases() {
       applyTds: (purchase.tds || 0) > 0,
       paidAmount: purchase.paidAmount || 0,
       paymentMethod: purchase.paymentMethod || 'cash',
+      bank: purchase.bank?._id || purchase.bank || '',
       chequeNumber: purchase.chequeNumber || '',
       paymentRemarks: purchase.paymentRemarks || '',
+      paymentSplits: purchase.paymentSplits || [],
+      splits: purchase.paymentSplits || [],
       supplierInvoiceNo: purchase.supplierInvoiceNo || '',
       note: purchase.note || '',
     });
@@ -543,7 +546,9 @@ export default function Purchases() {
             <div><strong>Grand Total: {formatNPR(detail.grandTotal)}</strong></div>
             <div>Paid: {formatNPR(detail.paidAmount)}</div>
             <div style={detail.dueAmount > 0 ? { color: '#dc2626', fontWeight: 700 } : {}}>Due: {formatNPR(detail.dueAmount)}</div>
-            {detail.paymentMethod && <div>Payment: {detail.paymentMethod === 'bank' ? 'Bank (Cheque)' : 'Cash'} {detail.chequeNumber && `/ Chq: ${detail.chequeNumber}`}</div>}
+            {detail.paymentMethod && <div>Payment: {detail.paymentMethod === 'split' ? 'Split' : detail.paymentMethod === 'bank' ? 'Bank (Cheque)' : 'Cash'} {detail.chequeNumber && `/ Chq: ${detail.chequeNumber}`}</div>}
+            {detail.paymentRemarks && <div>Remarks: {detail.paymentRemarks}</div>}
+            {detail.note && <div>Note: {detail.note}</div>}
             {detail.supplierInvoiceNo && <div>Supplier Invoice: {detail.supplierInvoiceNo}</div>}
           </div>
           <table className="table">

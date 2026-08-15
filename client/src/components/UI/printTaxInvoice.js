@@ -100,6 +100,7 @@ export function renderTaxInvoiceHtml(sale, company) {
       <div style="margin-top: 4px;">
         <strong>Mode of Payment:</strong> ${escapeHtml(paymentLabel(sale.paymentMethod))}
       </div>
+      ${sale.notes ? `<div style="margin-top: 4px;"><strong>Notes:</strong> ${escapeHtml(sale.notes)}</div>` : ''}
     </div>
 
     <table class="invoice-table">
