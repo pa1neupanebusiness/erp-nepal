@@ -75,7 +75,17 @@ function adToBikramSambat(adDate) {
 }
 
 function getBSFiscalYear(date) {
-  return { startYear: 2083, endYear: 2084, label: '83/84' };
+  const adDate = date ? new Date(date) : new Date();
+  const adYear = adDate.getFullYear();
+  // BS calendar is approximately AD year + 57
+  // Fiscal year in Nepal starts mid-April (Baisakh), so:
+  // If AD month is April (4) or later, fiscal year = AD year + 57 : (AD year + 58)
+  // If AD month is before April, fiscal year = (AD year - 1) + 57 : (AD year + 57)
+  const bsBaseYear = adYear + 57;
+  const fiscalLabel = adDate.getMonth() >= 3 ? `${bsBaseYear}/${String(bsBaseYear + 1).slice(-2)}` : `${bsBaseYear - 1}/${String(bsBaseYear).slice(-2)}`;
+  const startYear = bsBaseYear;
+  const endYear = bsBaseYear + 1;
+  return { startYear, endYear, label: fiscalLabel };
 }
 
 function formatNPR(n) {
