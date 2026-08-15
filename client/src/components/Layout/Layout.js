@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import FiscalYearSelector from './FiscalYearSelector';
 import { ToastContainer } from '../UI/Toast';
@@ -63,7 +63,7 @@ export { Icon };
 function NavSection({ title, paths = [], children, activeSection, onToggle }) {
   const location = useLocation();
   const isActive = paths.some(p => location.pathname.startsWith(p));
-  const isOpen = activeSection === title || isActive;
+  const isOpen = activeSection === title;
 
   return (
     <div className={`nav-section${isActive ? ' has-active' : ''}`}>
@@ -107,6 +107,24 @@ export default function Layout({ user, onLogout, children }) {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState(null);
+
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === '/' || path === '/login') { setActiveSection(null); return; }
+    const sectionMap = {
+      'Sales': ['/pos', '/emi', '/sales', '/pos-summary', '/request-refund', '/admin/refund-approvals', '/refund'],
+      'Purchase': ['/purchases'],
+      'Store': ['/products', '/categories', '/suppliers', '/stock-reports', '/customers', '/damage'],
+      'Accounting': ['/accounts', '/vouchers', '/ledger', '/accounting/expenses', '/fixed-assets', '/reports/monthly-sales-register', '/expenses'],
+      'VAT & TDS Reports': ['/reports/vat', '/reports/tds', '/reports/aging', '/reports/cash-flow'],
+      'HR & Payroll': ['/hr'],
+      'Super Admin': ['/admin'],
+      'Admin': ['/company-settings', '/users'],
+    };
+    for (const [title, paths] of Object.entries(sectionMap)) {
+      if (paths.some(p => path.startsWith(p))) { setActiveSection(title); return; }
+    }
+  }, [location.pathname]);
   const isSuperAdmin = user?.role === 'super_admin';
   const isAdmin = isSuperAdmin || user?.role === 'admin';
   const groups = user?.groups || [];
@@ -127,7 +145,7 @@ export default function Layout({ user, onLogout, children }) {
   const linkClass = ({ isActive }) => `nav-link${isActive ? ' active' : ''}`;
 
   const closeSidebar = () => setSidebarOpen(false);
-  const toggleSection = (title) => setActiveSection(prev => prev === title ? null : title);
+  const toggleSection = (title) => { setActiveSection(prev => prev === title ? null : title); };
 
   const v = {
     pos: mod('pos') && hasGroup('pos'),
