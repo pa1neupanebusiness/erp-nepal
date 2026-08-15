@@ -86,7 +86,8 @@ export function renderLedgerHtml(ledger, company, opts = {}) {
     .company-title { font-size: 18px; font-weight: bold; text-transform: uppercase; }
     .report-title { font-size: 14px; font-weight: bold; margin-top: 5px; text-decoration: underline; }
     .meta-grid { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 12px; line-height: 1.4; }
-    .meta-grid > div { flex: 0 1 auto; }
+    .meta-grid > div:first-child { flex: 0 0 auto; }
+    .meta-grid > div:last-child { flex: 1; text-align: right; }
     table.ledger-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
     table.ledger-table th, table.ledger-table td { border: 1px solid #000; padding: 5px 6px; white-space: nowrap; }
     table.ledger-table th { background-color: #f2f2f2; font-weight: bold; text-align: center; }
