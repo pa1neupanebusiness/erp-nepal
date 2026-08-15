@@ -59,6 +59,9 @@ router.post('/', protect, async (req, res) => {
       const count = await Product.countDocuments({ ...req.companyFilter });
       data.sku = `${prefix}-${String(count + 1).padStart(4, '0')}`;
     }
+    if (!data.barcode) {
+      data.barcode = String(Math.floor(10000 + Math.random() * 89999)).padStart(5, '0');
+    }
     const item = await Product.create(data);
     if (req.body.stock > 0) {
       await InventoryMovement.create({

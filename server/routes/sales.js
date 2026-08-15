@@ -133,7 +133,7 @@ async function postSaleJournalEntry(sale, items, req, { customerDoc, customerPan
 
   if (hasCustomer && customerAr) {
     const saleLines = [
-      { account: customerAr._id, debit: sale.grandTotal, credit: 0 },
+      { account: customerAr._id, debit: sale.dueAmount, credit: 0 },
       { account: salesAccount._id, debit: 0, credit: sale.grandTotal + (sale.discount || 0) - effectiveTaxTotal },
     ];
     if (effectiveTaxTotal > 0 && vatAccount) saleLines.push({ account: vatAccount._id, debit: 0, credit: effectiveTaxTotal });
