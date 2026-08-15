@@ -147,9 +147,9 @@ export default function SalesList() {
             <button className="btn btn-sm btn-secondary" onClick={() => printCreditNote(detail, company)}>Print Credit Note</button>
           ) : null}
           title={`Sale ${detail.invoiceNumber}`}
-          subtitle={`${new Date(detail.createdAt).toLocaleString('en-IN')} | ${detail.customer?.name || 'Walk-in'} | ${detail.paymentMethod}`}
+          subtitle={`${new Date(detail.createdAt).toLocaleString('en-IN')} | ${detail.customer?.name || ''} | ${detail.paymentMethod}`}
 meta={[
-              { label: 'Customer', value: detail.customer?.name || 'Walk-in' },
+              { label: 'Customer', value: detail.customer?.name || '' },
               { label: 'Payment', value: detail.paymentMethod === 'split' ? (detail.paymentSplits || []).map(s => `${s.method}: ${formatNPR(s.amount)}`).join(' + ') : detail.paymentMethod },
               { label: 'Status', value: detail.status },
               { label: 'Grand Total', value: formatNPR(detail.grandTotal) },
