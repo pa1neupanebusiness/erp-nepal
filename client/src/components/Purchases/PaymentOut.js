@@ -163,8 +163,6 @@ export default function PaymentOut() {
           {amount > 0 && outstanding.totalDue > 0 && amount <= outstanding.totalDue && (
             <div className="text-muted" style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>Oldest invoices are settled first ({allocationPreview.filter(a => a.apply > 0).length} invoice(s)).</div>
           )}
-          {submitted && amount > outstanding.totalDue && outstanding.totalDue > 0 && <div className="text-danger" style={{ margin: '0.5rem 0' }}>Amount exceeds total due ({fmt(outstanding.totalDue)}).</div>}
-
           <button type="submit" className="btn btn-primary" disabled={!canSubmit || submitting}>{submitting ? 'Saving...' : 'Record Payment'}</button>
         </form>
       )}

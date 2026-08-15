@@ -38,6 +38,7 @@ const saleSchema = new mongoose.Schema({
   images: [{ type: String }],
   fiscalYear: { type: String },
   fiscalYearId: { type: mongoose.Schema.Types.ObjectId, ref: 'FiscalYear' },
+  inclusiveVat: { type: Boolean, default: false },
 }, { timestamps: true });
 
 saleSchema.plugin(require('./companyPlugin'));

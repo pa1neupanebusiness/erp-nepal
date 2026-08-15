@@ -141,6 +141,7 @@ export default function POS() {
         paymentSplits: paymentMethod === 'split' ? splits.filter(sp => sp.amount > 0) : undefined,
         customer: customer || null,
         bank: (paymentMethod === 'qr' || paymentMethod === 'bank') ? bank : null,
+        inclusiveVat: cart.some(i => i.priceIncludesTax),
       };
       const { data } = await api.post('/sales', payload);
       setLastSale(data);

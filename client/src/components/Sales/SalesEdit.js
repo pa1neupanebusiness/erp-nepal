@@ -164,6 +164,7 @@ export default function SalesEdit() {
         amountPaid: Number(amountPaid) || 0, paymentMethod,
         customer: customer || null,
         date: bsToADStr(invoiceDate), notes,
+        inclusiveVat: !!inclusiveVat,
       };
       await api.put(`/sales/${id}`, payload);
       addToast('Sale updated successfully', 'success');

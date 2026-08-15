@@ -512,12 +512,6 @@ function JournalEntryList() {
                 <td><strong>{formatNPR(totalCredit)}</strong></td>
                 <td></td>
               </tr>
-              {submitted && !balanced && (
-                <tr><td colSpan="5" className="text-danger">Debit ({totalDebit.toFixed(2)}) and Credit ({totalCredit.toFixed(2)}) must be equal</td></tr>
-              )}
-              {submitted && controlMissing && (
-                <tr><td colSpan="5" className="text-danger">Sundry Debtors / Sundry Creditors lines require a customer or vendor reference</td></tr>
-              )}
             </tfoot>
           </table>
           <button type="submit" className="btn btn-primary" disabled={!balanced || controlMissing || posting}>{posting ? 'Saving...' : (editing ? 'Update Entry' : 'Post Entry')}</button>

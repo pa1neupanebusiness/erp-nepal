@@ -333,7 +333,7 @@ router.get('/:id', protect, async (req, res) => {
 });
 
 router.post('/', protect, requirePANForLargeTx, async (req, res) => {
-  const { items, subtotal, taxTotal, discount, grandTotal, amountPaid, change, paymentMethod, paymentSplits, customer, bank, invoiceNumber, date, notes, images, source } = req.body;
+  const { items, subtotal, taxTotal, discount, grandTotal, amountPaid, change, paymentMethod, paymentSplits, customer, bank, invoiceNumber, date, notes, images, source, inclusiveVat } = req.body;
 
   const totalPaid = paymentMethod === 'split' && paymentSplits?.length
     ? paymentSplits.reduce((s, sp) => s + (sp.amount || 0), 0)
@@ -384,6 +384,7 @@ router.post('/', protect, requirePANForLargeTx, async (req, res) => {
         notes, images: images || [],
         fiscalYear: getFiscalYearLabel(date || new Date()),
         fiscalYearId: req.fiscalYearId || undefined,
+        inclusiveVat: !!inclusiveVat,
       });
       break;
     } catch (err) {
@@ -422,7 +423,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     if (!sale) return res.status(404).json({ message: 'Sale not found' });
     if (sale.status === 'refunded') return res.status(400).json({ message: 'Cannot edit a refunded sale' });
 
-    const { items: newItems, subtotal, taxTotal, discount, grandTotal, amountPaid, paymentMethod, paymentSplits, customer, bank, date, notes } = req.body;
+    const { items: newItems, subtotal, taxTotal, discount, grandTotal, amountPaid, paymentMethod, paymentSplits, customer, bank, date, notes, inclusiveVat } = req.body;
 
     if (newItems && Array.isArray(newItems)) {
       for (const item of sale.items) {
@@ -456,6 +457,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     if (paymentSplits) sale.paymentSplits = paymentSplits;
     if (bank !== undefined) sale.bank = bank;
     if (notes !== undefined) sale.notes = notes;
+    if (inclusiveVat !== undefined) sale.inclusiveVat = !!inclusiveVat;
     if (date) sale.invoiceDate = new Date(date);
     if (customer !== undefined) {
       sale.customer = customer || null;

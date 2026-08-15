@@ -308,6 +308,7 @@ export default function CreateSalesInvoice() {
         notes,
         images,
         source: 'invoice',
+        inclusiveVat: inclusiveVat && applyVat,
       };
       const { data } = await api.post('/sales', payload);
       setLastSale(data);
