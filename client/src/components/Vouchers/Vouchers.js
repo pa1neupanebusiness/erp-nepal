@@ -8,15 +8,21 @@ import api from '../../api';
 export default function Vouchers() {
   const [items, setItems] = useState([]);
   const [accounts, setAccounts] = useState([]);
-  const [form, setForm] = useState({ type: 'receipt', date: adToBsStr(new Date()), account: '', reference: '', description: '' });
+  const [form, setForm] = useState({ type: 'receipt', date: adToBsStr(new Date()), account: '', reference: '', description: '', pendingDue: 0, pendingType: '', pendingName: '' });
   const [payments, setPayments] = useState([{ method: 'cash', amount: '' }]);
   const [showForm, setShowForm] = useState(false);
   const [summary, setSummary] = useState(null);
   const [tab, setTab] = useState('receipt');
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [detailsId, setDetailsId] = useState(null);
+  const [pendingData, setPendingData] = useState({ customerDue: 0, supplierDue: 0, customerName: '', supplierName: '' });
 
   useEffect(() => { load(); api.get('/accounts').then(r => setAccounts(r.data)); }, []);
+  useEffect(() => {
+    if (form.account) {
+      api.get(`/vouchers/${form.account}/pending`).then(r => setPendingData(r.data)).catch(() => {});
+    }
+  }, [form.account, tab]);
   const load = () => {
     api.get('/vouchers', { params: { type: tab } }).then(r => setItems(r.data.sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0))));
     api.get('/vouchers/summary').then(r => setSummary(r.data)).catch(() => {});
@@ -52,7 +58,7 @@ export default function Vouchers() {
       amount: cleanPayments.reduce((s, p) => s + parseFloat(p.amount), 0),
       payments: cleanPayments.map(p => ({ method: p.method, amount: parseFloat(p.amount) })),
     });
-    setForm({ type: tab, date: adToBsStr(new Date()), account: '', reference: '', description: '' });
+    setForm({ type: tab, date: adToBsStr(new Date()), account: '', reference: '', description: '', pendingDue: 0, pendingType: '', pendingName: '' });
     setPayments([{ method: 'cash', amount: '' }]);
     setShowForm(false);
     load();
@@ -125,6 +131,16 @@ export default function Vouchers() {
               required
               placeholder="Search account..."
             /></div>
+            {form.pendingDue > 0 && (
+              <div className="form-group" style={{ marginTop: '0.5rem' }}>
+                <label style={{ fontWeight: 600, color: '#2563eb' }}>
+                  {form.pendingType === 'customer' ? 'Customer Outstanding' : 'Supplier Outstanding'}
+                </label>
+                <span style={{ fontSize: '0.85rem', color: '#64748b', marginLeft: '0.5rem' }}>
+                  {formatNPR(form.pendingDue)} {form.pendingName}
+                </span>
+              </div>
+            )}
             <div className="form-group"><label>Reference</label><input value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })} /></div>
             <div className="form-group"><label>Description *</label><input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required /></div>
           </div>

@@ -187,4 +187,34 @@ router.get('/summary', protect, async (req, res) => {
   });
 });
 
+router.get('/:accountId/pending', protect, async (req, res) => {
+  try {
+    const { accountId } = req.params;
+    const accountDoc = await Account.findById(accountId).populate('company');
+    if (!accountDoc) return res.status(404).json({ message: 'Account not found' });
+    
+    let pendingData = { customerDue: 0, supplierDue: 0, customerName: '', supplierName: '' };
+    
+    // For receipt vouchers (money received), check customer due
+    if (accountDoc.type === 'asset' || accountDoc.type === 'revenue') {
+      const sales = await Sale.find({ customer: accountDoc._id, ...req.companyFilter, status: 'completed' })
+        .populate('customer', 'name');
+      const totalDue = sales.reduce((s, sale) => s + (sale.dueAmount || 0), 0);
+      pendingData.customerDue = totalDue;
+      if (sales.length > 0) pendingData.customerName = sales[0].customer.name;
+    }
+    
+    // For payment vouchers (money paid), check supplier due
+    if (accountDoc.type === 'asset' || accountDoc.type === 'expense') {
+      const purchases = await Purchase.find({ supplier: accountDoc._id, ...req.companyFilter, status: 'pending' })
+        .populate('supplier', 'name');
+      const totalDue = purchases.reduce((s, purchase) => s + (purchase.dueAmount || 0), 0);
+      pendingData.supplierDue = totalDue;
+      if (purchases.length > 0) pendingData.supplierName = purchases[0].supplier.name;
+    }
+    
+    res.json(pendingData);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 module.exports = router;
