@@ -633,4 +633,33 @@ router.post('/standalone-return', protect, adminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+router.post('/:id/return', protect, adminOnly, async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid purchase ID' });
+  const { remark } = req.body;
+  if (!remark?.trim()) return res.status(400).json({ message: 'Refund reason/remark is required' });
+  const purchase = await Purchase.findOne({ _id: req.params.id, ...req.companyFilter });
+  if (!purchase) return res.status(404).json({ message: 'Purchase not found' });
+  if (purchase.status === 'returned') return res.status(400).json({ message: 'Purchase already returned' });
+  let totalStockReturned = 0;
+  for (const item of purchase.items) {
+    const product = await Product.findOne({ _id: item.product, ...req.companyFilter });
+    if (product) {
+      product.stock += item.quantity;
+      await product.save();
+      await InventoryMovement.create({
+        product: product._id, type: 'purchase_return', quantity: item.quantity,
+        reference: purchase.purchaseNumber, note: 'Purchase return', createdBy: req.user._id, company: req.companyId,
+        date: purchase.date || undefined, fiscalYearId: purchase.fiscalYearId || req.fiscalYearId || undefined,
+      });
+      totalStockReturned += item.quantity;
+    }
+  }
+  purchase.status = 'returned';
+  purchase.returnRemark = remark;
+  purchase.dueAmount = 0;
+  purchase.paidAmount = purchase.grandTotal;
+  await purchase.save();
+  res.json(purchase);
+});
+
 module.exports = router;
