@@ -21,7 +21,6 @@ export default function POS() {
   const [amountPaid, setAmountPaid] = useState('');
   const [splits, setSplits] = useState([{ method: 'cash', amount: 0, bank: '' }]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(null);
   const [lastSale, setLastSale] = useState(null);
   const [discountMode, setDiscountMode] = useState('flat');
   const [discountValue, setDiscountValue] = useState(0);
