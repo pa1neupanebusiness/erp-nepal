@@ -147,16 +147,115 @@ router.post('/', protect, adminOnly, async (req, res) => {
     const customerDoc = await Customer.findOne({ _id: customer, ...req.companyFilter });
     const debtorAccount = await findOrCreateCustomerReceivable(req.companyId, req.companyFilter, customerDoc || null);
     const cashAccount = await Account.findOne({ code: '10100', ...req.companyFilter });
-    const bankAccount = await Account.findOne({ code: '10200', ...req.companyFilter });
-    const acct = method === 'cash' ? cashAccount : bankAccount;
-    if (acct && debtorAccount) {
+    const salesBankAccount = await Account.findOne({ code: '10200', ...req.companyFilter });
+    const emiBankAccount = await Account.findOne({ code: '10201', ...req.companyFilter });
+    const cashAccount = await Account.findOne({ code: '10100', ...req.companyFilter });
+
+    // Calculate amounts for sales vs EMI allocations
+    const salesAllocationAmt = allocations.filter(a => a.sale).reduce((s, a) => s + a.amount, 0);
+    const emiAllocationAmt = allocations.filter(a => a.emi).reduce((s, a) => s + a.amount, 0);
+    const unallocatedAmt = amt - salesAllocationAmt - emiAllocationAmt;
+
+    const journalEntries = [];
+
+    // Create journal entry for sales allocations (uses Sales Bank Account 10200)
+    if (salesAllocationAmt > 0 && method !== 'cash') {
+      const acct = method === 'cash' ? cashAccount : salesBankAccount;
+      journalEntries.push({
+        description: `Payment in - Sales ${reference ? ' | ' + reference : ''}${note ? ' | ' + note : ''}`,
+        lines: [
+          { account: salesBankAccount._id, debit: salesAllocationAmt, credit: 0, bank: bank || null },
+          { account: debtorAccount._id, debit: 0, credit: salesAllocationAmt, subLedger: { customer } },
+        ],
+        daybook: {
+          date: receiptDate,
+          sourceModule: 'PAYMENT_IN',
+          daybookType: 'CASH_BOOK',
+          documentNumber: payment.receiptNumber,
+          sourceRef: String(payment._id),
+          narration: `Sales payment received from customer${reference ? ' | ' + reference : ''}`,
+          lines: [
+            { account: salesBankAccount._id, accountName: salesBankAccount.name || 'Sales Bank Account', debit: salesAllocationAmt, credit: 0, partyType: 'customer', partyId: customer, partyName: customerDoc?.name || '' },
+            { account: debtorAccount._id, accountName: debtorAccount.name || 'Accounts Receivable', debit: 0, credit: salesAllocationAmt, partyType: 'customer', partyId: customer, partyName: customerDoc?.name || '' },
+          ],
+        },
+      });
+    }
+
+    // Create journal entry for EMI allocations (uses EMI Bank Account 10201)
+    if (emiAllocationAmt > 0 && method !== 'cash') {
+      const acct = method === 'cash' ? cashAccount : emiBankAccount;
+      journalEntries.push({
+        description: `Payment in - EMI ${reference ? ' | ' + reference : ''}${note ? ' | ' + note : ''}`,
+        lines: [
+          { account: emiBankAccount._id, debit: emiAllocationAmt, credit: 0, bank: bank || null },
+          { account: debtorAccount._id, debit: 0, credit: emiAllocationAmt, subLedger: { customer } },
+        ],
+        daybook: {
+          date: receiptDate,
+          sourceModule: 'PAYMENT_IN',
+          daybookType: 'CASH_BOOK',
+          documentNumber: payment.receiptNumber,
+          sourceRef: String(payment._id),
+          narration: `EMI payment received from customer${reference ? ' | ' + reference : ''}`,
+          lines: [
+            { account: emiBankAccount._id, accountName: emiBankAccount.name || 'EMI Bank Account', debit: emiAllocationAmt, credit: 0, partyType: 'customer', partyId: customer, partyName: customerDoc?.name || '' },
+            { account: debtorAccount._id, accountName: debtorAccount.name || 'Accounts Receivable', debit: 0, credit: emiAllocationAmt, partyType: 'customer', partyId: customer, partyName: customerDoc?.name || '' },
+          ],
+        },
+      });
+    }
+
+    // Create journal entry for unallocated amount (on-account)
+    if (unallocatedAmt > 0 && method !== 'cash') {
+      journalEntries.push({
+        description: `Payment in - On Account ${reference ? ' | ' + reference : ''}${note ? ' | ' + note : ''}`,
+        lines: [
+          { account: salesBankAccount._id, debit: unallocatedAmt, credit: 0, bank: bank || null },
+          { account: debtorAccount._id, debit: 0, credit: unallocatedAmt, subLedger: { customer } },
+        ],
+        daybook: {
+          date: receiptDate,
+          sourceModule: 'PAYMENT_IN',
+          daybookType: 'CASH_BOOK',
+          documentNumber: payment.receiptNumber,
+          sourceRef: String(payment._id),
+          narration: `On-account payment received from customer${reference ? ' | ' + reference : ''}`,
+          lines: [
+            { account: salesBankAccount._id, accountName: salesBankAccount.name || 'Sales Bank Account', debit: unallocatedAmt, credit: 0, partyType: 'customer', partyId: customer, partyName: customerDoc?.name || '' },
+            { account: debtorAccount._id, accountName: debtorAccount.name || 'Accounts Receivable', debit: 0, credit: unallocatedAmt, partyType: 'customer', partyId: customer, partyName: customerDoc?.name || '' },
+          ],
+        },
+      });
+    }
+
+    // Process all journal entries
+    for (const je of journalEntries) {
       await postJournalEntryAtomic({
         companyId: req.companyId,
         date: receiptDate,
         reference: payment.receiptNumber,
-        description: `Payment in - customer${reference ? ' | ' + reference : ''}${note ? ' | ' + note : ''}`,
+        description: je.description,
+        lines: je.lines,
+        createdBy: req.user._id,
+        fiscalYear: payment.fiscalYear,
+        fiscalYearId: req.fiscalYearId || undefined,
+        miti: adToBikramSambat(receiptDate),
+        companyFilter: req.companyFilter,
+        daybook: je.daybook,
+      });
+    }
+
+    // Handle cash payments (single entry for all cash)
+    if (method === 'cash' && (salesAllocationAmt + emiAllocationAmt + unallocatedAmt) > 0) {
+      const totalCashAmt = salesAllocationAmt + emiAllocationAmt + unallocatedAmt;
+      await postJournalEntryAtomic({
+        companyId: req.companyId,
+        date: receiptDate,
+        reference: payment.receiptNumber,
+        description: `Payment in - Cash ${reference ? ' | ' + reference : ''}${note ? ' | ' + note : ''}`,
         lines: [
-          { account: acct._id, debit: amt, credit: 0, bank: method === 'cash' ? null : (bank || null) },
+          { account: cashAccount._id, debit: amt, credit: 0 },
           { account: debtorAccount._id, debit: 0, credit: amt, subLedger: { customer } },
         ],
         createdBy: req.user._id,
@@ -170,16 +269,20 @@ router.post('/', protect, adminOnly, async (req, res) => {
           daybookType: 'CASH_BOOK',
           documentNumber: payment.receiptNumber,
           sourceRef: String(payment._id),
-          narration: `Payment received from customer${reference ? ' | ' + reference : ''}`,
+          narration: `Cash payment received from customer${reference ? ' | ' + reference : ''}`,
           lines: [
-            { account: acct._id, accountName: acct.name || 'Cash (Teji/Nagad)', debit: amt, credit: 0, partyType: 'customer', partyId: customer, partyName: customerDoc?.name || '' },
+            { account: cashAccount._id, accountName: cashAccount.name || 'Cash', debit: amt, credit: 0, partyType: 'customer', partyId: customer, partyName: customerDoc?.name || '' },
             { account: debtorAccount._id, accountName: debtorAccount.name || 'Accounts Receivable', debit: 0, credit: amt, partyType: 'customer', partyId: customer, partyName: customerDoc?.name || '' },
           ],
           createdBy: req.user._id,
           terminalIp: getClientIp(req),
         },
       });
-      if (method !== 'cash' && bank) await adjustBankBalance(bank, amt, req.companyFilter).catch(() => {});
+    } else if (method !== 'cash') {
+      // Adjust bank balances for each bank account used
+      if (salesAllocationAmt > 0 && bank) await adjustBankBalance(bank, salesAllocationAmt, req.companyFilter).catch(() => {});
+      if (emiAllocationAmt > 0 && bank) await adjustBankBalance(bank, emiAllocationAmt, req.companyFilter).catch(() => {});
+      if (unallocatedAmt > 0 && bank) await adjustBankBalance(bank, unallocatedAmt, req.companyFilter).catch(() => {});
     }
   } catch (err) { console.error('Payment in journal error:', err.message); }
 

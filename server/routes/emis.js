@@ -190,7 +190,7 @@ router.post('/', protect, requirePANForLargeTx, async (req, res) => {
   }
 
   const cashAccount = await Account.findOne({ code: '10100', ...req.companyFilter });
-  const bankAccount = await Account.findOne({ code: '10200', ...req.companyFilter });
+  const emiBankAccount = await Account.findOne({ code: '10201', ...req.companyFilter });
   const emiDebtor = await Account.findOne({ code: '10370', ...req.companyFilter });
   const bankEmiClearing = await Account.findOne({ code: '10360', ...req.companyFilter });
   const usedGoodsAccount = await Account.findOne({ code: '10450', ...req.companyFilter });
@@ -224,9 +224,9 @@ router.post('/', protect, requirePANForLargeTx, async (req, res) => {
     });
   }
 
-  // Step 3: Down payment received (cash -> Cash A/C, bank -> our own Bank A/C)
+  // Step 3: Down payment received (cash -> Cash A/C, bank -> EMI Bank A/C 10201)
   if (down > 0) {
-    const downAcc = method === 'bank' ? bankAccount : cashAccount;
+    const downAcc = method === 'bank' ? emiBankAccount : cashAccount;
     const step3 = [{ account: downAcc._id, debit: down, credit: 0, bank: method === 'bank' && downPaymentBankDoc ? downPaymentBankDoc._id : undefined }];
     step3.push({ account: emiDebtor._id, debit: 0, credit: down, subLedger: { customer: customerDoc._id } });
     journalSpecs.push({ reference: `RCT-${emiNumber}`, description: `Down payment ${emiNumber} (${method})`, lines: step3 });
@@ -397,7 +397,7 @@ router.post('/:id/pay', protect, async (req, res) => {
 
   try {
     const cashAccount = await Account.findOne({ code: '10100', ...req.companyFilter });
-    const bankAccount = await Account.findOne({ code: '10200', ...req.companyFilter });
+    const emiBankAccount = await Account.findOne({ code: '10201', ...req.companyFilter });
     const bankEmiReceivable = await Account.findOne({ code: '10360', ...req.companyFilter });
     const interestIncomeAccount = await Account.findOne({ code: '40300', ...req.companyFilter });
 
@@ -406,7 +406,7 @@ router.post('/:id/pay', protect, async (req, res) => {
     }
 
     const lines = [];
-    const paymentAccount = method === 'cash' ? cashAccount : bankAccount;
+    const paymentAccount = method === 'cash' ? cashAccount : emiBankAccount;
 
     if (paymentAccount) lines.push({ account: paymentAccount._id, debit: amount, credit: 0 });
     if (principal > 0) lines.push({ account: bankEmiReceivable._id, debit: 0, credit: principal });
@@ -493,13 +493,13 @@ router.post('/:id/disburse', protect, async (req, res) => {
   }
 
   const bankEmiClearing = await Account.findOne({ code: '10360', ...req.companyFilter });
-  const bankAccount = await Account.findOne({ code: '10200', ...req.companyFilter });
+  const emiBankAccount = await Account.findOne({ code: '10201', ...req.companyFilter });
   const bankChargeAccount = await Account.findOne({ code: '60900', ...req.companyFilter });
   if (!bankEmiClearing) return res.status(400).json({ message: 'Bank EMI Clearing account (10360) not configured' });
-  if (!bankAccount) return res.status(400).json({ message: 'Bank Account (10200) not configured' });
+  if (!emiBankAccount) return res.status(400).json({ message: 'EMI Bank Account (10201) not configured' });
 
   const lines = [];
-  lines.push({ account: bankAccount._id, debit: netReceived, credit: 0, bank: disbursingBank || emi.bank || undefined });
+  lines.push({ account: emiBankAccount._id, debit: netReceived, credit: 0, bank: disbursingBank || emi.bank || undefined });
   if (charge > 0 && bankChargeAccount) lines.push({ account: bankChargeAccount._id, debit: charge, credit: 0 });
   lines.push({ account: bankEmiClearing._id, debit: 0, credit: netReceived + charge });
 

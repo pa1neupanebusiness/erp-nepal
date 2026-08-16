@@ -13,7 +13,8 @@ const chartOfAccounts = {
     },
     accounts: [
       { code: '10100', name: 'Cash (Nagad)', type: 'asset', category: 'current_asset', isSystem: true },
-      { code: '10200', name: 'Bank Account', type: 'asset', category: 'current_asset', isSystem: true },
+      { code: '10200', name: 'Sales Bank Account', type: 'asset', category: 'current_asset', isSystem: true },
+      { code: '10201', name: 'EMI Bank Account', type: 'asset', category: 'current_asset', isSystem: true },
       { code: '10300', name: 'Accounts Receivable (Debi)', type: 'asset', category: 'current_asset', isSystem: true },
       { code: '10350', name: 'EMI Receivable', type: 'asset', category: 'current_asset', isSystem: true },
       { code: '10360', name: 'Bank EMI Loan Settlement (Clearing)', type: 'asset', category: 'current_asset', isSystem: true },

@@ -226,16 +226,22 @@ async function postEmiAtomic({
     if (exchangeItemsClean.length > 0) {
       const exchangeSourceName = (emiData.exchangeCustomerName && emiData.exchangeCustomerName.trim())
         ? emiData.exchangeCustomerName.trim() : emiData.customerName;
-      let supplierDoc = await Supplier.findOne({ name: exchangeSourceName, ...companyFilter }).session(session);
-      if (!supplierDoc) {
-        const [created] = await Supplier.create([{ name: exchangeSourceName, company: companyId }], { session });
-        supplierDoc = created;
+      
+      let supplierId = null;
+      if (exchangeSourceName && exchangeSourceName.trim()) {
+        let supplierDoc = await Supplier.findOne({ name: exchangeSourceName, ...companyFilter }).session(session);
+        if (!supplierDoc) {
+          const [created] = await Supplier.create([{ name: exchangeSourceName, company: companyId }], { session });
+          supplierDoc = created;
+        }
+        supplierId = supplierDoc._id;
       }
+      
       await Purchase.create([{
         purchaseNumber: `EXC-${emiData.emiNumber}`,
         type: 'direct',
         date: new Date(),
-        supplier: supplierDoc._id,
+        supplier: supplierId,
         items: exchangeItemsClean.map(it => ({
           product: it.product, quantity: it.quantity, costPrice: it.price, sellingPrice: 0,
           subtotal: Math.round(it.price * it.quantity * 100) / 100,
@@ -243,7 +249,7 @@ async function postEmiAtomic({
         subtotal: emiData.exchangeAmount,
         discount: 0, vatPercent: 0, inclusiveVat: false, tax: 0, tdsRate: 0, tds: 0,
         grandTotal: emiData.exchangeAmount, paidAmount: 0, dueAmount: 0, status: 'received',
-        note: `Exchange trade-in from ${exchangeSourceName} (EMI ${emiData.emiNumber})`,
+        note: `Exchange trade-in${exchangeSourceName ? ` from ${exchangeSourceName}` : ''} (EMI ${emiData.emiNumber})`,
         createdBy, company: companyId,
       }], { session });
     }

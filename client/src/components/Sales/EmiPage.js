@@ -636,7 +636,7 @@ export default function EmiPage() {
       {detail && (
         <EntryDetailsModal
           title={`EMI Record - ${detail.emiNumber}`}
-          subtitle={detail.remarks ? `Remarks: ${detail.remarks}` : ''}
+          subtitle={detail.customer?.name ? `Customer: ${detail.customer.name}${detail.remarks ? ' | ' + detail.remarks : ''}` : (detail.remarks || '')}
           meta={[
             { label: 'Date', value: formatDate(detail.createdAt) },
             { label: 'Product', value: detail.product?.name || '-' },

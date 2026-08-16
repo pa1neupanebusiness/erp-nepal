@@ -180,7 +180,11 @@ export default function LedgerView() {
             <label>Select Account</label>
             <SearchableSelect
               options={accountTypes
-                .map(type => accounts.filter(a => a.type === type && a.isActive).map(a => ({ value: a._id, label: `${a.code} - ${a.name}` })))
+                .map(type => accounts.filter(a => a.type === type && a.isActive).map(a => ({
+                  value: a._id,
+                  label: `${a.code} - ${a.name}`,
+                  subLabel: `${a.type}${a.category ? ' / ' + a.category : ''}${a.balance ? ' | Bal: ' + Number(a.balance).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : ''}`,
+                })))
                 .flat()}
               value={selectedAccount}
               onChange={setSelectedAccount}
