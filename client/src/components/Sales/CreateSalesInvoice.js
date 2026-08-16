@@ -146,6 +146,14 @@ export default function CreateSalesInvoice() {
     }, 0);
   };
 
+  const handleInclusiveVatToggle = (checked) => {
+    setInclusiveVat(checked);
+    setApplyVat(false);
+  };
+  const handleApplyVatToggle = (checked) => {
+    setApplyVat(checked);
+    setInclusiveVat(false);
+  };
   const lineRate = (r) => {
     const raw = parseFloat(r.rate) || 0;
     if (inclusiveVat) {
@@ -154,14 +162,7 @@ export default function CreateSalesInvoice() {
     }
     return raw;
   };
-  const lineBase = (r) => {
-    const raw = (parseFloat(r.rate) || 0) * (parseInt(r.qty) || 0);
-    if (inclusiveVat) {
-      const taxRate = r.taxRate || 13;
-      return Math.round((raw / (1 + taxRate / 100)) * 100) / 100;
-    }
-    return raw;
-  };
+  const lineBase = (r) => Math.round(lineRate(r) * (parseInt(r.qty) || 0) * 100) / 100;
   const lineTax = (r, base) => {
     const taxRate = r.taxRate || 13;
     return Math.round((base * taxRate / 100) * 100) / 100;
@@ -500,11 +501,11 @@ export default function CreateSalesInvoice() {
               </div>
               <div style={{ paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={applyVat} onChange={e => { setApplyVat(e.target.checked); if (e.target.checked) setInclusiveVat(false); }} style={{ width: 16, height: 16, accentColor: '#2563eb' }} />
+                  <input type="checkbox" checked={applyVat} onChange={e => handleApplyVatToggle(e.target.checked)} style={{ width: 16, height: 16, accentColor: '#2563eb' }} />
                   <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#334155' }}>Add VAT (13%)</span>
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer', marginTop: '0.5rem' }}>
-                  <input type="checkbox" checked={inclusiveVat} onChange={e => { setInclusiveVat(e.target.checked); if (e.target.checked) setApplyVat(false); }} style={{ width: 16, height: 16, accentColor: '#2563eb' }} />
+                  <input type="checkbox" checked={inclusiveVat} onChange={e => handleInclusiveVatToggle(e.target.checked)} style={{ width: 16, height: 16, accentColor: '#2563eb' }} />
                   <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Inclusive VAT (prices include 13%)</span>
                 </label>
               </div>

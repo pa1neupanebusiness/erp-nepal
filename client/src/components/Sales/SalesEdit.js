@@ -93,7 +93,7 @@ export default function SalesEdit() {
     }
   };
 
-  const lineAmount = (r) => (Number(r.qty) || 0) * (Number(r.rate) || 0);
+  const lineAmount = (r) => (Number(r.rate) || 0) * (Number(r.qty) || 0);
   const lineRate = (r) => {
     const raw = Number(r.rate) || 0;
     if (inclusiveVat) {
@@ -102,14 +102,7 @@ export default function SalesEdit() {
     }
     return raw;
   };
-  const lineBase = (r) => {
-    const raw = lineAmount(r);
-    if (inclusiveVat) {
-      const taxRate = r.taxRate || 13;
-      return Math.round((raw / (1 + taxRate / 100)) * 100) / 100;
-    }
-    return raw;
-  };
+  const lineBase = (r) => Math.round(lineRate(r) * (Number(r.qty) || 0) * 100) / 100;
 
   const totalBeforeDiscount = rows.reduce((s, r) => s + lineBase(r), 0);
   const vatRate = rows[0]?.taxRate || 13;
