@@ -109,7 +109,7 @@ export default function SalesEdit() {
 
   const totalBeforeDiscountRaw = rows.reduce((s, r) => s + lineAmount(r), 0);
   const vatRate = rows[0]?.taxRate || 13;
-  const totalBeforeDiscount = (inclusiveVat || applyVat) && vatRate > 0
+  const totalBeforeDiscount = inclusiveVat && vatRate > 0
     ? Math.round(totalBeforeDiscountRaw / (1 + vatRate / 100) * 100) / 100
     : totalBeforeDiscountRaw;
   let discount = Math.round((parseFloat(discountValue) || 0) * 100) / 100;
