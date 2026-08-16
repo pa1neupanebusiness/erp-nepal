@@ -430,7 +430,7 @@ export default function CreateSalesInvoice() {
                     <td style={{ padding: '0.75rem 1rem' }}>
                       <input type="number" min="0" step="0.01" value={r.rate} onChange={e => updateRow(idx, 'rate', e.target.value)} onKeyDown={tabAddRow(idx)} style={{ width: '100%', padding: '0.375rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.875rem', textAlign: 'right' }} />
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>{formatMoney(lineBase(r))}</td>
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>{formatMoney((parseFloat(r.rate) || 0) * (parseInt(r.qty) || 0))}</td>
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
                       <button onClick={() => removeRow(idx)} style={{ color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 4 }} onMouseEnter={e => e.target.style.color = '#ef4444'} onMouseLeave={e => e.target.style.color = '#94a3b8'}>{Icons.trash}</button>
                     </td>
