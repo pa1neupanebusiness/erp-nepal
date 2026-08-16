@@ -35,6 +35,8 @@ const saleSchema = new mongoose.Schema({
   refundRemark: { type: String },
   creditNoteNumber: { type: String },
   creditNoteDate: { type: Date },
+  debitNoteNumber: { type: String },
+  debitNoteDate: { type: Date },
   invoiceDate: { type: Date },
   notes: { type: String },
   images: [{ type: String }],

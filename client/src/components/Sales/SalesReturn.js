@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import NepaliDatePicker, { adToBsStr, bsToADStr } from '../UI/NepaliDatePicker';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
 import { formatDate as fmtDate } from '../UI/printEntry';
+import { printCreditNote } from '../UI/printCreditNote';
+import { printDebitNote } from '../UI/printDebitNote';
 
 const fmt = (n) => 'Rs. ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
 
@@ -23,13 +25,14 @@ export default function SalesReturn() {
   const [detail, setDetail] = useState(null);
   const [jeDetail, setJeDetail] = useState(null);
   const [tab, setTab] = useState('search');
+  const [company, setCompany] = useState(null);
 
   const load = () => {
     setLoading(true);
     api.get('/sales').then(r => setReturns(r.data.filter(s => s.status === 'refunded').sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0)))).catch(() => {}).finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); api.get('/company').then(r => setCompany(r.data)).catch(() => {}); }, []);
 
   const search = async () => {
     if (!invoiceNumber.trim()) return;
@@ -248,11 +251,13 @@ export default function SalesReturn() {
         <div className="card">
           <div className="table-responsive">
             <table className="table">
-              <thead><tr><th>Invoice</th><th>Date</th><th>Customer</th><th>Payment</th><th style={{ textAlign: 'right' }}>Total</th><th>Reason</th></tr></thead>
+              <thead><tr><th>Invoice</th><th>CN No</th><th>DN No</th><th>Date</th><th>Customer</th><th>Payment</th><th style={{ textAlign: 'right' }}>Total</th><th>Reason</th></tr></thead>
               <tbody>
                 {returns.map(r => (
                   <tr key={r._id} style={{ cursor: 'pointer' }} onClick={() => openSaleDetail(r)}>
                     <td style={{ fontWeight: 600 }}>{r.invoiceNumber}</td>
+                    <td>{r.creditNoteNumber || '-'}</td>
+                    <td>{r.debitNoteNumber || '-'}</td>
                     <td>{new Date(r.date || r.createdAt).toLocaleDateString('en-IN')}</td>
                     <td>{r.customer?.name || 'Walk-in'}</td>
                     <td><span className="badge badge-secondary">{r.paymentMethod}</span></td>
@@ -260,7 +265,7 @@ export default function SalesReturn() {
                     <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.refundRemark || '-'}</td>
                   </tr>
                 ))}
-                {!loading && returns.length === 0 && <tr><td colSpan="6" className="text-center" style={{ padding: '2rem' }}>No returns recorded yet</td></tr>}
+                {!loading && returns.length === 0 && <tr><td colSpan="8" className="text-center" style={{ padding: '2rem' }}>No returns recorded yet</td></tr>}
               </tbody>
             </table>
           </div>
@@ -273,6 +278,8 @@ export default function SalesReturn() {
           subtitle={`${new Date(detail.date || detail.createdAt).toLocaleDateString('en-IN')} | ${detail.customer?.name || 'Walk-in'}`}
           meta={[
             { label: 'Invoice', value: detail.invoiceNumber },
+            { label: 'Credit Note', value: detail.creditNoteNumber || '-' },
+            { label: 'Debit Note', value: detail.debitNoteNumber || '-' },
             { label: 'Status', value: detail.status },
             { label: 'Payment', value: detail.paymentMethod },
             { label: 'Grand Total', value: fmt(detail.grandTotal) },
@@ -291,6 +298,12 @@ export default function SalesReturn() {
             ...(detail.taxTotal > 0 ? [{ label: 'VAT', value: fmt(detail.taxTotal) }] : []),
             { label: 'Grand Total', value: fmt(detail.grandTotal) },
           ]}
+          actions={
+            <div style={{ display: 'flex', gap: '0.35rem' }}>
+              {detail.creditNoteNumber && <button className="btn btn-sm btn-secondary" onClick={() => printCreditNote(detail, company)}>Print Credit Note</button>}
+              {detail.debitNoteNumber && <button className="btn btn-sm btn-secondary" onClick={() => printDebitNote(detail, company)}>Print Debit Note</button>}
+            </div>
+          }
           onRowClick={async (row) => {
             if (!row?._id) return;
             try {

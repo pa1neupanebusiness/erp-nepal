@@ -188,10 +188,23 @@ export default function CreateSalesInvoice() {
   const totalBeforeDiscount = rows.reduce((s, r) => s + lineBase(r), 0);
   const vatRate = (rows[0]?.taxRate || 13);
   let discount = Math.round((parseFloat(discountValue) || 0) * 100) / 100;
-  const netAfterDiscount = Math.max(0, totalBeforeDiscount - discount);
   const vatEnabled = applyVat || inclusiveVat;
-  const taxTotal = vatEnabled ? Math.round((netAfterDiscount * vatRate / 100) * 100) / 100 : 0;
-  const grandTotal = Math.round((netAfterDiscount + taxTotal) * 100) / 100;
+  let grandTotal, taxTotal, netAfterDiscount;
+  if (inclusiveVat && vatEnabled) {
+    const totalInclusive = rows.reduce((s, r) => s + (parseFloat(r.rate) || 0) * (parseInt(r.qty) || 0), 0);
+    netAfterDiscount = Math.max(0, totalInclusive - discount);
+    const baseAfterDiscount = Math.round((netAfterDiscount / (1 + vatRate / 100)) * 100) / 100;
+    taxTotal = Math.round((netAfterDiscount - baseAfterDiscount) * 100) / 100;
+    grandTotal = Math.round(netAfterDiscount * 100) / 100;
+  } else if (applyVat && vatEnabled) {
+    netAfterDiscount = Math.max(0, totalBeforeDiscount - discount);
+    taxTotal = Math.round((netAfterDiscount * vatRate / 100) * 100) / 100;
+    grandTotal = Math.round((netAfterDiscount + taxTotal) * 100) / 100;
+  } else {
+    netAfterDiscount = Math.max(0, totalBeforeDiscount - discount);
+    taxTotal = 0;
+    grandTotal = Math.round(netAfterDiscount * 100) / 100;
+  }
   const paid = parseFloat(amountPaid) || grandTotal;
   const change = Math.max(0, paid - grandTotal);
 
@@ -492,16 +505,34 @@ export default function CreateSalesInvoice() {
               </div>
               <div style={{ paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={applyVat} onChange={e => { setApplyVat(e.target.checked); if (!e.target.checked) setInclusiveVat(false); }} style={{ width: 16, height: 16, accentColor: '#2563eb' }} />
+                  <input type="checkbox" checked={applyVat} onChange={e => { setApplyVat(e.target.checked); if (e.target.checked) setInclusiveVat(false); }} style={{ width: 16, height: 16, accentColor: '#2563eb' }} />
                   <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#334155' }}>Add VAT (13%)</span>
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer', marginTop: '0.5rem' }}>
-                  <input type="checkbox" checked={inclusiveVat} onChange={e => setInclusiveVat(e.target.checked)} style={{ width: 16, height: 16, accentColor: '#2563eb' }} />
+                  <input type="checkbox" checked={inclusiveVat} onChange={e => { setInclusiveVat(e.target.checked); if (e.target.checked) setApplyVat(false); }} style={{ width: 16, height: 16, accentColor: '#2563eb' }} />
                   <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Inclusive VAT (prices include 13%)</span>
                 </label>
               </div>
-              {vatEnabled && (
+              {inclusiveVat && vatEnabled && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9' }}>
+                  <span style={{ color: '#64748b' }}>Items Total (incl. VAT)</span>
+                  <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatMoney(netAfterDiscount + taxTotal)}</span>
+                </div>
+              )}
+              {inclusiveVat && vatEnabled && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#64748b' }}>VAT (included)</span>
+                  <span style={{ fontWeight: 600, color: '#64748b' }}>{formatMoney(taxTotal)}</span>
+                </div>
+              )}
+              {!inclusiveVat && vatEnabled && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9' }}>
+                  <span style={{ color: '#64748b' }}>Items Total</span>
+                  <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatMoney(totalBeforeDiscount)}</span>
+                </div>
+              )}
+              {!inclusiveVat && vatEnabled && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ color: '#64748b' }}>VAT (13%)</span>
                   <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatMoney(taxTotal)}</span>
                 </div>

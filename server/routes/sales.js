@@ -62,6 +62,24 @@ async function generateCreditNote(companyId) {
   throw new Error('Could not generate a unique credit note number');
 }
 
+async function generateDebitNote(companyId) {
+  if (!companyId) throw new Error('No company assigned to this account');
+  const fy = getBSFiscalYear().label;
+  for (let i = 0; i < 10; i++) {
+    const company = await Company.findOneAndUpdate(
+      { _id: companyId },
+      { $inc: { debitNoteCounter: 1 } },
+      { new: true }
+    );
+    if (!company) throw new Error('No company assigned to this account');
+    const num = String(company.debitNoteCounter).padStart(3, '0');
+    const dnNo = `DN-${fy}-${num}`;
+    const exists = await Sale.exists({ debitNoteNumber: dnNo, company: companyId });
+    if (!exists) return dnNo;
+  }
+  throw new Error('Could not generate a unique debit note number');
+}
+
 async function postSaleJournalEntry(sale, items, req, { customerDoc, customerPan, source }) {
   const companyDoc = await Company.findOne({ _id: req.companyId }).lean();
   const cashAccount = await Account.findOne({ code: '10100', ...req.companyFilter });
@@ -626,12 +644,16 @@ router.post('/refund-by-invoice', protect, adminOnly, async (req, res) => {
   if (sale.status === 'refunded') return res.status(400).json({ message: 'Sale already refunded' });
   let cnNumber;
   try { cnNumber = await generateCreditNote(req.companyId); } catch (e) { cnNumber = `CN-${invoiceNumber}`; }
+  let dnNumber;
+  try { dnNumber = await generateDebitNote(req.companyId); } catch (e) { dnNumber = `DN-${invoiceNumber}`; }
   sale.status = 'refunded';
   sale.refundRemark = remark;
   sale.amountPaid = sale.grandTotal;
   sale.dueAmount = 0;
   sale.creditNoteNumber = cnNumber;
   sale.creditNoteDate = new Date();
+  sale.debitNoteNumber = dnNumber;
+  sale.debitNoteDate = new Date();
   await sale.save();
   for (const item of sale.items) {
     const product = await Product.findOne({ _id: item.product, ...req.companyFilter });
@@ -660,12 +682,16 @@ router.post('/:id/refund', protect, adminOnly, async (req, res) => {
   if (sale.status === 'refunded') return res.status(400).json({ message: 'Sale already refunded' });
   let cnNumber;
   try { cnNumber = await generateCreditNote(req.companyId); } catch (e) { cnNumber = `CN-${sale.invoiceNumber}`; }
+  let dnNumber;
+  try { dnNumber = await generateDebitNote(req.companyId); } catch (e) { dnNumber = `DN-${sale.invoiceNumber}`; }
   sale.status = 'refunded';
   sale.refundRemark = remark;
   sale.amountPaid = sale.grandTotal;
   sale.dueAmount = 0;
   sale.creditNoteNumber = cnNumber;
   sale.creditNoteDate = new Date();
+  sale.debitNoteNumber = dnNumber;
+  sale.debitNoteDate = new Date();
   await sale.save();
   for (const item of sale.items) {
     const product = await Product.findOne({ _id: item.product, ...req.companyFilter });

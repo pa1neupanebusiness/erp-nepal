@@ -7,6 +7,7 @@ import ConfirmModal from '../UI/ConfirmModal';
 import { printInvoice } from '../POS/PrintInvoice';
 import { printEmiRecord } from '../UI/printEmi';
 import { printCreditNote } from '../UI/printCreditNote';
+import { printDebitNote } from '../UI/printDebitNote';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
 import NepaliDatePicker, { adToBsStr, bsToADStr } from '../UI/NepaliDatePicker';
 
@@ -143,8 +144,11 @@ export default function SalesList() {
       {detail && detail.kind !== 'emi' && detail.items && detail.items.length > 0 && (
         <EntryDetailsModal
           onPrint={() => printInvoice(detail, company)}
-          actions={detail.status === 'refunded' && detail.creditNoteNumber ? (
-            <button className="btn btn-sm btn-secondary" onClick={() => printCreditNote(detail, company)}>Print Credit Note</button>
+          actions={detail.status === 'refunded' ? (
+            <div style={{ display: 'flex', gap: '0.35rem' }}>
+              {detail.creditNoteNumber && <button className="btn btn-sm btn-secondary" onClick={() => printCreditNote(detail, company)}>Print Credit Note</button>}
+              {detail.debitNoteNumber && <button className="btn btn-sm btn-secondary" onClick={() => printDebitNote(detail, company)}>Print Debit Note</button>}
+            </div>
           ) : null}
           title={`Sale ${detail.invoiceNumber}`}
           subtitle={`${new Date(detail.createdAt).toLocaleString('en-IN')} | ${detail.customer?.name || ''} | ${detail.paymentMethod}`}
@@ -155,6 +159,8 @@ meta={[
               { label: 'Grand Total', value: formatNPR(detail.grandTotal) },
               { label: 'Paid', value: formatNPR(detail.amountPaid) },
               { label: 'Due', value: formatNPR(detail.dueAmount) },
+              ...(detail.creditNoteNumber ? [{ label: 'Credit Note', value: detail.creditNoteNumber }] : []),
+              ...(detail.debitNoteNumber ? [{ label: 'Debit Note', value: detail.debitNoteNumber }] : []),
               ...(detail.notes ? [{ label: 'Notes', value: detail.notes }] : []),
             ]}
           columns={[
