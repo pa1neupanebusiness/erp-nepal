@@ -471,7 +471,14 @@ export default function CreateSalesInvoice() {
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#64748b' }}>Discount</span>
+                <span style={{ color: '#64748b' }}>
+                  Discount
+                  {discount > 0 && (
+                    <span style={{ marginLeft: 6, fontSize: '0.72rem', fontWeight: 600, color: '#16a34a' }}>
+                      {discountMode === 'percent' ? `= ${formatMoney(discount)}` : `= ${discountPercent}%`}
+                    </span>
+                  )}
+                </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                   <div style={{ display: 'flex', background: '#f1f5f9', padding: 2, borderRadius: 6, border: '1px solid #e2e8f0', fontSize: '0.75rem', fontWeight: 600 }}>
                     <button onClick={() => setDiscountMode('percent')} style={{ padding: '0.125rem 0.5rem', background: discountMode === 'percent' ? '#fff' : 'transparent', color: discountMode === 'percent' ? '#0f172a' : '#64748b', border: 'none', borderRadius: 4, cursor: 'pointer' }}>%</button>
