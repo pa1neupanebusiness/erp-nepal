@@ -36,7 +36,7 @@ export default function SalesReturn() {
     setSale(null);
     setSearching(true);
     try {
-      const res = await api.get(`/sales/search/${invoiceNumber.trim()}`);
+      const res = await api.get(`/sales/search/${encodeURIComponent(invoiceNumber.trim())}`);
       setSale(res.data);
       const items = {};
       res.data.items?.forEach(it => { items[it.product?._id || it.product] = { max: it.quantity, qty: it.quantity }; });

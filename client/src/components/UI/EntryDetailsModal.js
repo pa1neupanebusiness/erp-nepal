@@ -38,7 +38,7 @@ export default function EntryDetailsModal({ title, subtitle, meta = [], columns 
               <tbody>
                 {displayRows.map((r, i) => (
                   <tr key={i} onClick={() => onRowClick && onRowClick(r)} style={onRowClick ? { cursor: 'pointer' } : {}}>
-                    {columns.map((c, j) => <td key={j} className={c.align === 'right' ? 'text-right' : ''}>{c.render ? c.render(r[c.key]) : r[c.key]}</td>)}
+                    {columns.map((c, j) => <td key={j} className={c.align === 'right' ? 'text-right' : ''}>{c.render ? c.render(r[c.key], r) : r[c.key]}</td>)}
                   </tr>
                 ))}
                 {displayRows.length === 0 && <tr><td colSpan={Math.max(columns.length, 1)} className="text-center">No data</td></tr>}

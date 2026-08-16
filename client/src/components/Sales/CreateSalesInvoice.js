@@ -118,6 +118,29 @@ export default function CreateSalesInvoice() {
     } : r));
   };
 
+  // Recalculate rates when inclusiveVat toggles: divide by (1+tax) to show base price
+  const prevInclusiveRef = React.useRef(inclusiveVat);
+  useEffect(() => {
+    const wasInclusive = prevInclusiveRef.current;
+    prevInclusiveRef.current = inclusiveVat;
+    if (wasInclusive === inclusiveVat) return;
+    setRows(prev => prev.map(r => {
+      if (!r.product || !r.rate) return r;
+      const rate = parseFloat(r.rate) || 0;
+      const taxRate = r.taxRate || 13;
+      if (inclusiveVat && !wasInclusive) {
+        // Toggled ON: current rate is exclusive, convert to base (before VAT)
+        const base = Math.round((rate / (1 + taxRate / 100)) * 100) / 100;
+        return { ...r, rate: base };
+      } else if (!inclusiveVat && wasInclusive) {
+        // Toggled OFF: current rate is base, convert back to inclusive
+        const inclusive = Math.round((rate * (1 + taxRate / 100)) * 100) / 100;
+        return { ...r, rate: inclusive };
+      }
+      return r;
+    }));
+  }, [inclusiveVat]);
+
   const updateRow = (rowIdx, field, value) => {
     setRows(prev => prev.map((r, i) => i === rowIdx ? { ...r, [field]: value } : r));
   };

@@ -12,7 +12,7 @@ const Company = require('../models/Company');
 const { protect, adminOnly } = require('../middleware/auth');
 const { runVatSettlement } = require('../utils/vatSettlement');
 const { postJournalEntryAtomic } = require('../utils/postingEngine');
-const { adToBikramSambat } = require('../utils/dateUtils');
+const { adToBikramSambat, getBSFiscalYear } = require('../utils/dateUtils');
 const { adjustBankBalance } = require('../utils/bankService');
 const { getClientIp } = require('../utils/irdAudit');
 const router = express.Router();
@@ -285,7 +285,7 @@ router.get('/trial-balance/excel', protect, async (req, res) => {
 });
 
 router.get('/trial-balance/pdf', protect, async (req, res) => {
-  const data = await getTrialBalanceData({}, req.companyFilter);
+  const data = await getTrialBalanceData(req.fyFilter || {}, req.companyFilter);
   const doc = new PDFDocument({ margin: 30, size: 'A4' });
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', 'inline; filename=trial_balance.pdf');
@@ -305,7 +305,7 @@ router.get('/trial-balance/pdf', protect, async (req, res) => {
 });
 
 router.get('/income-statement/excel', protect, async (req, res) => {
-  const tb = await getTrialBalanceData({}, req.companyFilter);
+  const tb = await getTrialBalanceData(req.fyFilter || {}, req.companyFilter);
   const revenue = tb.filter(t => t.type === 'revenue').reduce((s, a) => s + a.credit, 0);
   const contraRev = tb.filter(t => t.type === 'contra_revenue').reduce((s, a) => s + a.debit, 0);
   const cogs = tb.filter(t => t.category === 'cogs').reduce((s, a) => s + a.debit, 0);
@@ -331,7 +331,7 @@ router.get('/income-statement/excel', protect, async (req, res) => {
 });
 
 router.get('/income-statement/pdf', protect, async (req, res) => {
-  const tb = await getTrialBalanceData({}, req.companyFilter);
+  const tb = await getTrialBalanceData(req.fyFilter || {}, req.companyFilter);
   const revenue = tb.filter(t => t.type === 'revenue').reduce((s, a) => s + a.credit, 0);
   const contraRev = tb.filter(t => t.type === 'contra_revenue').reduce((s, a) => s + a.debit, 0);
   const cogs = tb.filter(t => t.category === 'cogs').reduce((s, a) => s + a.debit, 0);
@@ -358,7 +358,7 @@ router.get('/income-statement/pdf', protect, async (req, res) => {
 });
 
 router.get('/balance-sheet/excel', protect, async (req, res) => {
-  const tb = await getTrialBalanceData({}, req.companyFilter);
+  const tb = await getTrialBalanceData(req.fyFilter || {}, req.companyFilter);
   const currentAssets = tb.filter(t => t.category === 'current_asset').reduce((s, a) => s + a.debit, 0);
   const fixedAssets = tb.filter(t => t.category === 'fixed_asset').reduce((s, a) => s + a.debit, 0);
   const contraAssets = tb.filter(t => t.type === 'contra_asset').reduce((s, a) => s + a.credit, 0);
@@ -388,7 +388,7 @@ router.get('/balance-sheet/excel', protect, async (req, res) => {
 });
 
 router.get('/balance-sheet/pdf', protect, async (req, res) => {
-  const tb = await getTrialBalanceData({}, req.companyFilter);
+  const tb = await getTrialBalanceData(req.fyFilter || {}, req.companyFilter);
   const currentAssets = tb.filter(t => t.category === 'current_asset').reduce((s, a) => s + a.debit, 0);
   const fixedAssets = tb.filter(t => t.category === 'fixed_asset').reduce((s, a) => s + a.debit, 0);
   const contraAssets = tb.filter(t => t.type === 'contra_asset').reduce((s, a) => s + a.credit, 0);
@@ -859,7 +859,6 @@ router.post('/pay-tax', protect, adminOnly, async (req, res) => {
     const ref = `${taxType.toUpperCase()}-PAY-${Date.now().toString(36).slice(-6).toUpperCase()}`;
 
     const { postJournalEntryAtomic } = require('../utils/postingEngine');
-const { adToBikramSambat, getBSFiscalYear } = require('../utils/dateUtils');
 
     await postJournalEntryAtomic({
       companyId: req.companyId,

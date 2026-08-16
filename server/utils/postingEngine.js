@@ -41,7 +41,7 @@ async function postJournalEntryAtomic({
     for (const line of lines) {
       if (line.account) {
         const acc = await Account.findOne({ _id: line.account, ...companyFilter }).session(session).select('type');
-        const isCreditNormal = acc && ['liability', 'equity', 'income', 'contra_expense'].includes(acc.type);
+        const isCreditNormal = acc && ['liability', 'equity', 'revenue', 'contra_asset'].includes(acc.type);
         const delta = isCreditNormal ? (line.credit - line.debit) : (line.debit - line.credit);
         await Account.findOneAndUpdate(
           { _id: line.account, ...companyFilter },
@@ -123,7 +123,7 @@ async function postSaleAtomic({
     for (const line of saleLines.lines) {
       if (line.account) {
         const acc = await Account.findOne({ _id: line.account, ...companyFilter }).session(session).select('type');
-        const isCreditNormal = acc && ['liability', 'equity', 'income', 'contra_expense'].includes(acc.type);
+        const isCreditNormal = acc && ['liability', 'equity', 'revenue', 'contra_asset'].includes(acc.type);
         const delta = isCreditNormal ? (line.credit - line.debit) : (line.debit - line.credit);
         await Account.findOneAndUpdate(
           { _id: line.account, ...companyFilter },
@@ -149,7 +149,7 @@ async function postSaleAtomic({
       for (const line of cogsLines.lines) {
         if (line.account) {
           const acc = await Account.findOne({ _id: line.account, ...companyFilter }).session(session).select('type');
-          const isCreditNormal = acc && ['liability', 'equity', 'income', 'contra_expense'].includes(acc.type);
+          const isCreditNormal = acc && ['liability', 'equity', 'revenue', 'contra_asset'].includes(acc.type);
           const delta = isCreditNormal ? (line.credit - line.debit) : (line.debit - line.credit);
           await Account.findOneAndUpdate(
             { _id: line.account, ...companyFilter },
@@ -248,7 +248,7 @@ async function postEmiAtomic({
         })),
         subtotal: emiData.exchangeAmount,
         discount: 0, vatPercent: 0, inclusiveVat: false, tax: 0, tdsRate: 0, tds: 0,
-        grandTotal: emiData.exchangeAmount, paidAmount: 0, dueAmount: 0, status: 'received',
+        grandTotal: emiData.exchangeAmount, paidAmount: emiData.exchangeAmount, dueAmount: 0, status: 'received',
         note: `Exchange trade-in${exchangeSourceName ? ` from ${exchangeSourceName}` : ''} (EMI ${emiData.emiNumber})`,
         createdBy, company: companyId,
       }], { session });
@@ -283,7 +283,7 @@ async function postEmiAtomic({
       for (const line of lines) {
         if (line.account) {
           const acc = await Account.findOne({ _id: line.account, ...companyFilter }).session(session).select('type');
-          const isCreditNormal = acc && ['liability', 'equity', 'income', 'contra_expense'].includes(acc.type);
+          const isCreditNormal = acc && ['liability', 'equity', 'revenue', 'contra_asset'].includes(acc.type);
           const delta = isCreditNormal ? (line.credit - line.debit) : (line.debit - line.credit);
           await Account.findOneAndUpdate(
             { _id: line.account, ...companyFilter },

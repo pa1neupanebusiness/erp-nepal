@@ -11,8 +11,8 @@ function getFiscalYear(date) {
   // If month is April (4) or later (or April 15+), fiscal year = bsYear : bsYear+1
   // If month is before April, fiscal year = (bsYear-1) : bsYear
   // Return last two digits format to match getBSFiscalYear label format
-  const label = (m > 4 || (m === 4 && dy >= 15)) ? `${bsYear}/${bsYear + 1}` : `${bsYear - 1}/${bsYear}`;
-  return label.slice(-5); // Return last 5 chars e.g. "83/84"
+  const label = (m > 4 || (m === 4 && dy >= 15)) ? `${bsYear}/${String(bsYear + 1).slice(-2)}` : `${bsYear - 1}/${String(bsYear).slice(-2)}`;
+  return label;
 }
 
 async function nextEntryNumbers(companyId, count) {
