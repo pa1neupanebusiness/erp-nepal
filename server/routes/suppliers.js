@@ -103,7 +103,7 @@ router.post('/:id/pay', protect, adminOnly, async (req, res) => {
       if (chequeNumber) purchase.chequeNumber = chequeNumber;
       if (remarks) purchase.paymentRemarks = remarks;
     } else {
-      purchase.paymentSplits = splits.filter(sp => sp.amount > 0);
+       purchase.paymentSplits = (splits || []).filter(sp => sp.amount > 0).map(sp => ({ method: sp.method, amount: Math.round((sp.amount || 0) * 100) / 100, bank: ((sp.method || '') === 'bank' || sp.method === 'qr') ? (sp.bank || null) : null }));
       if (remarks) purchase.paymentRemarks = remarks;
     }
     await purchase.save();

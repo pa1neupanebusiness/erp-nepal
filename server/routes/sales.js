@@ -359,6 +359,13 @@ router.get('/', protect, async (req, res) => {
   res.json(items);
 });
 
+router.get('/exists', protect, async (req, res) => {
+  const { invoiceNumber } = req.query;
+  if (!invoiceNumber) return res.json({ exists: false });
+  const exists = await Sale.exists({ invoiceNumber: String(invoiceNumber).trim(), ...req.companyFilter });
+  res.json({ exists: !!exists });
+});
+
 router.get('/:id', protect, async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid ID' });
   const item = await Sale.findOne({ _id: req.params.id, ...req.companyFilter })
@@ -425,7 +432,7 @@ router.post('/', protect, requirePANForLargeTx, async (req, res) => {
         invoiceNumber: invNo,
         items, subtotal, taxTotal, discount, grandTotal,
         amountPaid: totalPaid, dueAmount, paymentStatus, change, paymentMethod,
-        paymentSplits: paymentMethod === 'split' ? (paymentSplits || []) : [],
+        paymentSplits: paymentMethod === 'split' ? ((paymentSplits || []).filter(sp => sp.amount > 0).map(sp => ({ method: sp.method, amount: Math.round((sp.amount || 0) * 100) / 100, bank: ((sp.method || '') === 'qr' || sp.method === 'bank') ? (sp.bank || null) : null }))) : [],
         customer: customerId || null,
         bank: (paymentMethod === 'qr' || paymentMethod === 'bank') ? (bank || null) : null,
         customerPan, customerAddress,
@@ -504,7 +511,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     if (grandTotal !== undefined) sale.grandTotal = grandTotal;
     if (amountPaid !== undefined) sale.amountPaid = amountPaid;
     if (paymentMethod) sale.paymentMethod = paymentMethod;
-    if (paymentSplits) sale.paymentSplits = paymentSplits;
+     if (paymentSplits) sale.paymentSplits = (paymentSplits || []).filter(sp => sp.amount > 0).map(sp => ({ method: sp.method, amount: Math.round((sp.amount || 0) * 100) / 100, bank: ((sp.method || '') === 'qr' || sp.method === 'bank') ? (sp.bank || null) : null }));
     if (bank !== undefined) sale.bank = bank;
     if (notes !== undefined) sale.notes = notes;
     if (inclusiveVat !== undefined) sale.inclusiveVat = !!inclusiveVat;

@@ -74,8 +74,8 @@ export default function Refund() {
                 <tr key={i}>
                   <td>{item.product?.name || 'Unknown'}</td>
                   <td>{item.quantity}</td>
-                  <td>{formatNPR(item.price)}</td>
-                  <td>{formatNPR(item.subtotal)}</td>
+                   <td>{formatNPR(item.quantity > 0 ? (Number(item.subtotal) / Number(item.quantity)) : item.price)}</td>
+                   <td>{formatNPR(item.subtotal)}</td>
                 </tr>
               ))}
             </tbody>

@@ -293,6 +293,13 @@ export default function CreateSalesInvoice() {
       addToast('A customer name is required when there is a due amount.', 'error');
       return;
     }
+    if (invoiceNo.trim()) {
+      const dup = await api.get('/sales/exists', { params: { invoiceNumber: invoiceNo.trim() } }).catch(() => null);
+      if (dup?.data?.exists) {
+        addToast('Invoice number already used. Please choose a different number.', 'error');
+        return;
+      }
+    }
     setSaving(true);
     try {
       const payload = {
@@ -311,7 +318,7 @@ export default function CreateSalesInvoice() {
         amountPaid: totalPaid,
         change: Math.max(0, totalPaid - grandTotal),
         paymentMethod,
-        paymentSplits: paymentMethod === 'split' ? splits.filter(sp => sp.amount > 0) : undefined,
+         paymentSplits: paymentMethod === 'split' ? splits.filter(sp => sp.amount > 0).map(sp => ({ method: sp.method, amount: Math.round((sp.amount || 0) * 100) / 100, bank: (sp.method === 'qr' || sp.method === 'bank') ? (sp.bank || null) : null })) : undefined,
         bank: (paymentMethod === 'qr' || paymentMethod === 'bank') ? bank : null,
         customer: customer || null,
         invoiceNumber: invoiceNo.trim() || undefined,

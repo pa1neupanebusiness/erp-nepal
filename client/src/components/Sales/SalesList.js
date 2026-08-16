@@ -165,7 +165,7 @@ meta={[
             ]}
           columns={[
             { key: 'product', label: 'Item', wide: true, render: (v) => v?.name || v || 'Unknown' },
-            { key: 'price', label: 'Rate', align: 'right', render: (v) => formatNPR(v) },
+            { key: 'price', label: 'Rate', align: 'right', render: (v, r) => formatNPR(r.quantity > 0 ? (Number(r.subtotal) / Number(r.quantity)) : v) },
             { key: 'quantity', label: 'Qty', align: 'right' },
             { key: 'subtotal', label: 'Amount', align: 'right', render: (v) => formatNPR(v) },
           ]}

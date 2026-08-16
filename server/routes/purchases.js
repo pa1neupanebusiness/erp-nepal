@@ -107,7 +107,7 @@ router.post('/', protect, async (req, res) => {
     status: 'received', createdBy: req.user._id, note,
     paymentMethod: paymentMethod || '', chequeNumber: chequeNumber || '', paymentRemarks: paymentRemarks || '',
     bank: paymentMethod === 'bank' ? (bank || null) : null,
-    paymentSplits: paymentMethod === 'split' ? (splits || []).filter(sp => sp.amount > 0) : undefined,
+    paymentSplits: paymentMethod === 'split' ? ((splits || []).filter(sp => sp.amount > 0).map(sp => ({ method: sp.method, amount: Math.round((sp.amount || 0) * 100) / 100, bank: ((sp.method || '') === 'bank' || sp.method === 'qr') ? (sp.bank || null) : null }))) : undefined,
     supplierInvoiceNo: supplierInvoiceNo || '',
     fiscalYear: getFiscalYearLabel(purchaseDate),
     fiscalYearId: req.fiscalYearId || undefined,
@@ -388,7 +388,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     const { items: newItems, splits: reqSplits, ...otherFields } = req.body;
     if (req.body.applyTds !== true) { otherFields.tds = 0; otherFields.tdsRate = 0; }
     if (reqSplits !== undefined) {
-      otherFields.paymentSplits = otherFields.paymentMethod === 'split' ? (reqSplits || []).filter(sp => sp.amount > 0) : [];
+       otherFields.paymentSplits = otherFields.paymentMethod === 'split' ? ((reqSplits || []).filter(sp => sp.amount > 0).map(sp => ({ method: sp.method, amount: Math.round((sp.amount || 0) * 100) / 100, bank: ((sp.method || '') === 'bank' || sp.method === 'qr') ? (sp.bank || null) : null }))) : [];
     }
     if (otherFields.paymentMethod === 'bank' && otherFields.bank) {
       // keep bank as-is

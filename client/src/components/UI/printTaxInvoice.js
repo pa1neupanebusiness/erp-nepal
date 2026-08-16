@@ -35,6 +35,7 @@ export function renderTaxInvoiceHtml(sale, company) {
     hsCode: i.hsCode || i.product?.hsCode || '',
     qty: i.quantity || 0,
     rawRate: i.price || 0,
+    subtotal: i.subtotal || 0,
     itemDiscount: i.discount || 0,
   }));
 
@@ -47,16 +48,15 @@ export function renderTaxInvoiceHtml(sale, company) {
   const items = rawItems.map(i => {
     const rawAmount = i.rawRate * i.qty - i.itemDiscount;
     if (isInclusive && vatRate > 0) {
-      const beforeVatRate = Math.round((i.rawRate / (1 + vatRate / 100)) * 100) / 100;
-      const beforeVatAmount = Math.round((beforeVatRate * i.qty - i.itemDiscount) * 100) / 100;
+      const beforeVatAmount = i.subtotal > 0 ? Math.round(i.subtotal * 100) / 100 : Math.round((i.rawRate / (1 + vatRate / 100) * i.qty - i.itemDiscount) * 100) / 100;
+      const beforeVatRate = (i.qty || 1) ? Math.round((beforeVatAmount / i.qty) * 100) / 100 : Math.round((i.rawRate / (1 + vatRate / 100)) * 100) / 100;
       return { ...i, rate: beforeVatRate, amount: beforeVatAmount };
     }
     return { ...i, rate: i.rawRate, amount: rawAmount };
   });
 
-  const subTotalGross = rawSubTotalGross;
-  const beforeVatSubTotal = isInclusive && vatRate > 0 ? Math.round(subTotalGross / (1 + vatRate / 100) * 100) / 100 : subTotalGross;
-  const displaySubtotal = isInclusive ? beforeVatSubTotal : subTotalGross;
+  const subTotalGross = rawItems.reduce((s, it) => s + ((isInclusive && vatRate > 0) ? (it.subtotal > 0 ? it.subtotal : Math.round(it.rawRate / (1 + vatRate / 100) * it.qty * 100) / 100) : (it.rawRate * it.qty)), 0);
+  const displaySubtotal = isInclusive ? subTotalGross : rawSubTotalGross;
 
   const invoiceDate = sale.invoiceDate || sale.createdAt || sale.date;
   const enDate = new Date(invoiceDate).toLocaleDateString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit' });

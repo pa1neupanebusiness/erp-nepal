@@ -328,7 +328,7 @@ export default function Purchases() {
                     remarks: supplierPayForm.remarks,
                   };
                   if (supplierPayForm.method === 'split') {
-                    payload.splits = supplierPayForm.splits.filter(sp => sp.amount > 0);
+                    payload.splits = (supplierPayForm.splits || []).filter(sp => sp.amount > 0).map(sp => ({ method: sp.method, amount: Math.round((sp.amount || 0) * 100) / 100, bank: (sp.method === 'bank' || sp.method === 'qr') ? (sp.bank || null) : null }));
                   } else {
                     payload.bank = supplierPayForm.method === 'bank' ? supplierPayForm.bank : null;
                     payload.chequeNumber = supplierPayForm.chequeNumber;
