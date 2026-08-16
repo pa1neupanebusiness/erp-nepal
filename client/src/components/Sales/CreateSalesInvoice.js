@@ -99,7 +99,7 @@ export default function CreateSalesInvoice() {
 
   const pickProduct = (rowIdx, productId, option) => {
     const p = (option && option.sellingPrice !== undefined) ? option : products.find(x => x._id === productId);
-    const isInclusive = p?.priceIncludesTax || inclusiveVat;
+    const isInclusive = inclusiveVat;
     const taxRate = p?.taxRate || 13;
     const baseRate = isInclusive && p?.sellingPrice
       ? Math.round((p.sellingPrice / (1 + taxRate / 100)) * 100) / 100
