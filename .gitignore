@@ -8,3 +8,5 @@ server_error.txt
 client/package-lock.json
 server/package-lock.json
 backups/
+emi_lines.txt
+temp.txt
