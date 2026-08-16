@@ -16,6 +16,10 @@ const { ensureCompanyEmiAccounts } = require('../utils/ensureEmiAccounts');
 const { adjustBankBalance } = require('../utils/bankService');
 const router = express.Router();
 
+function formatNPRShort(n) {
+  return Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+}
+
 function getFiscalYear(date) {
   return getBSFiscalYear(date).label;
 }
@@ -190,8 +194,7 @@ router.post('/', protect, requirePANForLargeTx, async (req, res) => {
   }
 
   const cashAccount = await Account.findOne({ code: '10100', ...req.companyFilter });
-  const emiBankAccount = await Account.findOne({ code: '10201', ...req.companyFilter });
-  const emiDebtor = await Account.findOne({ code: '10370', ...req.companyFilter });
+  const bankAccount = await Account.findOne({ code: '10200', ...req.companyFilter });
   const bankEmiClearing = await Account.findOne({ code: '10360', ...req.companyFilter });
   const usedGoodsAccount = await Account.findOne({ code: '10450', ...req.companyFilter });
   const salesAccount = await Account.findOne({ code: '40100', ...req.companyFilter });
@@ -199,47 +202,51 @@ router.post('/', protect, requirePANForLargeTx, async (req, res) => {
   const cogsAccount = await Account.findOne({ code: '50100', ...req.companyFilter });
   const outputVatAccount = await Account.findOne({ code: '20200', ...req.companyFilter });
 
-  if (!emiDebtor) return res.status(400).json({ message: 'EMI Customer A/C (10370) is not configured. Restart the server to create system accounts.' });
   if (!bankEmiClearing) return res.status(400).json({ message: 'Bank EMI Clearing account (10360) is not configured.' });
   if (!usedGoodsAccount) return res.status(400).json({ message: 'Used / Exchange Goods Stock (10450) is not configured.' });
 
   const journalSpecs = [];
 
-  // Step 1: Sales & VAT invoice - full gross amount billed to the EMI Customer Debtor
-  const step1 = [];
-  if (emiDebtor) step1.push({ account: emiDebtor._id, debit: grossAmount, credit: 0, subLedger: { customer: customerDoc._id } });
-  if (salesNet > 0 && salesAccount) step1.push({ account: salesAccount._id, debit: 0, credit: salesNet });
-  if (vatAmt > 0 && outputVatAccount) step1.push({ account: outputVatAccount._id, debit: 0, credit: vatAmt });
-  if (step1.length >= 2) journalSpecs.push({ reference: emiNumber, description: `EMI Sale Invoice ${emiNumber} - ${productDoc.name}`, lines: step1 });
+  // ─── STAGE 1: Single combined journal entry at time of sale ───
+  // Dr Cash (down cash) + Dr Company Bank (down bank) + Dr EMI Clearing (financed) → Cr Sales + Cr VAT
+  {
+    const lines = [];
+    const downCash = method === 'cash' ? down : 0;
+    const downBank = (method === 'bank' || method === 'qr') ? down : 0;
 
-  // Step 2: Trade-in / exchange goods received (reduces customer balance, adds used stock)
+    if (downCash > 0 && cashAccount) {
+      lines.push({ account: cashAccount._id, debit: downCash, credit: 0 });
+    }
+    if (downBank > 0 && bankAccount) {
+      lines.push({ account: bankAccount._id, debit: downBank, credit: 0, bank: downPaymentBankDoc ? downPaymentBankDoc._id : undefined });
+    }
+    if (remaining > 0) {
+      lines.push({ account: bankEmiClearing._id, debit: remaining, credit: 0 });
+    }
+    if (salesNet > 0 && salesAccount) {
+      lines.push({ account: salesAccount._id, debit: 0, credit: salesNet });
+    }
+    if (vatAmt > 0 && outputVatAccount) {
+      lines.push({ account: outputVatAccount._id, debit: 0, credit: vatAmt });
+    }
+
+    if (lines.length >= 2) {
+      journalSpecs.push({
+        reference: emiNumber,
+        description: `EMI Sale ${emiNumber} - ${productDoc.name} (Down ${formatNPRShort(down)} / Financed ${formatNPRShort(remaining)})`,
+        lines,
+      });
+    }
+  }
+
+  // Exchange trade-in: Dr Used Goods Stock → Cr EMI Clearing (reduces what bank owes)
   if (exch > 0 && usedGoodsAccount) {
     journalSpecs.push({
       reference: `EXC-${emiNumber}`,
       description: `Trade-in received ${emiNumber} - exchange goods`,
       lines: [
         { account: usedGoodsAccount._id, debit: exch, credit: 0 },
-        { account: emiDebtor._id, debit: 0, credit: exch, subLedger: { customer: customerDoc._id } },
-      ],
-    });
-  }
-
-  // Step 3: Down payment received (cash -> Cash A/C, bank -> EMI Bank A/C 10201)
-  if (down > 0) {
-    const downAcc = method === 'bank' ? emiBankAccount : cashAccount;
-    const step3 = [{ account: downAcc._id, debit: down, credit: 0, bank: method === 'bank' && downPaymentBankDoc ? downPaymentBankDoc._id : undefined }];
-    step3.push({ account: emiDebtor._id, debit: 0, credit: down, subLedger: { customer: customerDoc._id } });
-    journalSpecs.push({ reference: `RCT-${emiNumber}`, description: `Down payment ${emiNumber} (${method})`, lines: step3 });
-  }
-
-  // Step 4: Transfer remaining financed balance to Bank EMI Clearing (bank owes company)
-  if (remaining > 0 && bankEmiClearing) {
-    journalSpecs.push({
-      reference: `EMI-${emiNumber}`,
-      description: `Transfer to Bank EMI Clearing ${emiNumber}${emiBankAccount ? ` (${emiBankAccount})` : ''}`,
-      lines: [
-        { account: bankEmiClearing._id, debit: remaining, credit: 0 },
-        { account: emiDebtor._id, debit: 0, credit: remaining, subLedger: { customer: customerDoc._id } },
+        { account: bankEmiClearing._id, debit: 0, credit: exch },
       ],
     });
   }
@@ -397,7 +404,7 @@ router.post('/:id/pay', protect, async (req, res) => {
 
   try {
     const cashAccount = await Account.findOne({ code: '10100', ...req.companyFilter });
-    const emiBankAccount = await Account.findOne({ code: '10201', ...req.companyFilter });
+    const bankAccount = await Account.findOne({ code: '10200', ...req.companyFilter });
     const bankEmiReceivable = await Account.findOne({ code: '10360', ...req.companyFilter });
     const interestIncomeAccount = await Account.findOne({ code: '40300', ...req.companyFilter });
 
@@ -406,7 +413,7 @@ router.post('/:id/pay', protect, async (req, res) => {
     }
 
     const lines = [];
-    const paymentAccount = method === 'cash' ? cashAccount : emiBankAccount;
+    const paymentAccount = method === 'cash' ? cashAccount : bankAccount;
 
     if (paymentAccount) lines.push({ account: paymentAccount._id, debit: amount, credit: 0 });
     if (principal > 0) lines.push({ account: bankEmiReceivable._id, debit: 0, credit: principal });
@@ -475,7 +482,8 @@ router.post('/:id/pay', protect, async (req, res) => {
   }
 });
 
-// Step 5: Bank disburses the financed loan to the company (clears the Bank EMI Clearing A/C)
+// Stage 2: Bank disburses the financed loan to the company (clears the Bank EMI Clearing A/C)
+// Dr Company Bank + Dr Bank Charges → Cr EMI Clearing
 router.post('/:id/disburse', protect, async (req, res) => {
   const emi = await Emi.findOne({ _id: req.params.id, ...req.companyFilter })
     .populate('customer', 'name phone pan');
@@ -493,15 +501,16 @@ router.post('/:id/disburse', protect, async (req, res) => {
   }
 
   const bankEmiClearing = await Account.findOne({ code: '10360', ...req.companyFilter });
-  const emiBankAccount = await Account.findOne({ code: '10201', ...req.companyFilter });
+  const bankAccount = await Account.findOne({ code: '10200', ...req.companyFilter });
   const bankChargeAccount = await Account.findOne({ code: '60900', ...req.companyFilter });
   if (!bankEmiClearing) return res.status(400).json({ message: 'Bank EMI Clearing account (10360) not configured' });
-  if (!emiBankAccount) return res.status(400).json({ message: 'EMI Bank Account (10201) not configured' });
+  if (!bankAccount) return res.status(400).json({ message: 'Sales Bank Account (10200) not configured' });
 
+  // Stage 2: Dr Company Bank (net payout) + Dr Bank Charges (fee) → Cr EMI Clearing (full financed amount)
   const lines = [];
-  lines.push({ account: emiBankAccount._id, debit: netReceived, credit: 0, bank: disbursingBank || emi.bank || undefined });
+  if (netReceived > 0) lines.push({ account: bankAccount._id, debit: netReceived, credit: 0, bank: disbursingBank || emi.bank || undefined });
   if (charge > 0 && bankChargeAccount) lines.push({ account: bankChargeAccount._id, debit: charge, credit: 0 });
-  lines.push({ account: bankEmiClearing._id, debit: 0, credit: netReceived + charge });
+  if (remaining > 0) lines.push({ account: bankEmiClearing._id, debit: 0, credit: remaining });
 
   const irdPayload = buildIRDPayload({
     invoiceNumber: `DISB-${emi.emiNumber}`,
@@ -519,7 +528,7 @@ router.post('/:id/disburse', protect, async (req, res) => {
       companyId: req.companyId,
       date: new Date(),
       reference: `DISB-${emi.emiNumber}`,
-      description: `Bank EMI disbursement ${emi.emiNumber}`,
+      description: `Bank EMI disbursement ${emi.emiNumber} - Net ${formatNPRShort(netReceived)}${charge > 0 ? ` (Fee ${formatNPRShort(charge)})` : ''}`,
       fiscalYear: emi.fiscalYear || getFiscalYear(new Date()),
       fiscalYearId: emi.fiscalYearId || undefined,
       miti: adToBikramSambat(new Date()),

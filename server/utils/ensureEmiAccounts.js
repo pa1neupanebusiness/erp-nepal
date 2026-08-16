@@ -3,13 +3,11 @@ const Company = require('../models/Company');
 const Account = require('../models/Account');
 
 // EMI-specific system accounts that must exist for every company.
-// These power the multi-step EMI / hire-purchase accounting:
+// These power the two-stage EMI / hire-purchase accounting:
 //   10360 - Bank EMI Loan Settlement (Clearing) : bank owes the company (financed remainder)
-//   10370 - EMI Customer A/C (Debtor)           : temporary full-bill holder, nets to zero
 //   10450 - Used / Exchange Goods Stock         : trade-in / exchange items received
 const EMI_SYSTEM_ACCOUNTS = [
   { code: '10360', name: 'Bank EMI Loan Settlement (Clearing)', type: 'asset', category: 'current_asset', isSystem: true },
-  { code: '10370', name: 'EMI Customer A/C (Debtor)', type: 'asset', category: 'current_asset', isSystem: true },
   { code: '10450', name: 'Used / Exchange Goods Stock', type: 'asset', category: 'current_asset', isSystem: true },
 ];
 

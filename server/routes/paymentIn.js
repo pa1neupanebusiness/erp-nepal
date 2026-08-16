@@ -148,8 +148,6 @@ router.post('/', protect, adminOnly, async (req, res) => {
     const debtorAccount = await findOrCreateCustomerReceivable(req.companyId, req.companyFilter, customerDoc || null);
     const cashAccount = await Account.findOne({ code: '10100', ...req.companyFilter });
     const salesBankAccount = await Account.findOne({ code: '10200', ...req.companyFilter });
-    const emiBankAccount = await Account.findOne({ code: '10201', ...req.companyFilter });
-    const cashAccount = await Account.findOne({ code: '10100', ...req.companyFilter });
 
     // Calculate amounts for sales vs EMI allocations
     const salesAllocationAmt = allocations.filter(a => a.sale).reduce((s, a) => s + a.amount, 0);
@@ -160,7 +158,6 @@ router.post('/', protect, adminOnly, async (req, res) => {
 
     // Create journal entry for sales allocations (uses Sales Bank Account 10200)
     if (salesAllocationAmt > 0 && method !== 'cash') {
-      const acct = method === 'cash' ? cashAccount : salesBankAccount;
       journalEntries.push({
         description: `Payment in - Sales ${reference ? ' | ' + reference : ''}${note ? ' | ' + note : ''}`,
         lines: [
@@ -182,13 +179,13 @@ router.post('/', protect, adminOnly, async (req, res) => {
       });
     }
 
-    // Create journal entry for EMI allocations (uses EMI Bank Account 10201)
-    if (emiAllocationAmt > 0 && method !== 'cash') {
-      const acct = method === 'cash' ? cashAccount : emiBankAccount;
+    // Create journal entry for EMI allocations (uses Sales Bank Account 10200 - customer pays to company)
+    if (emiAllocationAmt > 0) {
+      const acct = method === 'cash' ? cashAccount : salesBankAccount;
       journalEntries.push({
         description: `Payment in - EMI ${reference ? ' | ' + reference : ''}${note ? ' | ' + note : ''}`,
         lines: [
-          { account: emiBankAccount._id, debit: emiAllocationAmt, credit: 0, bank: bank || null },
+          { account: acct._id, debit: emiAllocationAmt, credit: 0, bank: bank || null },
           { account: debtorAccount._id, debit: 0, credit: emiAllocationAmt, subLedger: { customer } },
         ],
         daybook: {
@@ -199,7 +196,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
           sourceRef: String(payment._id),
           narration: `EMI payment received from customer${reference ? ' | ' + reference : ''}`,
           lines: [
-            { account: emiBankAccount._id, accountName: emiBankAccount.name || 'EMI Bank Account', debit: emiAllocationAmt, credit: 0, partyType: 'customer', partyId: customer, partyName: customerDoc?.name || '' },
+            { account: acct._id, accountName: method === 'cash' ? 'Cash' : (salesBankAccount.name || 'Sales Bank Account'), debit: emiAllocationAmt, credit: 0, partyType: 'customer', partyId: customer, partyName: customerDoc?.name || '' },
             { account: debtorAccount._id, accountName: debtorAccount.name || 'Accounts Receivable', debit: 0, credit: emiAllocationAmt, partyType: 'customer', partyId: customer, partyName: customerDoc?.name || '' },
           ],
         },
