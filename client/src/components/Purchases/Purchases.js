@@ -35,6 +35,9 @@ export default function Purchases() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [savingSupplier, setSavingSupplier] = useState(false);
   const [savingProduct, setSavingProduct] = useState(false);
+  const [addExtraCharge, setAddExtraCharge] = useState(false);
+  const [extraChargeRemarks, setExtraChargeRemarks] = useState('');
+  const [extraChargeAmount, setExtraChargeAmount] = useState('');
 
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const isSuperAdmin = user.role === 'super_admin';

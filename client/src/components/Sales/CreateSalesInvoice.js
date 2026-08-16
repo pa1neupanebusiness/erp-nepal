@@ -49,6 +49,9 @@ export default function CreateSalesInvoice() {
   const [splits, setSplits] = useState([{ method: 'cash', amount: 0, bank: '' }]);
   const [saving, setSaving] = useState(false);
   const [lastSale, setLastSale] = useState(null);
+  const [addExtraCharge, setAddExtraCharge] = useState(false);
+  const [extraChargeRemarks, setExtraChargeRemarks] = useState('');
+  const [extraChargeAmount, setExtraChargeAmount] = useState('');
 
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [pendingCustomerName, setPendingCustomerName] = useState('');
@@ -186,24 +189,25 @@ export default function CreateSalesInvoice() {
   };
 
   const totalBeforeDiscount = rows.reduce((s, r) => s + lineBase(r), 0);
+  const totalInclusive = rows.reduce((s, r) => s + (parseFloat(r.rate) || 0) * (parseInt(r.qty) || 0), 0);
+  const discountBase = totalBeforeDiscount;
   const vatRate = (rows[0]?.taxRate || 13);
   let discount = Math.round((parseFloat(discountValue) || 0) * 100) / 100;
+  const extraCharge = addExtraCharge ? (parseFloat(extraChargeAmount) || 0) : 0;
   const vatEnabled = applyVat || inclusiveVat;
   let grandTotal, taxTotal, netAfterDiscount;
   if (inclusiveVat && vatEnabled) {
-    const totalInclusive = rows.reduce((s, r) => s + (parseFloat(r.rate) || 0) * (parseInt(r.qty) || 0), 0);
-    netAfterDiscount = Math.max(0, totalInclusive - discount);
-    const baseAfterDiscount = Math.round((netAfterDiscount / (1 + vatRate / 100)) * 100) / 100;
-    taxTotal = Math.round((netAfterDiscount - baseAfterDiscount) * 100) / 100;
-    grandTotal = Math.round(netAfterDiscount * 100) / 100;
+    netAfterDiscount = Math.max(0, totalBeforeDiscount - discount);
+    taxTotal = Math.round((netAfterDiscount * vatRate / 100) * 100) / 100;
+    grandTotal = Math.round((netAfterDiscount + taxTotal + extraCharge) * 100) / 100;
   } else if (applyVat && vatEnabled) {
     netAfterDiscount = Math.max(0, totalBeforeDiscount - discount);
     taxTotal = Math.round((netAfterDiscount * vatRate / 100) * 100) / 100;
-    grandTotal = Math.round((netAfterDiscount + taxTotal) * 100) / 100;
+    grandTotal = Math.round((netAfterDiscount + taxTotal + extraCharge) * 100) / 100;
   } else {
     netAfterDiscount = Math.max(0, totalBeforeDiscount - discount);
     taxTotal = 0;
-    grandTotal = Math.round(netAfterDiscount * 100) / 100;
+    grandTotal = Math.round((netAfterDiscount + extraCharge) * 100) / 100;
   }
   const paid = parseFloat(amountPaid) || grandTotal;
   const change = Math.max(0, paid - grandTotal);
@@ -339,7 +343,8 @@ export default function CreateSalesInvoice() {
         notes,
         images,
         source: 'invoice',
-        inclusiveVat: inclusiveVat && applyVat,
+        inclusiveVat,
+        extraCharge: addExtraCharge ? { remarks: extraChargeRemarks, amount: extraCharge } : undefined,
       };
       const { data } = await api.post('/sales', payload);
       setLastSale(data);
@@ -498,13 +503,19 @@ export default function CreateSalesInvoice() {
               {inclusiveVat && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ color: '#64748b' }}>Items Total (incl. VAT)</span>
-                  <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatMoney(rows.reduce((s, r) => s + (parseFloat(r.rate) || 0) * (parseInt(r.qty) || 0), 0))}</span>
+                  <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatMoney(totalInclusive)}</span>
+                </div>
+              )}
+              {inclusiveVat && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#64748b' }}>Base (before VAT)</span>
+                  <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatMoney(totalBeforeDiscount)}</span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: '#64748b' }}>Discount</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', width: 160 }}>
-                  <input type="number" min="0" value={discountMode === 'amount' ? discountValue : discountPercent} onChange={e => { const v = e.target.value; if (discountMode === 'amount') { setDiscountValue(v); setDiscountPercent(totalBeforeDiscount ? ((parseFloat(v) || 0) / totalBeforeDiscount * 100).toFixed(2) : ''); } else { setDiscountPercent(v); setDiscountValue(((parseFloat(v) || 0) / 100 * totalBeforeDiscount).toFixed(2)); } }} style={{ flex: 1, padding: '0.25rem 0.5rem', textAlign: 'right', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '0.875rem' }} />
+                  <input type="number" min="0" value={discountMode === 'amount' ? discountValue : discountPercent} onChange={e => { const v = e.target.value; if (discountMode === 'amount') { setDiscountValue(v); setDiscountPercent(discountBase ? ((parseFloat(v) || 0) / discountBase * 100).toFixed(2) : ''); } else { setDiscountPercent(v); setDiscountValue(((parseFloat(v) || 0) / 100 * discountBase).toFixed(2)); } }} style={{ flex: 1, padding: '0.25rem 0.5rem', textAlign: 'right', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '0.875rem' }} />
                   <div style={{ display: 'flex', background: '#f1f5f9', padding: 2, borderRadius: 6, border: '1px solid #e2e8f0', fontSize: '0.75rem', fontWeight: 600 }}>
                     <button onClick={() => setDiscountMode('percent')} style={{ padding: '0.125rem 0.5rem', background: discountMode === 'percent' ? '#fff' : 'transparent', color: discountMode === 'percent' ? '#0f172a' : '#64748b', border: 'none', borderRadius: 4, cursor: 'pointer' }}>%</button>
                     <button onClick={() => setDiscountMode('amount')} style={{ padding: '0.125rem 0.5rem', background: discountMode === 'amount' ? '#fff' : 'transparent', color: discountMode === 'amount' ? '#0f172a' : '#64748b', border: 'none', borderRadius: 4, cursor: 'pointer' }}>Rs</button>
@@ -521,16 +532,31 @@ export default function CreateSalesInvoice() {
                   <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Inclusive VAT (prices include 13%)</span>
                 </label>
               </div>
-              {inclusiveVat && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9' }}>
-                  <span style={{ color: '#64748b' }}>VAT (included)</span>
-                  <span style={{ fontWeight: 600, color: '#64748b' }}>{formatMoney(taxTotal)}</span>
-                </div>
-              )}
-              {!inclusiveVat && vatEnabled && (
+              {vatEnabled && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9' }}>
                   <span style={{ color: '#64748b' }}>VAT (13%)</span>
                   <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatMoney(taxTotal)}</span>
+                </div>
+              )}
+              <div style={{ paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={addExtraCharge} onChange={e => setAddExtraCharge(e.target.checked)} style={{ width: 16, height: 16, accentColor: '#2563eb' }} />
+                  <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#334155' }}>Add Extra Charge</span>
+                </label>
+                {addExtraCharge && (
+                  <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <input type="text" value={extraChargeRemarks} onChange={e => setExtraChargeRemarks(e.target.value)} placeholder="Charge remarks (e.g. Delivery, Packing)" style={{ width: '100%', padding: '0.375rem 0.5rem', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '0.875rem' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      <span style={{ fontSize: '0.875rem', color: '#64748b' }}>Rs.</span>
+                      <input type="number" min="0" value={extraChargeAmount} onChange={e => setExtraChargeAmount(e.target.value)} placeholder="0" style={{ flex: 1, padding: '0.375rem 0.5rem', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '0.875rem', textAlign: 'right' }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+              {addExtraCharge && extraCharge > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#64748b' }}>Extra Charge{extraChargeRemarks ? ` (${extraChargeRemarks})` : ''}</span>
+                  <span style={{ fontWeight: 600, color: '#0f172a' }}>+ {formatMoney(extraCharge)}</span>
                 </div>
               )}
               <div style={{ paddingTop: '0.75rem', borderTop: '2px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
