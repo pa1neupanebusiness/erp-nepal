@@ -13,7 +13,7 @@ export default function Purchases() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [search, setSearch] = useState('');
-  const [form, setForm] = useState({ date: adToBsStr(new Date()), type: 'direct', supplier: '', items: [{ product: '', quantity: 1, costPrice: 0, sellingPrice: 0, batch: '', subtotal: 0 }], discount: 0, vatPercent: 0, inclusiveVat: false, applyTds: false, paidAmount: 0, paymentMethod: 'cash', bank: '', chequeNumber: '', paymentRemarks: '', note: '' });
+  const [form, setForm] = useState({ date: adToBsStr(new Date()), type: 'direct', supplier: '', items: [{ product: '', quantity: 1, costPrice: 0, sellingPrice: 0, batch: '', subtotal: 0 }], discount: 0, vatPercent: 0, applyVat: false, inclusiveVat: false, applyTds: false, paidAmount: 0, paymentMethod: 'cash', bank: '', chequeNumber: '', paymentRemarks: '', note: '' });
   const [detail, setDetail] = useState(null);
   const [detailsId, setDetailsId] = useState(null);
   const [returnModal, setReturnModal] = useState(null);
@@ -50,7 +50,7 @@ export default function Purchases() {
   const load = () => api.get('/purchases').then(r => setItems(r.data.sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0))));
 
   const resetForm = () => {
-    setForm({ date: adToBsStr(new Date()), type: 'direct', supplier: '', items: [{ product: '', quantity: 1, costPrice: 0, sellingPrice: 0, batch: '', subtotal: 0 }], discount: 0, vatPercent: 0, inclusiveVat: false, applyTds: false, paidAmount: 0, paymentMethod: 'cash', bank: '', chequeNumber: '', paymentRemarks: '', supplierInvoiceNo: '', note: '' });
+    setForm({ date: adToBsStr(new Date()), type: 'direct', supplier: '', items: [{ product: '', quantity: 1, costPrice: 0, sellingPrice: 0, batch: '', subtotal: 0 }], discount: 0, vatPercent: 0, applyVat: false, inclusiveVat: false, applyTds: false, paidAmount: 0, paymentMethod: 'cash', bank: '', chequeNumber: '', paymentRemarks: '', supplierInvoiceNo: '', note: '' });
     setSupplierFyTotal(0);
     setEditing(null);
     setShowForm(false);
@@ -73,6 +73,7 @@ export default function Purchases() {
       discount: purchase.discount || 0,
       vatPercent: purchase.vatPercent || 0,
       inclusiveVat: purchase.inclusiveVat || false,
+      applyVat: !purchase.inclusiveVat && (purchase.vatPercent || 0) > 0,
       applyTds: (purchase.tds || 0) > 0,
       paidAmount: purchase.paidAmount || 0,
       paymentMethod: purchase.paymentMethod || 'cash',
@@ -169,7 +170,8 @@ export default function Purchases() {
   const subtotal = form.items.reduce((s, i) => s + i.subtotal, 0);
   const discountedSubtotal = Math.max(0, subtotal - (form.discount || 0));
   const vatPct = form.vatPercent || 0;
-  const vatAmount = vatPct > 0
+  const vatEnabled = form.applyVat || form.inclusiveVat;
+  const vatAmount = vatPct > 0 && vatEnabled
     ? (form.inclusiveVat ? Math.round((discountedSubtotal * vatPct / (100 + vatPct)) * 100) / 100 : Math.round((discountedSubtotal * vatPct / 100) * 100) / 100)
     : 0;
   const grandTotal = form.inclusiveVat ? discountedSubtotal : Math.max(0, discountedSubtotal + vatAmount);
@@ -397,11 +399,15 @@ export default function Purchases() {
             </tbody>
           </table>
           <button type="button" className="btn btn-sm btn-secondary" onClick={addItem}>+ Add Item</button>
-          <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr', marginTop: '1rem' }}>
+          <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', marginTop: '1rem' }}>
             <div className="form-group"><label>Discount</label><input type="number" value={form.discount} onChange={e => setForm({ ...form, discount: parseFloat(e.target.value) || 0 })} /></div>
             <div className="form-group"><label>VAT (%)</label><input type="number" step="0.01" min="0" value={form.vatPercent} onChange={e => setForm({ ...form, vatPercent: parseFloat(e.target.value) || 0 })} placeholder="13" /></div>
             <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingTop: '1.5rem' }}>
-              <input type="checkbox" id="inclusiveVat" checked={form.inclusiveVat} onChange={e => setForm({ ...form, inclusiveVat: e.target.checked, vatPercent: form.vatPercent || 13 })} />
+              <input type="checkbox" id="applyVat" checked={form.applyVat} onChange={e => setForm({ ...form, applyVat: e.target.checked, inclusiveVat: e.target.checked ? false : form.inclusiveVat, vatPercent: form.vatPercent || 13 })} />
+              <label htmlFor="applyVat" style={{ margin: 0 }}>Add VAT</label>
+            </div>
+            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingTop: '1.5rem' }}>
+              <input type="checkbox" id="inclusiveVat" checked={form.inclusiveVat} onChange={e => setForm({ ...form, inclusiveVat: e.target.checked, applyVat: e.target.checked ? false : form.applyVat, vatPercent: form.vatPercent || 13 })} />
               <label htmlFor="inclusiveVat" style={{ margin: 0 }}>Inclusive VAT</label>
             </div>
             <div className="form-group"><label>Paid Amount</label><input type="number" value={form.paidAmount} onChange={e => setForm({ ...form, paidAmount: e.target.value })} /></div>
@@ -450,7 +456,7 @@ export default function Purchases() {
                 </div>
               )}
             </div>
-          {vatPct > 0 && (
+          {vatPct > 0 && vatEnabled && (
             <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr', marginTop: '0.5rem' }}>
               <div className="form-group"><label>{form.inclusiveVat ? 'VAT (included in prices)' : 'VAT Amount (Rs.)'}</label><div style={{ padding: '0.5rem 0', fontWeight: 600, color: '#dc2626' }}>{formatNPR(vatAmount)}</div></div>
               <div className="form-group">
@@ -465,11 +471,11 @@ export default function Purchases() {
               <div className="form-group"><label>Grand Total</label><div style={{ padding: '0.5rem 0', fontWeight: 700, fontSize: '1.1rem' }}>{formatNPR(grandTotal)}</div></div>
             </div>
           )}
-          {vatPct > 0 && form.supplier && (
+          {vatPct > 0 && vatEnabled && form.supplier && (
             <p className="text-muted" style={{ fontSize: '0.78rem', marginTop: '0.4rem' }}>
               {form.inclusiveVat
                 ? 'VAT is already included in the item prices above. The VAT amount shown is extracted from the total, not added on top.'
-                : 'TDS is optional. Check "Apply TDS" to deduct 1.5% on this bill. Only bills with TDS applied appear in the TDS report.'}
+                : 'VAT is added on top of the item prices. The VAT amount is additional to the subtotal.'}
             </p>
           )}
           {vatPct === 0 && (
