@@ -3,6 +3,7 @@ import api from '../../api';
 import { useToast } from '../UI/Toast';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
 import NepaliDatePicker, { adToBsStr, bsToADStr } from '../UI/NepaliDatePicker';
+import SearchableSelect from '../UI/SearchableSelect';
 
 const fmt = (n) => 'Rs. ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
 
@@ -130,10 +131,12 @@ export default function PurchaseReturn() {
             </div>
             <div className="form-group">
               <label>Supplier</label>
-              <select value={standalone.supplier} onChange={e => setStandalone(s => ({ ...s, supplier: e.target.value }))} style={{ width: '100%', padding: '0.5rem', borderRadius: 6, border: '1px solid #e2e8f0' }}>
-                <option value="">-- Select Supplier --</option>
-                {suppliers.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
-              </select>
+              <SearchableSelect
+                options={suppliers.map(s => ({ value: s._id, label: s.name }))}
+                value={standalone.supplier}
+                onChange={v => setStandalone(s => ({ ...s, supplier: v }))}
+                placeholder="Cash"
+              />
             </div>
             <label style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Items</label>
             {standalone.items.map((it, idx) => (

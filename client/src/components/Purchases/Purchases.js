@@ -368,7 +368,7 @@ export default function Purchases() {
                 value={form.supplier}
                 onChange={v => { setForm({ ...form, supplier: v }); loadSupplierFyTotal(v); }}
                 onAdd={(q) => { setNewSupplier({ name: '', phone: '', email: '', address: '', pan: '' }); setNewSupplier(prev => ({ ...prev, name: q })); setSupplierModal(true); }}
-                placeholder="Search supplier or type to add..."
+                placeholder="Cash"
               />
               {!form.supplier && <div style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 500, marginTop: 2 }}>Cash Purchase (No Supplier)</div>}
             </div>

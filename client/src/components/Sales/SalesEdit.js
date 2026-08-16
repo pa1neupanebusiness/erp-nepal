@@ -188,7 +188,7 @@ export default function SalesEdit() {
         <div className="form-grid">
           <div className="form-group">
             <label>Customer</label>
-            <SearchableSelect options={[{ value: '', label: 'Walk-in' }, ...customers.map(c => ({ value: c._id, label: `${c.name}${c.phone ? ' (' + c.phone + ')' : ''}` }))]} value={customer} onChange={setCustomer} placeholder="Search customer..." />
+            <SearchableSelect options={[{ value: '', label: 'Cash' }, ...customers.map(c => ({ value: c._id, label: `${c.name}${c.phone ? ' (' + c.phone + ')' : ''}` }))]} value={customer} onChange={setCustomer} placeholder="Search customer..." />
           </div>
           <div className="form-group">
             <label>Date</label>

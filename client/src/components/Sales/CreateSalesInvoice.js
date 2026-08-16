@@ -395,7 +395,7 @@ export default function CreateSalesInvoice() {
             <div style={{ gridColumn: 'span 2' }}>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Party / Customer</label>
               <div style={{ position: 'relative' }}>
-                <SearchableSelect options={customerOptions} value={customer} onChange={v => { setCustomer(v || ''); setCashSale(!v); }} onAdd={openCustomerModal} placeholder="Type party name to search, or type new to add..." style={{ width: '100%' }} inputStyle={{ padding: '0.5rem 0.75rem 0.5rem 2.5rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.875rem', width: '100%' }} />
+                <SearchableSelect options={customerOptions} value={customer} onChange={v => { setCustomer(v || ''); setCashSale(!v); }} onAdd={openCustomerModal} placeholder="Cash" style={{ width: '100%' }} inputStyle={{ padding: '0.5rem 0.75rem 0.5rem 2.5rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.875rem', width: '100%' }} />
                 <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>{Icons.search}</span>
               </div>
             </div>
