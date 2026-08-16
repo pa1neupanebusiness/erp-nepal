@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import FiscalYearSelector from './FiscalYearSelector';
-import { ToastContainer } from '../UI/Toast';
 import { useTheme } from '../../context/ThemeContext';
 
 const Icon = ({ name, size = 18, color = 'currentColor' }) => {
@@ -301,7 +300,6 @@ export default function Layout({ user, onLogout, children }) {
       </nav>
 
       <main className="main-content">
-        <ToastContainer />
         {children}
         <div className="footer-brand">© 2026 Made by DevUp Soft</div>
       </main>

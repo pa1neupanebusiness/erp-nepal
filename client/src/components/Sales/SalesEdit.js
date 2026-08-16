@@ -94,8 +94,17 @@ export default function SalesEdit() {
   };
 
   const lineAmount = (r) => (Number(r.qty) || 0) * (Number(r.rate) || 0);
+  const lineBase = (r) => {
+    const raw = lineAmount(r);
+    if (inclusiveVat) {
+      const taxRate = r.taxRate || 13;
+      return Math.round((raw / (1 + taxRate / 100)) * 100) / 100;
+    }
+    return raw;
+  };
 
-  const totalBeforeDiscount = rows.reduce((s, r) => s + lineAmount(r), 0);
+  const totalInclusive = rows.reduce((s, r) => s + lineAmount(r), 0);
+  const totalBeforeDiscount = rows.reduce((s, r) => s + lineBase(r), 0);
   const vatRate = rows[0]?.taxRate || 13;
   let discount = Math.round((parseFloat(discountValue) || 0) * 100) / 100;
   const discountRatio = totalBeforeDiscount > 0 ? discount / totalBeforeDiscount : 0;
@@ -136,8 +145,8 @@ export default function SalesEdit() {
     try {
       const items = rows.filter(r => r.product).map(r => ({
         product: r.product, quantity: Number(r.qty), price: Number(r.rate),
-        subtotal: Math.round(lineAmount(r) * 100) / 100,
-        tax: r.vatEnabled ? Math.round(lineAmount(r) * (r.taxRate || 13) / 100 * 100) / 100 : 0,
+        subtotal: Math.round(lineBase(r) * 100) / 100,
+        tax: r.vatEnabled ? Math.round(lineBase(r) * (r.taxRate || 13) / 100 * 100) / 100 : 0,
         taxRate: r.taxRate || 0, priceIncludesTax: r.priceIncludesTax || inclusiveVat,
       }));
       const payload = {

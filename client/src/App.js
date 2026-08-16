@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { FiscalYearProvider, useFiscalYear } from './context/FiscalYearContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { DateFormatProvider } from './context/DateFormatContext';
-import { ToastProvider, useToast } from './components/UI/Toast';
+import { ToastProvider, ToastContainer, useToast } from './components/UI/Toast';
 import api from './api';
 import NepaliDatePicker, { bsToADStr, getBSTodayStr } from './components/UI/NepaliDatePicker';
 import TopBar from './components/UI/TopBar';
@@ -164,7 +164,6 @@ function AppContent() {
   return (
     <ThemeProvider>
       <Router>
-        <ToastProvider>
       <TopBar />
       <Layout user={user} onLogout={handleLogout}>
         {user?.company?.chatbotEnabled && <ChatWidget />}
@@ -218,7 +217,6 @@ function AppContent() {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Layout>
-      </ToastProvider>
       </Router>
     </ThemeProvider>
   );
@@ -228,7 +226,10 @@ function App() {
   return (
     <DateFormatProvider>
       <FiscalYearProvider>
-        <AppContent />
+        <ToastProvider>
+          <AppContent />
+          <ToastContainer />
+        </ToastProvider>
       </FiscalYearProvider>
     </DateFormatProvider>
   );
