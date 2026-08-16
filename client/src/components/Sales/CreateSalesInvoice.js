@@ -146,6 +146,14 @@ export default function CreateSalesInvoice() {
     }, 0);
   };
 
+  const lineRate = (r) => {
+    const raw = parseFloat(r.rate) || 0;
+    if (inclusiveVat) {
+      const taxRate = r.taxRate || 13;
+      return Math.round((raw / (1 + taxRate / 100)) * 100) / 100;
+    }
+    return raw;
+  };
   const lineBase = (r) => {
     const raw = (parseFloat(r.rate) || 0) * (parseInt(r.qty) || 0);
     if (inclusiveVat) {
@@ -160,7 +168,6 @@ export default function CreateSalesInvoice() {
   };
 
   const totalBeforeDiscount = rows.reduce((s, r) => s + lineBase(r), 0);
-  const totalInclusive = rows.reduce((s, r) => s + (parseFloat(r.rate) || 0) * (parseInt(r.qty) || 0), 0);
   const discountBase = totalBeforeDiscount;
   const vatRate = (rows[0]?.taxRate || 13);
   let discount = Math.round((parseFloat(discountValue) || 0) * 100) / 100;
@@ -413,9 +420,9 @@ export default function CreateSalesInvoice() {
                       <input type="number" min="1" value={r.qty} onChange={e => updateRow(idx, 'qty', e.target.value)} style={{ width: '100%', padding: '0.375rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.875rem', textAlign: 'center' }} />
                     </td>
                     <td style={{ padding: '0.75rem 1rem' }}>
-                      <input type="number" min="0" step="0.01" value={r.rate} onChange={e => updateRow(idx, 'rate', e.target.value)} onKeyDown={tabAddRow(idx)} style={{ width: '100%', padding: '0.375rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.875rem', textAlign: 'right' }} />
+                      <input type="number" min="0" step="0.01" value={inclusiveVat ? lineRate(r) : r.rate} onChange={e => updateRow(idx, 'rate', inclusiveVat ? (Math.round((parseFloat(e.target.value) || 0) * (1 + (r.taxRate || 13) / 100) * 100) / 100) : e.target.value)} onKeyDown={tabAddRow(idx)} style={{ width: '100%', padding: '0.375rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.875rem', textAlign: 'right' }} />
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>{formatMoney((parseFloat(r.rate) || 0) * (parseInt(r.qty) || 0))}</td>
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>{formatMoney(lineBase(r))}</td>
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
                       <button onClick={() => removeRow(idx)} style={{ color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 4 }} onMouseEnter={e => e.target.style.color = '#ef4444'} onMouseLeave={e => e.target.style.color = '#94a3b8'}>{Icons.trash}</button>
                     </td>
@@ -471,7 +478,7 @@ export default function CreateSalesInvoice() {
               {inclusiveVat && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ color: '#64748b' }}>Items Total (incl. VAT)</span>
-                  <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatMoney(totalInclusive)}</span>
+                  <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatMoney(totalBeforeDiscount)}</span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

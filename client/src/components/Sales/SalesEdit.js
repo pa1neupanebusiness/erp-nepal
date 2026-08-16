@@ -94,6 +94,14 @@ export default function SalesEdit() {
   };
 
   const lineAmount = (r) => (Number(r.qty) || 0) * (Number(r.rate) || 0);
+  const lineRate = (r) => {
+    const raw = Number(r.rate) || 0;
+    if (inclusiveVat) {
+      const taxRate = r.taxRate || 13;
+      return Math.round((raw / (1 + taxRate / 100)) * 100) / 100;
+    }
+    return raw;
+  };
   const lineBase = (r) => {
     const raw = lineAmount(r);
     if (inclusiveVat) {
@@ -103,7 +111,6 @@ export default function SalesEdit() {
     return raw;
   };
 
-  const totalInclusive = rows.reduce((s, r) => s + lineAmount(r), 0);
   const totalBeforeDiscount = rows.reduce((s, r) => s + lineBase(r), 0);
   const vatRate = rows[0]?.taxRate || 13;
   let discount = Math.round((parseFloat(discountValue) || 0) * 100) / 100;
@@ -196,8 +203,8 @@ export default function SalesEdit() {
               <tr key={i}>
                 <td><SearchableSelect options={products.map(p => ({ value: p._id, label: `${p.name} (${p.sku || 'N/A'}) - Stock: ${p.stock || 0}` }))} value={r.product} onChange={v => selectProduct(i, v)} placeholder="Search product..." /></td>
                 <td><input type="number" min="1" value={r.qty} onChange={e => updateRow(i, 'qty', e.target.value)} style={{ width: 80 }} required /></td>
-                <td><input type="number" step="0.01" value={r.rate} onChange={e => updateRow(i, 'rate', e.target.value)} style={{ width: 120 }} required /></td>
-                <td className="text-right">{lineAmount(r).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                <td><input type="number" step="0.01" value={inclusiveVat ? lineRate(r) : r.rate} onChange={e => updateRow(i, 'rate', inclusiveVat ? (Math.round((parseFloat(e.target.value) || 0) * (1 + (r.taxRate || 13) / 100) * 100) / 100) : e.target.value)} style={{ width: 120 }} required /></td>
+                <td className="text-right">{lineBase(r).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                 <td>{rows.length > 1 && <button type="button" className="btn btn-sm btn-danger" onClick={() => removeRow(i)}>X</button>}</td>
               </tr>
             ))}
