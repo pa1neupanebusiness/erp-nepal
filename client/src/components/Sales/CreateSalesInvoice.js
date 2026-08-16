@@ -489,10 +489,18 @@ export default function CreateSalesInvoice() {
           <div style={{ background: '#fff', padding: '1.5rem', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
             <h3 style={{ margin: '0 0 1.25rem', fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', paddingBottom: '0.5rem', borderBottom: '1px solid #f1f5f9' }}>Summary & Payment</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.875rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#64748b' }}>Items Total (before VAT)</span>
-                <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatMoney(totalBeforeDiscount)}</span>
-              </div>
+              {!inclusiveVat && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#64748b' }}>Items Total</span>
+                  <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatMoney(totalBeforeDiscount)}</span>
+                </div>
+              )}
+              {inclusiveVat && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#64748b' }}>Items Total (incl. VAT)</span>
+                  <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatMoney(rows.reduce((s, r) => s + (parseFloat(r.rate) || 0) * (parseInt(r.qty) || 0), 0))}</span>
+                </div>
+              )}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: '#64748b' }}>Discount</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', width: 160 }}>
@@ -513,26 +521,14 @@ export default function CreateSalesInvoice() {
                   <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Inclusive VAT (prices include 13%)</span>
                 </label>
               </div>
-              {inclusiveVat && vatEnabled && (
+              {inclusiveVat && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9' }}>
-                  <span style={{ color: '#64748b' }}>Items Total (incl. VAT)</span>
-                  <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatMoney(netAfterDiscount + taxTotal)}</span>
-                </div>
-              )}
-              {inclusiveVat && vatEnabled && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ color: '#64748b' }}>VAT (included)</span>
                   <span style={{ fontWeight: 600, color: '#64748b' }}>{formatMoney(taxTotal)}</span>
                 </div>
               )}
               {!inclusiveVat && vatEnabled && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9' }}>
-                  <span style={{ color: '#64748b' }}>Items Total</span>
-                  <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatMoney(totalBeforeDiscount)}</span>
-                </div>
-              )}
-              {!inclusiveVat && vatEnabled && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ color: '#64748b' }}>VAT (13%)</span>
                   <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatMoney(taxTotal)}</span>
                 </div>
