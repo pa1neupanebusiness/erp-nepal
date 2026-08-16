@@ -94,32 +94,14 @@ export default function SalesEdit() {
   };
 
   const lineAmount = (r) => (Number(r.qty) || 0) * (Number(r.rate) || 0);
-  const discountedLineTax = (r, discountRatio) => {
-    const discounted = Math.round((lineAmount(r) * (1 - discountRatio)) * 100) / 100;
-    const rate = (applyVat || inclusiveVat) ? (r.taxRate || 13) : 0;
-    if (!rate) return 0;
-    const isInclusive = r.priceIncludesTax || inclusiveVat;
-    const tax = isInclusive ? (discounted * rate) / (100 + rate) : (discounted * rate) / 100;
-    return Math.round(tax * 100) / 100;
-  };
-  const discountedLineBase = (r, discountRatio) => {
-    const discounted = Math.round((lineAmount(r) * (1 - discountRatio)) * 100) / 100;
-    const rate = (applyVat || inclusiveVat) ? (r.taxRate || 13) : 0;
-    const isInclusive = r.priceIncludesTax || inclusiveVat;
-    return isInclusive ? Math.round((discounted - discountedLineTax(r, discountRatio)) * 100) / 100 : discounted;
-  };
 
-  const totalBeforeDiscountRaw = rows.reduce((s, r) => s + lineAmount(r), 0);
+  const totalBeforeDiscount = rows.reduce((s, r) => s + lineAmount(r), 0);
   const vatRate = rows[0]?.taxRate || 13;
-  const totalBeforeDiscount = inclusiveVat && vatRate > 0
-    ? Math.round(totalBeforeDiscountRaw / (1 + vatRate / 100) * 100) / 100
-    : totalBeforeDiscountRaw;
   let discount = Math.round((parseFloat(discountValue) || 0) * 100) / 100;
   const discountRatio = totalBeforeDiscount > 0 ? discount / totalBeforeDiscount : 0;
   const netAmount = Math.max(0, totalBeforeDiscount - discount);
-  const subtotal = rows.reduce((s, r) => s + discountedLineBase(r, discountRatio), 0);
-  const vatTotal = rows.reduce((s, r) => s + discountedLineTax(r, discountRatio), 0);
-  const grandTotal = inclusiveVat ? Math.round((netAmount + vatTotal) * 100) / 100 : Math.max(0, netAmount + vatTotal);
+  const vatTotal = (applyVat || inclusiveVat) ? Math.round((netAmount * vatRate / 100) * 100) / 100 : 0;
+  const grandTotal = Math.round((netAmount + vatTotal) * 100) / 100;
 
   const handleApplyVatChange = (checked) => {
     setApplyVat(checked);
@@ -154,12 +136,12 @@ export default function SalesEdit() {
     try {
       const items = rows.filter(r => r.product).map(r => ({
         product: r.product, quantity: Number(r.qty), price: Number(r.rate),
-        subtotal: Math.round(discountedLineBase(r, discountRatio) * 100) / 100,
-        tax: r.vatEnabled ? Math.round(lineAmount(r) * (r.taxRate || 13) / ((r.priceIncludesTax || inclusiveVat) ? (100 + (r.taxRate || 13)) : 100) * 100) / 100 : 0,
+        subtotal: Math.round(lineAmount(r) * 100) / 100,
+        tax: r.vatEnabled ? Math.round(lineAmount(r) * (r.taxRate || 13) / 100 * 100) / 100 : 0,
         taxRate: r.taxRate || 0, priceIncludesTax: r.priceIncludesTax || inclusiveVat,
       }));
       const payload = {
-        items, subtotal: Math.round(subtotal * 100) / 100,
+        items, subtotal: Math.round(totalBeforeDiscount * 100) / 100,
         taxTotal: Math.round(vatTotal * 100) / 100,
         discount: Math.round(discount * 100) / 100,
         grandTotal: Math.round(grandTotal * 100) / 100,
@@ -216,7 +198,7 @@ export default function SalesEdit() {
 
         <div style={{ display: 'flex', gap: '2rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
           <div style={{ minWidth: 200 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>{inclusiveVat ? 'Subtotal (before VAT):' : 'Subtotal:'}</span><strong>{formatMoney(inclusiveVat ? totalBeforeDiscount : totalBeforeDiscountRaw)}</strong></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>Items Total:</span><strong>{formatMoney(totalBeforeDiscount)}</strong></div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: 4 }}>
               <span>Discount:</span>
               <div style={{ display: 'flex', background: '#f1f5f9', padding: 2, borderRadius: 6, border: '1px solid #e2e8f0', fontSize: '0.75rem', fontWeight: 600 }}>

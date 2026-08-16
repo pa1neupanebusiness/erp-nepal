@@ -102,17 +102,12 @@ export default function CreateSalesInvoice() {
 
   const pickProduct = (rowIdx, productId, option) => {
     const p = (option && option.sellingPrice !== undefined) ? option : products.find(x => x._id === productId);
-    const isInclusive = inclusiveVat;
-    const taxRate = p?.taxRate || 13;
-    const baseRate = isInclusive && p?.sellingPrice
-      ? Math.round((p.sellingPrice / (1 + taxRate / 100)) * 100) / 100
-      : (p?.sellingPrice !== undefined ? p.sellingPrice : undefined);
     setRows(prev => prev.map((r, i) => i === rowIdx ? {
       ...r,
       product: productId,
       name: p?.name || '',
       sku: p?.sku || '',
-      rate: baseRate !== undefined ? baseRate : r.rate,
+      rate: p?.sellingPrice !== undefined ? p.sellingPrice : r.rate,
       taxRate: p?.taxRate || 0,
       priceIncludesTax: p?.priceIncludesTax || false,
       vatEnabled: p?.vatEnabled !== undefined ? p.vatEnabled : (p?.taxRate || 0) > 0,
@@ -120,29 +115,6 @@ export default function CreateSalesInvoice() {
       unit: p?.unit || 'pcs',
     } : r));
   };
-
-  // Recalculate rates when inclusiveVat toggles: divide by (1+tax) to show base price
-  const prevInclusiveRef = React.useRef(inclusiveVat);
-  useEffect(() => {
-    const wasInclusive = prevInclusiveRef.current;
-    prevInclusiveRef.current = inclusiveVat;
-    if (wasInclusive === inclusiveVat) return;
-    setRows(prev => prev.map(r => {
-      if (!r.product || !r.rate) return r;
-      const rate = parseFloat(r.rate) || 0;
-      const taxRate = r.taxRate || 13;
-      if (inclusiveVat && !wasInclusive) {
-        // Toggled ON: current rate is exclusive, convert to base (before VAT)
-        const base = Math.round((rate / (1 + taxRate / 100)) * 100) / 100;
-        return { ...r, rate: base };
-      } else if (!inclusiveVat && wasInclusive) {
-        // Toggled OFF: current rate is base, convert back to inclusive
-        const inclusive = Math.round((rate * (1 + taxRate / 100)) * 100) / 100;
-        return { ...r, rate: inclusive };
-      }
-      return r;
-    }));
-  }, [inclusiveVat]);
 
   const updateRow = (rowIdx, field, value) => {
     setRows(prev => prev.map((r, i) => i === rowIdx ? { ...r, [field]: value } : r));
@@ -175,12 +147,7 @@ export default function CreateSalesInvoice() {
   };
 
   const lineBase = (r) => {
-    const raw = (parseFloat(r.rate) || 0) * (parseInt(r.qty) || 0);
-    if (inclusiveVat) {
-      const taxRate = r.taxRate || 13;
-      return Math.round((raw / (1 + taxRate / 100)) * 100) / 100;
-    }
-    return raw;
+    return (parseFloat(r.rate) || 0) * (parseInt(r.qty) || 0);
   };
   const lineTax = (r, base) => {
     if (!applyVat) return 0;
@@ -197,11 +164,7 @@ export default function CreateSalesInvoice() {
   const vatEnabled = applyVat || inclusiveVat;
   let grandTotal, taxTotal, netAfterDiscount;
   const taxableBase = Math.max(0, totalBeforeDiscount - discount) + extraCharge;
-  if (inclusiveVat && vatEnabled) {
-    netAfterDiscount = Math.max(0, totalBeforeDiscount - discount);
-    taxTotal = Math.round((taxableBase * vatRate / 100) * 100) / 100;
-    grandTotal = Math.round((taxableBase + taxTotal) * 100) / 100;
-  } else if (applyVat && vatEnabled) {
+  if (vatEnabled) {
     netAfterDiscount = Math.max(0, totalBeforeDiscount - discount);
     taxTotal = Math.round((taxableBase * vatRate / 100) * 100) / 100;
     grandTotal = Math.round((taxableBase + taxTotal) * 100) / 100;
