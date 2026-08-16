@@ -173,15 +173,14 @@ export default function CreateSalesInvoice() {
 
   const lineBase = (r) => {
     const raw = (parseFloat(r.rate) || 0) * (parseInt(r.qty) || 0);
-    const isInclusive = r.priceIncludesTax || inclusiveVat;
-    if (isInclusive && (applyVat || inclusiveVat)) {
+    if (inclusiveVat) {
       const taxRate = r.taxRate || 13;
       return Math.round((raw / (1 + taxRate / 100)) * 100) / 100;
     }
     return raw;
   };
   const lineTax = (r, base) => {
-    if (!(applyVat || inclusiveVat)) return 0;
+    if (!applyVat) return 0;
     const taxRate = r.taxRate || 13;
     return Math.round((base * taxRate / 100) * 100) / 100;
   };
