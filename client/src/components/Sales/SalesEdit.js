@@ -217,7 +217,7 @@ export default function SalesEdit() {
         <div style={{ display: 'flex', gap: '2rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
           <div style={{ minWidth: 200 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>{inclusiveVat ? 'Subtotal (before VAT):' : 'Subtotal:'}</span><strong>{formatMoney(inclusiveVat ? totalBeforeDiscount : totalBeforeDiscountRaw)}</strong></div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: 4 }}>
               <span>Discount:</span>
               <div style={{ display: 'flex', background: '#f1f5f9', padding: 2, borderRadius: 6, border: '1px solid #e2e8f0', fontSize: '0.75rem', fontWeight: 600 }}>
                 <button type="button" onClick={() => setDiscountMode('percent')} style={{ padding: '0.125rem 0.5rem', background: discountMode === 'percent' ? '#fff' : 'transparent', color: discountMode === 'percent' ? '#0f172a' : '#64748b', border: 'none', borderRadius: 4, cursor: 'pointer' }}>%</button>
