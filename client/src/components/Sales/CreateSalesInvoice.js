@@ -196,14 +196,15 @@ export default function CreateSalesInvoice() {
   const extraCharge = addExtraCharge ? (parseFloat(extraChargeAmount) || 0) : 0;
   const vatEnabled = applyVat || inclusiveVat;
   let grandTotal, taxTotal, netAfterDiscount;
+  const taxableBase = Math.max(0, totalBeforeDiscount - discount) + extraCharge;
   if (inclusiveVat && vatEnabled) {
     netAfterDiscount = Math.max(0, totalBeforeDiscount - discount);
-    taxTotal = Math.round((netAfterDiscount * vatRate / 100) * 100) / 100;
-    grandTotal = Math.round((netAfterDiscount + taxTotal + extraCharge) * 100) / 100;
+    taxTotal = Math.round((taxableBase * vatRate / 100) * 100) / 100;
+    grandTotal = Math.round((taxableBase + taxTotal) * 100) / 100;
   } else if (applyVat && vatEnabled) {
     netAfterDiscount = Math.max(0, totalBeforeDiscount - discount);
-    taxTotal = Math.round((netAfterDiscount * vatRate / 100) * 100) / 100;
-    grandTotal = Math.round((netAfterDiscount + taxTotal + extraCharge) * 100) / 100;
+    taxTotal = Math.round((taxableBase * vatRate / 100) * 100) / 100;
+    grandTotal = Math.round((taxableBase + taxTotal) * 100) / 100;
   } else {
     netAfterDiscount = Math.max(0, totalBeforeDiscount - discount);
     taxTotal = 0;
