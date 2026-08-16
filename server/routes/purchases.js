@@ -424,7 +424,8 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     const bankAccount = await Account.findOne({ code: '10200', ...req.companyFilter });
 
     const lines = [];
-    if (inventoryAccount) lines.push({ account: inventoryAccount._id, debit: updated.subtotal || 0, credit: 0 });
+    const inventoryDebit = updated.inclusiveVat ? Math.round(((updated.grandTotal || 0) - (updated.tax || 0)) * 100) / 100 : (updated.subtotal || 0);
+    if (inventoryAccount) lines.push({ account: inventoryAccount._id, debit: inventoryDebit, credit: 0 });
     if (tax > 0 && vatAccount) lines.push({ account: vatAccount._id, debit: updated.tax || 0, credit: 0 });
     const apCredit = (updated.grandTotal || 0) - (updated.tds || 0);
     if (payableAccount && apCredit > 0) lines.push({ account: payableAccount._id, debit: 0, credit: apCredit, subLedger: { supplier: updated.supplier } });

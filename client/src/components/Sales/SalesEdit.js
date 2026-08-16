@@ -152,7 +152,7 @@ export default function SalesEdit() {
     try {
       const items = rows.filter(r => r.product).map(r => ({
         product: r.product, quantity: Number(r.qty), price: Number(r.rate),
-        subtotal: Number(r.qty) * Number(r.rate),
+        subtotal: Math.round(discountedLineBase(r, discountRatio) * 100) / 100,
         tax: r.vatEnabled ? Math.round(lineAmount(r) * (r.taxRate || 13) / ((r.priceIncludesTax || inclusiveVat) ? (100 + (r.taxRate || 13)) : 100) * 100) / 100 : 0,
         taxRate: r.taxRate || 0, priceIncludesTax: r.priceIncludesTax || inclusiveVat,
       }));

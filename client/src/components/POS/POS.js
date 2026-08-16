@@ -366,14 +366,14 @@ export default function POS() {
                   <div key={idx} className="cart-item">
                     <div className="cart-item-info">
                       <div className="cart-item-name">{item.name}</div>
-                      <div className="cart-item-price">{formatNPR(item.subtotal / item.quantity)} each</div>
+                      <div className="cart-item-price">{formatNPR(item.price)} each</div>
                     </div>
                     <div className="cart-item-qty">
                       <button onClick={() => updateQty(item.product, item.quantity - 1)}>-</button>
                       <span>{item.quantity}</span>
                       <button onClick={() => updateQty(item.product, item.quantity + 1)}>+</button>
                     </div>
-                    <div className="cart-item-subtotal">{formatNPR(item.subtotal)}</div>
+                    <div className="cart-item-subtotal">{formatNPR(item.price * item.quantity)}</div>
                     <button className="cart-item-remove" onClick={() => updateQty(item.product, 0)}>×</button>
                   </div>
                 ))}
