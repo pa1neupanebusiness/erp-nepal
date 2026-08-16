@@ -34,6 +34,17 @@ async function generatePurchaseNo(companyId) {
   throw new Error('Could not generate purchase number');
 }
 
+async function generateCreditNote(companyId) {
+  if (!companyId) throw new Error('No company assigned');
+  const company = await Company.findOneAndUpdate(
+    { _id: companyId },
+    { $inc: { creditNoteCounter: 1 } },
+    { new: true }
+  );
+  if (!company) throw new Error('No company found');
+  return `CN-${String(company.creditNoteCounter).padStart(4, '0')}`;
+}
+
 function getFiscalYear(date) {
   return getBSFiscalYear(date).label;
 }
@@ -567,6 +578,8 @@ router.post('/standalone-return', protect, adminOnly, async (req, res) => {
     if (!supplier) return res.status(400).json({ message: 'Supplier is required' });
 
     const returnNumber = `DRN-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`;
+    let cnNumber;
+    try { cnNumber = await generateCreditNote(req.companyId); } catch (e) { cnNumber = `CN-${returnNumber}`; }
     let totalValue = 0;
     const productLines = [];
 
@@ -602,6 +615,8 @@ router.post('/standalone-return', protect, adminOnly, async (req, res) => {
       status: 'returned', createdBy: req.user._id, note: reason || 'Standalone purchase return',
       returns: productLines.map(pl => ({ product: pl.product, quantity: pl.quantity, reason: reason || '', returnedBy: req.user._id, date: new Date() })),
       fiscalYearId: req.fiscalYearId || undefined,
+      creditNoteNumber: cnNumber,
+      creditNoteDate: new Date(),
     });
 
     try {
@@ -651,6 +666,8 @@ router.post('/:id/return', protect, adminOnly, async (req, res) => {
   const purchase = await Purchase.findOne({ _id: req.params.id, ...req.companyFilter });
   if (!purchase) return res.status(404).json({ message: 'Purchase not found' });
   if (purchase.status === 'returned') return res.status(400).json({ message: 'Purchase already returned' });
+  let cnNumber;
+  try { cnNumber = await generateCreditNote(req.companyId); } catch (e) { cnNumber = `CN-${purchase.purchaseNumber}`; }
   let totalStockReturned = 0;
   for (const item of purchase.items) {
     const product = await Product.findOne({ _id: item.product, ...req.companyFilter });
@@ -669,6 +686,8 @@ router.post('/:id/return', protect, adminOnly, async (req, res) => {
   purchase.returnRemark = remark;
   purchase.dueAmount = 0;
   purchase.paidAmount = purchase.grandTotal;
+  purchase.creditNoteNumber = cnNumber;
+  purchase.creditNoteDate = new Date();
   await purchase.save();
   res.json(purchase);
 });

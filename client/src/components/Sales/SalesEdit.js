@@ -20,6 +20,8 @@ export default function SalesEdit() {
   const [invoiceDate, setInvoiceDate] = useState('');
   const [rows, setRows] = useState([emptyRow()]);
   const [discountValue, setDiscountValue] = useState(0);
+  const [discountPercent, setDiscountPercent] = useState('');
+  const [discountMode, setDiscountMode] = useState('amount');
   const [applyVat, setApplyVat] = useState(false);
   const [inclusiveVat, setInclusiveVat] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
@@ -215,8 +217,13 @@ export default function SalesEdit() {
         <div style={{ display: 'flex', gap: '2rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
           <div style={{ minWidth: 200 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>{inclusiveVat ? 'Subtotal (before VAT):' : 'Subtotal:'}</span><strong>{formatMoney(inclusiveVat ? totalBeforeDiscount : totalBeforeDiscountRaw)}</strong></div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <span>Discount:</span><input type="number" step="0.01" min="0" value={discountValue} onChange={e => setDiscountValue(e.target.value)} style={{ width: 100 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: 4 }}>
+              <span>Discount:</span>
+              <div style={{ display: 'flex', background: '#f1f5f9', padding: 2, borderRadius: 6, border: '1px solid #e2e8f0', fontSize: '0.75rem', fontWeight: 600 }}>
+                <button type="button" onClick={() => setDiscountMode('percent')} style={{ padding: '0.125rem 0.5rem', background: discountMode === 'percent' ? '#fff' : 'transparent', color: discountMode === 'percent' ? '#0f172a' : '#64748b', border: 'none', borderRadius: 4, cursor: 'pointer' }}>%</button>
+                <button type="button" onClick={() => setDiscountMode('amount')} style={{ padding: '0.125rem 0.5rem', background: discountMode === 'amount' ? '#fff' : 'transparent', color: discountMode === 'amount' ? '#0f172a' : '#64748b', border: 'none', borderRadius: 4, cursor: 'pointer' }}>Rs</button>
+              </div>
+              <input type="number" step="0.01" min="0" value={discountMode === 'amount' ? discountValue : discountPercent} onChange={e => { const v = e.target.value; if (discountMode === 'amount') { setDiscountValue(v); setDiscountPercent(totalBeforeDiscount ? ((parseFloat(v) || 0) / totalBeforeDiscount * 100).toFixed(2) : ''); } else { setDiscountPercent(v); setDiscountValue(((parseFloat(v) || 0) / 100 * totalBeforeDiscount).toFixed(2)); } }} style={{ width: 100, padding: '0.25rem 0.5rem', textAlign: 'right', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '0.875rem' }} />
             </div>
             <div style={{ display: 'flex', gap: '1rem', marginBottom: 4, flexWrap: 'wrap' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}>

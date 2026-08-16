@@ -48,6 +48,13 @@ const purchaseSchema = new mongoose.Schema({
     date: { type: Date, default: Date.now },
   }],
   fiscalYearId: { type: mongoose.Schema.Types.ObjectId, ref: 'FiscalYear' },
+  returnRemark: { type: String },
+  creditNoteNumber: { type: String },
+  creditNoteDate: { type: Date },
+  extraCharge: {
+    remarks: { type: String, default: '' },
+    amount: { type: Number, default: 0 },
+  },
 }, { timestamps: true });
 
 purchaseSchema.plugin(require('./companyPlugin'));

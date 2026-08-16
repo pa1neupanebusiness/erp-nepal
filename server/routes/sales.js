@@ -642,16 +642,12 @@ router.post('/refund-by-invoice', protect, adminOnly, async (req, res) => {
   const sale = await Sale.findOne({ invoiceNumber, ...req.companyFilter });
   if (!sale) return res.status(404).json({ message: 'Sale not found' });
   if (sale.status === 'refunded') return res.status(400).json({ message: 'Sale already refunded' });
-  let cnNumber;
-  try { cnNumber = await generateCreditNote(req.companyId); } catch (e) { cnNumber = `CN-${invoiceNumber}`; }
   let dnNumber;
   try { dnNumber = await generateDebitNote(req.companyId); } catch (e) { dnNumber = `DN-${invoiceNumber}`; }
   sale.status = 'refunded';
   sale.refundRemark = remark;
   sale.amountPaid = sale.grandTotal;
   sale.dueAmount = 0;
-  sale.creditNoteNumber = cnNumber;
-  sale.creditNoteDate = new Date();
   sale.debitNoteNumber = dnNumber;
   sale.debitNoteDate = new Date();
   await sale.save();
@@ -680,16 +676,12 @@ router.post('/:id/refund', protect, adminOnly, async (req, res) => {
   const sale = await Sale.findOne({ _id: req.params.id, ...req.companyFilter });
   if (!sale) return res.status(404).json({ message: 'Sale not found' });
   if (sale.status === 'refunded') return res.status(400).json({ message: 'Sale already refunded' });
-  let cnNumber;
-  try { cnNumber = await generateCreditNote(req.companyId); } catch (e) { cnNumber = `CN-${sale.invoiceNumber}`; }
   let dnNumber;
   try { dnNumber = await generateDebitNote(req.companyId); } catch (e) { dnNumber = `DN-${sale.invoiceNumber}`; }
   sale.status = 'refunded';
   sale.refundRemark = remark;
   sale.amountPaid = sale.grandTotal;
   sale.dueAmount = 0;
-  sale.creditNoteNumber = cnNumber;
-  sale.creditNoteDate = new Date();
   sale.debitNoteNumber = dnNumber;
   sale.debitNoteDate = new Date();
   await sale.save();
