@@ -278,8 +278,8 @@ export default function SalesReturn() {
           subtitle={`${new Date(detail.date || detail.createdAt).toLocaleDateString('en-IN')} | ${detail.customer?.name || 'Walk-in'}`}
           meta={[
             { label: 'Invoice', value: detail.invoiceNumber },
-            { label: 'Credit Note', value: detail.creditNoteNumber || '-' },
-            { label: 'Debit Note', value: detail.debitNoteNumber || '-' },
+            ...(detail.debitNoteNumber ? [{ label: 'Debit Note', value: detail.debitNoteNumber }] : []),
+            ...(detail.creditNoteNumber ? [{ label: 'Credit Note', value: detail.creditNoteNumber }] : []),
             { label: 'Status', value: detail.status },
             { label: 'Payment', value: detail.paymentMethod },
             { label: 'Grand Total', value: fmt(detail.grandTotal) },

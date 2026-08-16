@@ -27,7 +27,7 @@ const purchaseSchema = new mongoose.Schema({
   paidAmount: { type: Number, default: 0 },
   dueAmount: { type: Number, default: 0 },
   advanceApplied: { type: Number, default: 0 },
-  status: { type: String, enum: ['pending', 'received', 'cancelled'], default: 'received' },
+  status: { type: String, enum: ['pending', 'received', 'returned', 'partial_return', 'cancelled'], default: 'received' },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   note: { type: String },
   paymentMethod: { type: String, enum: ['cash', 'bank', 'split', ''], default: '' },

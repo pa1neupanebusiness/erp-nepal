@@ -16,7 +16,7 @@ function getMiti(date) {
 
 export function renderCreditNoteHtml(sale, company) {
   const vatRate = company?.vatRate || 13;
-  const taxTotal = sale.taxTotal || 0;
+  const taxTotal = sale.taxTotal || sale.tax || 0;
   const grandTotal = sale.grandTotal || 0;
   const storedSubtotal = sale.subtotal || 0;
   const discount = sale.discount || 0;
@@ -25,7 +25,7 @@ export function renderCreditNoteHtml(sale, company) {
     name: i.product?.name || i.name || 'Item',
     hsCode: i.hsCode || i.product?.hsCode || '',
     qty: i.quantity || 0,
-    rawRate: i.price || 0,
+    rawRate: i.price || i.costPrice || 0,
     itemDiscount: i.discount || 0,
   }));
 
@@ -57,9 +57,9 @@ export function renderCreditNoteHtml(sale, company) {
   const cnEnDate = new Date(cnDate).toLocaleDateString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit' });
   const cnMiti = getMiti(cnDate);
 
-  const buyerName = sale.customer?.name || 'Cash Sale / Walk-in';
-  const buyerAddress = sale.customer?.address || '-';
-  const buyerPan = sale.customer?.pan || '';
+  const buyerName = sale.customer?.name || sale.supplier?.name || 'Cash Sale / Walk-in';
+  const buyerAddress = sale.customer?.address || sale.supplier?.address || '-';
+  const buyerPan = sale.customer?.pan || sale.supplier?.pan || '';
   const panDigits = (buyerPan || '').replace(/\D/g, '').padEnd(9, ' ').slice(0, 9).split('');
 
   const sellerPan = company?.pan || '';
@@ -86,7 +86,7 @@ export function renderCreditNoteHtml(sale, company) {
         <div><strong>Date:</strong> ${escapeHtml(cnMiti || cnEnDate)} (${escapeHtml(cnEnDate)})</div>
       </div>
       <div class="row-flex" style="margin-top: 4px;">
-        <div><strong>Original Invoice No:</strong> ${escapeHtml(sale.invoiceNumber || '-')}</div>
+        <div><strong>Original Invoice No:</strong> ${escapeHtml(sale.invoiceNumber || sale.purchaseNumber || '-')}</div>
         <div><strong>Invoice Date:</strong> ${escapeHtml(miti || enDate)} (${escapeHtml(enDate)})</div>
       </div>
       <div style="margin-top: 6px;"><strong>Seller's PAN No:</strong> <div class="pan-boxes">${sellerPanBoxes}</div></div>

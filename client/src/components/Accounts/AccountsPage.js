@@ -275,6 +275,7 @@ function JournalEntryList() {
   const [posting, setPosting] = useState(false);
   const [editing, setEditing] = useState(null);
   const [submitted, setSubmitted] = useState(false);
+  const [newestFirst, setNewestFirst] = useState(true);
   const addToast = useToast();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const isSuperAdmin = user.role === 'super_admin';
@@ -428,6 +429,10 @@ function JournalEntryList() {
 
   const formatNPR = (n) => 'Rs. ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
 
+  const displayedEntries = newestFirst
+    ? entries.slice().sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0))
+    : entries.slice().sort((a, b) => new Date(a.date || a.createdAt || 0) - new Date(b.date || b.createdAt || 0));
+
   return (
     <div>
       <div className="page-header">
@@ -450,8 +455,9 @@ function JournalEntryList() {
           {(startDate || endDate || bankFilter || periodFilter !== 'all') && <button className="btn btn-sm btn-secondary" onClick={clearFilters}>Clear</button>}
           <DownloadBtn endpoint="journal" label="Excel" type="excel" filename="journal_entries" params={{ excludeSource: 'MONTH_END' }} />
           <DownloadBtn endpoint="journal" label="PDF" type="pdf" filename="journal_entries" params={{ excludeSource: 'MONTH_END' }} />
-          <button className="btn btn-sm btn-secondary" onClick={printJournal}>Print</button>
-          <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>{showForm ? 'Cancel' : 'New Entry'}</button>
+           <button className="btn btn-sm btn-secondary" onClick={printJournal}>Print</button>
+           <button className="btn btn-sm btn-secondary" onClick={() => setNewestFirst(s => !s)}>{newestFirst ? 'Show Oldest' : 'Show Latest'}</button>
+           <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>{showForm ? 'Cancel' : 'New Entry'}</button>
         </div>
       </div>
       {showForm && (
@@ -524,7 +530,7 @@ function JournalEntryList() {
           <table className="table">
             <thead><tr><th>Date</th><th>Ref</th><th>Description</th><th>Accounts</th><th className="text-right">Debit</th><th className="text-right">Credit</th><th>By</th><th></th></tr></thead>
             <tbody>
-              {entries.map(e => {
+              {displayedEntries.map(e => {
                 const td = e.lines.reduce((s, l) => s + l.debit, 0);
                 const tc = e.lines.reduce((s, l) => s + l.credit, 0);
                 const accNames = (e.lines || []).map(l => l.account ? `${l.account.code}` : '').filter(Boolean).join(', ');
@@ -547,7 +553,7 @@ function JournalEntryList() {
                   </tr>
                 );
               })}
-              {entries.length === 0 && <tr><td colSpan="8" className="text-center">No journal entries</td></tr>}
+              {displayedEntries.length === 0 && <tr><td colSpan="8" className="text-center">No journal entries</td></tr>}
             </tbody>
           </table>
         </div>

@@ -54,6 +54,7 @@ export default function Banks() {
   const [transactions, setTransactions] = useState([]);
   const [txLoading, setTxLoading] = useState(false);
   const [journalDetail, setJournalDetail] = useState(null);
+  const [newestFirst, setNewestFirst] = useState(true);
   const addToast = useToast();
 
   const load = () => {
@@ -188,7 +189,8 @@ export default function Banks() {
                         <div style={{ padding: '1rem' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 0.75rem' }}>
                             <h4 style={{ margin: 0, fontSize: '0.95rem' }}>Transaction History - {b.name}</h4>
-                            <button className="btn btn-sm btn-secondary" onClick={() => printBankLedger(b, transactions)} disabled={txLoading || transactions.length === 0}>Print Ledger</button>
+                             <button className="btn btn-sm btn-secondary" onClick={() => printBankLedger(b, transactions)} disabled={txLoading || transactions.length === 0}>Print Ledger</button>
+                             <button className="btn btn-sm btn-secondary" onClick={() => setNewestFirst(s => !s)}>{newestFirst ? 'Show Oldest' : 'Show Latest'}</button>
                           </div>
                           {txLoading ? (
                             <div style={{ textAlign: 'center', padding: '1rem', color: '#64748b' }}>Loading transactions...</div>
@@ -208,7 +210,7 @@ export default function Banks() {
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {[...transactions].reverse().map((t, i) => (
+                                  {[...(newestFirst ? [...transactions].reverse() : transactions)].map((t, i) => (
                                     <tr key={i} style={{ cursor: 'pointer' }} onClick={() => openTxDetail(t)}>
                                       <td>{new Date(t.date).toLocaleDateString('en-IN')}</td>
                                       <td>{t.reference || '-'}</td>
