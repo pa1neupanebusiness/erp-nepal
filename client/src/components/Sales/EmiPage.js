@@ -394,7 +394,7 @@ export default function EmiPage() {
             <div className="form-group">
               <label>Down Payment Method *</label>
               <select value={form.downPaymentMethod} onChange={e => setForm({ ...form, downPaymentMethod: e.target.value })}>
-                <option value="cash">Cash</option><option value="qr">QR</option><option value="bank">Bank</option>
+                <option value="cash">Cash</option><option value="bank">Bank</option>
               </select>
             </div>
           </div>
@@ -469,11 +469,11 @@ export default function EmiPage() {
                 <div>Product Total</div><div className="text-right">{formatNPR(inclusiveVat ? baseAmount : total)}</div>
                 {vatAmount > 0 && <><div style={{ fontSize: '0.85rem' }}>VAT ({productTaxRate}%)</div><div className="text-right" style={{ fontSize: '0.85rem' }}>{formatNPR(vatAmount)}</div></>}
                 {vatAmount > 0 && <><div style={{ fontWeight: 700 }}>Grand Total</div><div className="text-right" style={{ fontWeight: 700 }}>{formatNPR(total)}</div></>}
-                {exch > 0 && <div style={{ gridColumn: '1 / -1', fontSize: '0.8rem', fontStyle: 'italic', color: '#64748b', margin: '0.35rem 0', padding: '0.5rem', background: '#f1f5f9', borderRadius: '6px' }}>Trade-in: {(form.exchangeItems || []).map(it => { const p = products.find(pr => pr._id === it.product); return `${p?.name || 'Item'} x ${it.quantity}`; }).join(', ')} = {formatNPR(exch)}</div>}
+                {exch > 0 && <div style={{ gridColumn: '1 / -1', fontSize: '0.8rem', fontStyle: 'italic', color: '#64748b', margin: '0.35rem 0', padding: '0.5rem', background: '#f1f5f9', borderRadius: '6px' }}>Trade-in (Cash): {(form.exchangeItems || []).map(it => { const p = products.find(pr => pr._id === it.product); return `${p?.name || 'Item'} x ${it.quantity}`; }).join(', ')} = {formatNPR(exch)}</div>}
                 <div style={{ fontWeight: 700 }}>Net Amount</div><div className="text-right" style={{ fontWeight: 700 }}>{formatNPR(net)}</div>
 
                 <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0', fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}>Payment Split Breakdown</div>
-                {exch > 0 && <><div style={{ paddingLeft: '0.5rem' }}>Exchange Credit</div><div className="text-right" style={{ color: '#16a34a' }}>{formatNPR(exch)}</div></>}
+                {exch > 0 && <><div style={{ paddingLeft: '0.5rem' }}>Exchange (Cash)</div><div className="text-right" style={{ color: '#16a34a' }}>{formatNPR(exch)}</div></>}
                 {down > 0 && <><div style={{ paddingLeft: '0.5rem' }}>{form.downPaymentMethod === 'bank' ? 'Bank Transfer' : form.downPaymentMethod === 'qr' ? 'QR Payment' : 'Cash Down Payment'}</div><div className="text-right">{formatNPR(down)}</div></>}
                 {remaining > 0 && <><div style={{ paddingLeft: '0.5rem', fontWeight: 600 }}>Bank EMI ({selectedBank?.name || '-'})</div><div className="text-right" style={{ fontWeight: 600, color: '#2563eb' }}>{formatNPR(remaining)}</div></>}
 

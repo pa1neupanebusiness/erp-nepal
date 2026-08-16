@@ -57,6 +57,16 @@ router.get('/', protect, async (req, res) => {
 router.post('/', protect, async (req, res) => {
   let { type, date, supplier, items, subtotal, discount, vatPercent, inclusiveVat, tax, tdsRate, tds, grandTotal, paidAmount, note, paymentMethod, bank, chequeNumber, paymentRemarks, supplierInvoiceNo, applyTds, splits } = req.body;
   if (applyTds !== true) { tds = 0; tdsRate = 0; }
+
+  // If no supplier selected, default to a "Cash" supplier
+  if (!supplier) {
+    let cashSupplier = await Supplier.findOne({ name: 'Cash', ...req.companyFilter });
+    if (!cashSupplier) {
+      cashSupplier = await Supplier.create({ name: 'Cash', company: req.companyId, ...req.companyFilter });
+    }
+    supplier = cashSupplier._id;
+  }
+
   const dueAmount = Math.round(((grandTotal - (tds || 0) - (paidAmount || 0)) + Number.EPSILON) * 100) / 100;
 
   // Apply any existing supplier advance to reduce the amount still owed.

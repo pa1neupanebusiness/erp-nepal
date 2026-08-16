@@ -353,7 +353,11 @@ export default function Purchases() {
             <div className="form-group"><label>Type</label><select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
               <option value="direct">Direct Purchase</option><option value="order">Purchase Order</option><option value="receipt">GRN Receipt</option>
             </select></div>
-            <div className="form-group"><label>Supplier</label>
+            <div className="form-group">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <label style={{ margin: 0 }}>Supplier</label>
+                <button type="button" onClick={() => setForm({ ...form, supplier: '' })} style={{ fontSize: '0.7rem', fontWeight: 600, color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, padding: '0.2rem 0.5rem', cursor: 'pointer' }}>Cash Purchase</button>
+              </div>
               <SearchableSelect
                 options={suppliers.map(s => ({ value: s._id, label: s.name }))}
                 value={form.supplier}
@@ -361,6 +365,7 @@ export default function Purchases() {
                 onAdd={(q) => { setNewSupplier({ name: '', phone: '', email: '', address: '', pan: '' }); setNewSupplier(prev => ({ ...prev, name: q })); setSupplierModal(true); }}
                 placeholder="Search supplier or type to add..."
               />
+              {!form.supplier && <div style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 500, marginTop: 2 }}>Cash Purchase (No Supplier)</div>}
             </div>
             <div className="form-group"><label>Supplier Invoice No. (optional)</label>
               <input value={form.supplierInvoiceNo} onChange={e => setForm({ ...form, supplierInvoiceNo: e.target.value })} placeholder="Enter supplier invoice number" />
