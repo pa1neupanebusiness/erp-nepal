@@ -18,7 +18,7 @@ router.get('/', protect, adminOnly, async (req, res) => {
 
 router.post('/', protect, adminOnly, async (req, res) => {
   try {
-    const { name, email, password, role, groups, branch } = req.body;
+    const { name, email, password, role, groups, branch, branchPosition } = req.body;
     if (req.user.role !== 'super_admin' && (role === 'super_admin' || role === 'admin')) {
       return res.status(403).json({ message: 'You can only create users with role "user"' });
     }
@@ -28,6 +28,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
       name, email, password, role: role || 'user', groups: groups || [],
       company: req.companyId,
       branch: branch || null,
+      branchPosition: branchPosition || '',
     });
     res.status(201).json({ _id: user._id, name: user.name, email: user.email, role: user.role, groups: user.groups, branch: user.branch });
   } catch (err) {
@@ -37,7 +38,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
 
 router.put('/:id', protect, adminOnly, async (req, res) => {
   try {
-    const { name, email, password, role, groups, isActive, branch } = req.body;
+    const { name, email, password, role, groups, isActive, branch, branchPosition } = req.body;
     const scope = req.user.role === 'super_admin' ? { _id: req.params.id } : { _id: req.params.id, company: req.companyId };
     const user = await User.findOne(scope);
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -54,6 +55,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     if (isActive !== undefined) user.isActive = isActive;
     if (password) user.password = password;
     if (branch !== undefined) user.branch = branch || null;
+    if (branchPosition !== undefined) user.branchPosition = branchPosition || '';
     await user.save();
     const populated = await User.findById(user._id).select('-password').populate('branch', 'name');
     res.json(populated);

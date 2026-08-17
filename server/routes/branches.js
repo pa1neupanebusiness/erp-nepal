@@ -60,20 +60,52 @@ router.delete('/:id', adminOnly, async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   const branch = await Branch.findOne({ _id: req.params.id, ...req.companyFilter })
-    .populate('users', 'name email role groups branch');
+    .populate('users', 'name email role groups branch branchPosition isActive');
   if (!branch) return res.status(404).json({ message: 'Branch not found' });
   const orders = await OrderTracking.find({ branch: branch._id, company: req.companyId })
     .populate('driver', 'name')
     .populate('customer', 'name phone')
     .sort({ updatedAt: -1 })
-    .limit(100);
+    .limit(50);
   res.json({ branch, orders });
 });
 
 router.get('/:id/users', async (req, res) => {
   const users = await User.find({ branch: req.params.id, company: req.companyId })
-    .select('name email role groups branch isActive');
+    .select('name email role groups branch branchPosition isActive');
   res.json(users);
+});
+
+router.put('/:id/add-staff', adminOnly, async (req, res) => {
+  const { userId, position } = req.body;
+  if (!userId) return res.status(400).json({ message: 'User ID is required' });
+  const branch = await Branch.findOne({ _id: req.params.id, ...req.companyFilter });
+  if (!branch) return res.status(404).json({ message: 'Branch not found' });
+  const user = await User.findOne({ _id: userId, company: req.companyId });
+  if (!user) return res.status(404).json({ message: 'User not found' });
+  if (!branch.users.includes(userId)) {
+    branch.users.push(userId);
+    await branch.save();
+  }
+  user.branch = branch._id;
+  user.branchPosition = position || '';
+  await user.save();
+  const updated = await Branch.findOne({ _id: req.params.id, ...req.companyFilter })
+    .populate('users', 'name email role groups branch branchPosition isActive');
+  res.json(updated);
+});
+
+router.put('/:id/remove-staff', adminOnly, async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.status(400).json({ message: 'User ID is required' });
+  const branch = await Branch.findOne({ _id: req.params.id, ...req.companyFilter });
+  if (!branch) return res.status(404).json({ message: 'Branch not found' });
+  branch.users = (branch.users || []).filter(u => u.toString() !== userId);
+  await branch.save();
+  await User.updateOne({ _id: userId }, { $set: { branch: null, branchPosition: '' } });
+  const updated = await Branch.findOne({ _id: req.params.id, ...req.companyFilter })
+    .populate('users', 'name email role groups branch branchPosition isActive');
+  res.json(updated);
 });
 
 module.exports = router;

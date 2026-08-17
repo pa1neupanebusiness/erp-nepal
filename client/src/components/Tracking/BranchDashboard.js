@@ -19,6 +19,8 @@ export default function BranchDashboard() {
   const addToast = useToast();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const isAdmin = user.role === 'super_admin' || user.role === 'admin';
+  const isBranchStaff = (user.groups || []).includes('branch');
+  const canUpdate = isAdmin || isBranchStaff;
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState('');
   const [detail, setDetail] = useState(null);
@@ -150,7 +152,7 @@ export default function BranchDashboard() {
                 </div>
               )}
 
-              {isAdmin && (
+              {canUpdate && (
                 <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
                   <h4 style={{ marginTop: 0 }}>Update Status</h4>
                   <div className="form-grid">
@@ -166,7 +168,7 @@ export default function BranchDashboard() {
                 </div>
               )}
 
-              <h4 style={{ marginTop: isAdmin ? 0 : '1rem' }}>Timeline</h4>
+              <h4 style={{ marginTop: canUpdate ? 0 : '1rem' }}>Timeline</h4>
               <div style={{ position: 'relative', paddingLeft: '1.5rem' }}>
                 {(detail.events || []).slice().reverse().map((ev, i) => (
                   <div key={i} style={{ marginBottom: '1rem', position: 'relative' }}>

@@ -1,41 +1,46 @@
-export function printCourierInvoice(order, company) {
-  const html = `<!DOCTYPE html><html><head><style>
-    @page { size: A5; margin: 12mm; }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; font-size: 11px; color: #1e293b; }
-    .header { text-align: center; border-bottom: 2px solid #1e293b; padding-bottom: 8px; margin-bottom: 12px; }
-    .company-name { font-size: 16px; font-weight: 700; }
-    .company-meta { font-size: 9px; color: #64748b; margin-top: 2px; }
-    .row { display: flex; justify-content: space-between; margin-bottom: 4px; }
-    .label { color: #64748b; font-size: 10px; }
-    .value { font-weight: 600; }
-    .section { margin-top: 12px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; }
-    .section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
-    .amount-row { display: flex; justify-content: space-between; padding: 3px 0; }
-    .total-row { display: flex; justify-content: space-between; padding: 6px 0; border-top: 2px solid #1e293b; margin-top: 6px; font-weight: 700; font-size: 13px; }
-    .footer { text-align: center; margin-top: 16px; font-size: 9px; color: #94a3b8; border-top: 1px dashed #e2e8f0; padding-top: 8px; }
-  </style></head><body>
-    <div class="header">
-      <div class="company-name">${esc(company?.name || 'ERP')}</div>
-      <div class="company-meta">${esc(company?.address || '')} ${company?.phone ? '| ' + esc(company.phone) : ''} ${company?.pan ? '| PAN: ' + esc(company.pan) : ''}</div>
-    </div>
-    <div style="margin-bottom:10px;">
-      <div class="row"><span class="label">Invoice Number</span><span class="value">${esc(order.sale?.invoiceNumber || order.trackingNumber)}</span></div>
-      <div class="row"><span class="label">Tracking Number</span><span class="value" style="font-size:13px;letter-spacing:1px;">${esc(order.trackingNumber)}</span></div>
-      <div class="row"><span class="label">Date</span><span class="value">${new Date(order.createdAt).toLocaleDateString('en-GB')}</span></div>
-      <div class="row"><span class="label">Customer</span><span class="value">${esc(order.receiver?.name || '-')}</span></div>
-    </div>
-    <div class="section">
-      <div class="section-title">Payment Details</div>
-      <div class="amount-row"><span>Delivery Charge</span><span>Rs. ${order.inclusiveVat ? num(order.price - (order.vatAmount || 0)).toLocaleString('en-IN', {minimumFractionDigits:2}) : num(order.price).toLocaleString('en-IN', {minimumFractionDigits:2})}</span></div>
-      ${order.vatAmount > 0 ? `<div class="amount-row"><span>VAT (${order.vatRate}%)</span><span>Rs. ${num(order.vatAmount).toLocaleString('en-IN', {minimumFractionDigits:2})}</span></div>` : ''}
-      <div class="total-row"><span>Total</span><span>Rs. ${(order.inclusiveVat ? num(order.price) : num(order.price + (order.vatAmount || 0))).toLocaleString('en-IN', {minimumFractionDigits:2})}</span></div>
-      <div class="amount-row" style="margin-top:4px;"><span>Payment Method</span><span class="value">${order.paymentMethod === 'qr' ? 'QR / Bank' : 'Cash'}</span></div>
-      ${order.bank ? `<div class="amount-row"><span>Bank</span><span>${esc(order.bank.name || '')}</span></div>` : ''}
-    </div>
-    <div class="footer">Thank you for your business!</div>
-  </body></html>`;
-  printHtml(html);
+import { printTaxInvoice } from '../UI/printTaxInvoice';
+import api from '../../api';
+
+export async function printCourierInvoice(order, company) {
+  try {
+    if (order.sale?._id) {
+      const { data: fullSale } = await api.get(`/sales/${order.sale._id}`);
+      printTaxInvoice(fullSale, company);
+    } else if (order.sale) {
+      const { data: fullSale } = await api.get(`/sales/${order.sale}`);
+      printTaxInvoice(fullSale, company);
+    } else {
+      const fallback = {
+        invoiceNumber: order.sale?.invoiceNumber || order.trackingNumber,
+        items: [{ product: { name: 'Courier Delivery Service' }, quantity: 1, price: order.price, subtotal: order.price }],
+        subtotal: order.price,
+        taxTotal: order.vatAmount || 0,
+        discount: 0,
+        grandTotal: order.inclusiveVat ? order.price : (order.price + (order.vatAmount || 0)),
+        amountPaid: order.price,
+        paymentMethod: order.paymentMethod || 'cash',
+        customer: { name: order.receiver?.name || 'Customer', address: order.receiver?.address || '' },
+        inclusiveVat: order.inclusiveVat,
+        createdAt: order.createdAt,
+      };
+      printTaxInvoice(fallback, company);
+    }
+  } catch (_) {
+    const fallback = {
+      invoiceNumber: order.sale?.invoiceNumber || order.trackingNumber,
+      items: [{ product: { name: 'Courier Delivery Service' }, quantity: 1, price: order.price, subtotal: order.price }],
+      subtotal: order.price,
+      taxTotal: order.vatAmount || 0,
+      discount: 0,
+      grandTotal: order.inclusiveVat ? order.price : (order.price + (order.vatAmount || 0)),
+      amountPaid: order.price,
+      paymentMethod: order.paymentMethod || 'cash',
+      customer: { name: order.receiver?.name || 'Customer', address: order.receiver?.address || '' },
+      inclusiveVat: order.inclusiveVat,
+      createdAt: order.createdAt,
+    };
+    printTaxInvoice(fallback, company);
+  }
 }
 
 export function printDeliverySlip(order, company) {

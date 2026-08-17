@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema({
   groups: [{ type: String, enum: ['pos', 'inventory', 'accounts', 'hr', 'driver', 'branch'] }],
   company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
   branch: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', default: null },
+  branchPosition: { type: String, default: '' },
   isCompanySuperAdmin: { type: Boolean, default: false },
   isActive: { type: Boolean, default: true },
 }, { timestamps: true });
