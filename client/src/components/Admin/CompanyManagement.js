@@ -13,7 +13,7 @@ const MODULES = [
   { key: 'reports', label: 'Reports' },
   { key: 'hr', label: 'HR & Payroll' },
   { key: 'settings', label: 'Admin Settings' },
-  { key: 'tracking', label: 'Order Tracking' },
+  { key: 'tracking', label: 'Logistics & Courier (Order Tracking, Branches, Delivery)' },
 ];
 
 const initialForm = () => ({ name: '', email: '', phone: '', address: '', adminName: '', password: '' });
