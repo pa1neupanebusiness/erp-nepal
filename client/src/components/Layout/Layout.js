@@ -217,8 +217,8 @@ export default function Layout({ user, onLogout, children }) {
           {courierVisible && <NavSection title="Courier" paths={['/tracking', '/courier-sales']} activeSection={activeSection} onToggle={toggleSection}>
             {isAdmin && <NavLink to="/courier-sales" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Courier Sales</span></NavLink>}
             <NavLink to="/tracking" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Order Tracking</span></NavLink>}
-            {((user?.groups || []).includes('branch') || isAdmin) && <NavLink to="/tracking/branch" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Orders</span></NavLink>}
-            {((user?.groups || []).includes('driver') || isAdmin) && <NavLink to="/tracking/driver" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">My Deliveries</span></NavLink>}
+            {(user?.groups || []).includes('branch') && <NavLink to="/tracking/branch" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Orders</span></NavLink>}
+            {(user?.groups || []).includes('driver') && <NavLink to="/tracking/driver" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">My Deliveries</span></NavLink>}
           </NavSection>}
 
           {purchaseVisible && <NavSection title="Purchase" paths={['/purchases', '/purchases/payment-out', '/purchases/returns']} activeSection={activeSection} onToggle={toggleSection}>

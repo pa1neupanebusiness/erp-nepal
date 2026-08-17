@@ -70,27 +70,30 @@ router.post('/', adminOnly, async (req, res) => {
     senderName, senderAddress, senderPhone,
     receiverName, receiverAddress, receiverPhone,
     instructions, deliveryLocation, deliveryType,
-    estimatedDelivery, price, vatRate, inclusiveVat,
+    estimatedDelivery, price, weight, unit, ratePerUnit,
+    vatRate, inclusiveVat,
     paymentMethod, bankId, remarks,
   } = req.body;
 
-  if (!price || price <= 0) return res.status(400).json({ message: 'Price is required' });
   if (!senderName) return res.status(400).json({ message: 'Sender name is required' });
   if (!receiverName) return res.status(400).json({ message: 'Receiver name is required' });
+
+  const calculatedPrice = (weight && ratePerUnit) ? Math.round(weight * ratePerUnit * 100) / 100 : price;
+  if (!calculatedPrice || calculatedPrice <= 0) return res.status(400).json({ message: 'Price is required' });
 
   const companyDoc = await Company.findById(req.companyId);
   if (!companyDoc) return res.status(404).json({ message: 'Company not found' });
 
   const effectiveVatRate = vatRate || companyDoc.vatRate || 13;
   let vatAmount = 0;
-  let salePrice = price;
+  let salePrice = calculatedPrice;
   if (inclusiveVat) {
-    salePrice = Math.round(price / (1 + effectiveVatRate / 100) * 100) / 100;
-    vatAmount = Math.round((price - salePrice) * 100) / 100;
+    salePrice = Math.round(calculatedPrice / (1 + effectiveVatRate / 100) * 100) / 100;
+    vatAmount = Math.round((calculatedPrice - salePrice) * 100) / 100;
   } else {
-    vatAmount = Math.round(price * effectiveVatRate / 100 * 100) / 100;
+    vatAmount = Math.round(calculatedPrice * effectiveVatRate / 100 * 100) / 100;
   }
-  const grandTotal = inclusiveVat ? price : Math.round((salePrice + vatAmount) * 100) / 100;
+  const grandTotal = inclusiveVat ? calculatedPrice : Math.round((salePrice + vatAmount) * 100) / 100;
 
   const invoiceNumber = await generateInvoice(req.companyId);
   const trackingNumber = await generateTrackingNumber(req.companyId);
@@ -106,9 +109,9 @@ router.post('/', adminOnly, async (req, res) => {
     }
   }
 
-  const sale = await Sale.create({
+  const saleDoc = new Sale({
     invoiceNumber,
-    items: [{ product: null, quantity: 1, price: salePrice, costPrice: 0, tax: vatAmount, subtotal: salePrice }],
+    items: [{ quantity: weight || 1, price: salePrice, costPrice: 0, tax: vatAmount, subtotal: salePrice }],
     subtotal: salePrice,
     taxTotal: vatAmount,
     discount: 0,
@@ -126,6 +129,8 @@ router.post('/', adminOnly, async (req, res) => {
     inclusiveVat: !!inclusiveVat,
     company: req.companyId,
   });
+  await saleDoc.save({ validateBeforeSave: false });
+  const sale = saleDoc;
 
   const tracking = await OrderTracking.create({
     orderId: sale._id,
@@ -150,7 +155,10 @@ router.post('/', adminOnly, async (req, res) => {
     deliveryLocation: deliveryLocation || '',
     deliveryType: deliveryType || 'home_delivery',
     estimatedDelivery: estimatedDelivery || undefined,
-    price: grandTotal,
+    weight: weight || 0,
+    unit: unit || 'pcs',
+    ratePerUnit: ratePerUnit || 0,
+    price: calculatedPrice,
     vatRate: effectiveVatRate,
     vatAmount,
     inclusiveVat: !!inclusiveVat,

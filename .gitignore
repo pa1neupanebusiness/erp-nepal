@@ -10,3 +10,4 @@ server/package-lock.json
 backups/
 emi_lines.txt
 temp.txt
+.vercel

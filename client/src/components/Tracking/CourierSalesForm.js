@@ -18,7 +18,8 @@ export default function CourierSalesForm() {
     senderName: user?.name || '', senderAddress: '', senderPhone: '',
     receiverName: '', receiverAddress: '', receiverPhone: '',
     instructions: '', deliveryLocation: '', deliveryType: 'home_delivery',
-    estimatedDelivery: '', price: '', vatRate: '', inclusiveVat: false,
+    estimatedDelivery: '', weight: '', unit: 'pcs', ratePerUnit: '',
+    vatRate: '', inclusiveVat: false,
     paymentMethod: 'cash', bankId: '', remarks: '',
   });
   const [banks, setBanks] = useState([]);
@@ -38,7 +39,8 @@ export default function CourierSalesForm() {
   const handleCreate = async () => {
     if (!form.senderName) return addToast('Sender name is required', 'error');
     if (!form.receiverName) return addToast('Receiver name is required', 'error');
-    if (!form.price || Number(form.price) <= 0) return addToast('Price is required', 'error');
+    const calcPrice = (form.weight && form.ratePerUnit) ? Math.round(Number(form.weight) * Number(form.ratePerUnit) * 100) / 100 : 0;
+    if (!calcPrice || calcPrice <= 0) return addToast('Weight and rate are required', 'error');
     setSaving(true);
     try {
       const { data } = await api.post('/courier-orders', {
@@ -46,7 +48,8 @@ export default function CourierSalesForm() {
         receiverName: form.receiverName, receiverAddress: form.receiverAddress, receiverPhone: form.receiverPhone,
         instructions: form.instructions, deliveryLocation: form.deliveryLocation, deliveryType: form.deliveryType,
         estimatedDelivery: form.estimatedDelivery || undefined,
-        price: Number(form.price), vatRate: form.vatRate ? Number(form.vatRate) : undefined,
+        weight: Number(form.weight), unit: form.unit, ratePerUnit: Number(form.ratePerUnit),
+        price: calcPrice, vatRate: form.vatRate ? Number(form.vatRate) : undefined,
         inclusiveVat: form.inclusiveVat, paymentMethod: form.paymentMethod,
         bankId: form.paymentMethod === 'qr' ? form.bankId : undefined,
         remarks: form.remarks,
@@ -57,7 +60,8 @@ export default function CourierSalesForm() {
         senderName: user?.name || '', senderAddress: '', senderPhone: '',
         receiverName: '', receiverAddress: '', receiverPhone: '',
         instructions: '', deliveryLocation: '', deliveryType: 'home_delivery',
-        estimatedDelivery: '', price: '', vatRate: '', inclusiveVat: false,
+        estimatedDelivery: '', weight: '', unit: 'pcs', ratePerUnit: '',
+        vatRate: '', inclusiveVat: false,
         paymentMethod: 'cash', bankId: '', remarks: '',
       });
     } catch (err) {
@@ -86,6 +90,7 @@ export default function CourierSalesForm() {
       receiverName: detail.receiver?.name || '', receiverAddress: detail.receiver?.address || '', receiverPhone: detail.receiver?.phone || '',
       instructions: detail.instructions || '', deliveryLocation: detail.deliveryLocation || '',
       deliveryType: detail.deliveryType || 'home_delivery', estimatedDelivery: detail.estimatedDelivery ? detail.estimatedDelivery.slice(0, 10) : '',
+      weight: detail.weight || '', unit: detail.unit || 'pcs', ratePerUnit: detail.ratePerUnit || '',
       remarks: detail.remarks || '',
     });
     setEditMode(true);
@@ -172,7 +177,18 @@ export default function CourierSalesForm() {
             </div>
             <div className="form-group"><label>Delivery Location</label><input value={form.deliveryLocation} onChange={e => update('deliveryLocation', e.target.value)} placeholder="e.g. New Baneshwor" /></div>
             <div className="form-group"><label>Est. Delivery Date</label><input type="date" value={form.estimatedDelivery} onChange={e => update('estimatedDelivery', e.target.value)} /></div>
-            <div className="form-group"><label>Price (Rs.) *</label><input type="number" step="0.01" min="0" value={form.price} onChange={e => update('price', e.target.value)} /></div>
+            <div className="form-group"><label>Weight *</label><input type="number" step="0.01" min="0" value={form.weight} onChange={e => update('weight', e.target.value)} placeholder="e.g. 2.5" /></div>
+            <div className="form-group"><label>Unit *</label>
+              <select value={form.unit} onChange={e => update('unit', e.target.value)}>
+                <option value="pcs">Pcs</option>
+                <option value="kg">Kg</option>
+                <option value="box">Box</option>
+                <option value="dozen">Dozen</option>
+                <option value="quintal">Quintal</option>
+              </select>
+            </div>
+            <div className="form-group"><label>Rate Per Unit (Rs.) *</label><input type="number" step="0.01" min="0" value={form.ratePerUnit} onChange={e => update('ratePerUnit', e.target.value)} placeholder="e.g. 100" /></div>
+            <div className="form-group"><label>Calculated Price</label><div style={{ padding: '0.5rem', background: '#f0fdf4', borderRadius: '6px', border: '1px solid #bbf7d0', fontWeight: 700, fontSize: '1rem' }}>Rs. {((form.weight || 0) * (form.ratePerUnit || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div></div>
             <div className="form-group"><label>VAT Rate (%)</label><input type="number" step="0.01" min="0" value={form.vatRate} onChange={e => update('vatRate', e.target.value)} placeholder={`Default: ${user?.company?.vatRate || 13}%`} /></div>
             <div className="form-group" style={{ display: 'flex', alignItems: 'flex-end' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
@@ -235,6 +251,8 @@ export default function CourierSalesForm() {
                 <div><span style={{ color: '#64748b', fontSize: '0.8rem' }}>Location</span><br /><strong>{detail.deliveryLocation || '-'}</strong></div>
                 <div><span style={{ color: '#64748b', fontSize: '0.8rem' }}>Est. Delivery</span><br /><strong>{detail.estimatedDelivery ? adToBsStr(new Date(detail.estimatedDelivery)) : '-'}</strong></div>
                 <div><span style={{ color: '#64748b', fontSize: '0.8rem' }}>Amount</span><br /><strong>Rs. {Number(detail.price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></div>
+                <div><span style={{ color: '#64748b', fontSize: '0.8rem' }}>Weight</span><br /><strong>{detail.weight || '-'} {detail.unit || ''}</strong></div>
+                <div><span style={{ color: '#64748b', fontSize: '0.8rem' }}>Rate/Unit</span><br /><strong>{detail.ratePerUnit ? `Rs. ${Number(detail.ratePerUnit).toLocaleString('en-IN')}` : '-'}</strong></div>
                 <div><span style={{ color: '#64748b', fontSize: '0.8rem' }}>Payment</span><br /><strong>{detail.paymentMethod === 'qr' ? 'QR' : 'Cash'} {detail.bank?.name ? `(${detail.bank.name})` : ''}</strong></div>
                 <div><span style={{ color: '#64748b', fontSize: '0.8rem' }}>VAT</span><br /><strong>{detail.vatAmount > 0 ? `Rs. ${detail.vatAmount.toLocaleString('en-IN', {minimumFractionDigits:2})} (${detail.vatRate}%)` : 'None'}</strong></div>
               </div>
@@ -265,6 +283,17 @@ export default function CourierSalesForm() {
                 </div>
                 <div className="form-group"><label>Delivery Location</label><input value={editForm.deliveryLocation} onChange={e => setEditForm({ ...editForm, deliveryLocation: e.target.value })} /></div>
                 <div className="form-group"><label>Est. Delivery</label><input type="date" value={editForm.estimatedDelivery} onChange={e => setEditForm({ ...editForm, estimatedDelivery: e.target.value })} /></div>
+                <div className="form-group"><label>Weight</label><input type="number" step="0.01" min="0" value={editForm.weight} onChange={e => setEditForm({ ...editForm, weight: e.target.value })} /></div>
+                <div className="form-group"><label>Unit</label>
+                  <select value={editForm.unit} onChange={e => setEditForm({ ...editForm, unit: e.target.value })}>
+                    <option value="pcs">Pcs</option>
+                    <option value="kg">Kg</option>
+                    <option value="box">Box</option>
+                    <option value="dozen">Dozen</option>
+                    <option value="quintal">Quintal</option>
+                  </select>
+                </div>
+                <div className="form-group"><label>Rate Per Unit</label><input type="number" step="0.01" min="0" value={editForm.ratePerUnit} onChange={e => setEditForm({ ...editForm, ratePerUnit: e.target.value })} /></div>
                 <div className="form-group"><label>Instructions</label><input value={editForm.instructions} onChange={e => setEditForm({ ...editForm, instructions: e.target.value })} /></div>
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Remarks</label><input value={editForm.remarks} onChange={e => setEditForm({ ...editForm, remarks: e.target.value })} /></div>
               </div>
