@@ -10,7 +10,6 @@ export default function Dashboard() {
   const [recentSales, setRecentSales] = useState([]);
   const [chart, setChart] = useState([]);
   const [lowStock, setLowStock] = useState([]);
-  const [vatReminder, setVatReminder] = useState(null);
   const [timeGreeting, setTimeGreeting] = useState('');
   const [detail, setDetail] = useState(null);
   const [showBanks, setShowBanks] = useState(false);
@@ -32,7 +31,6 @@ export default function Dashboard() {
     api.get('/dashboard/recent-sales').then(r => setRecentSales(r.data)).catch(() => {});
     api.get('/dashboard/sales-chart').then(r => setChart(r.data)).catch(() => {});
     api.get('/products/low-stock').then(r => setLowStock(r.data)).catch(() => {});
-    if (isAdmin) api.get('/accounts/vat-periods').then(r => setVatReminder(r.data?.reminder || null)).catch(() => {});
   }, [selectedYear]);
 
   const formatNPR = (n) => 'Rs. ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
@@ -217,15 +215,6 @@ export default function Dashboard() {
           </>
         )}
       </div>
-
-      {isAdmin && vatReminder && (
-        <div className={`vat-reminder ${vatReminder.overdue ? 'overdue' : ''}`} style={{ marginBottom: '1rem', cursor: 'pointer' }} onClick={() => navigate('/reports/vat')}>
-          <strong>{vatReminder.overdue ? 'VAT filing OVERDUE' : 'VAT filing due'}:</strong>{' '}
-          {vatReminder.filingMonth
-            ? <>filing for <strong>{vatReminder.filingMonth}</strong> (Net VAT {formatNPR(vatReminder.netVAT)}) — {vatReminder.overdue ? `${Math.abs(vatReminder.daysLeft)} days overdue — file now` : `${vatReminder.daysLeft} days left`}</>
-            : <>click to view details</>}
-        </div>
-      )}
 
       {/* Recent Transactions */}
       <div className="db-card recent-sales-card" style={{ marginBottom: '1rem' }}>

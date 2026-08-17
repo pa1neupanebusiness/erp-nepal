@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import api from '../../api';
 import { useToast } from '../UI/Toast';
 import { adToBsStr } from '../UI/NepaliDatePicker';
+import { printTrackingLabel } from './printTrackingLabel';
+import { printCourierInvoice, printDeliverySlip } from './printCourierDocs';
 
 const STATUS_LABELS = {
   pending: 'Pending', processing: 'Processing', shipped: 'Shipped',
@@ -15,13 +17,17 @@ const STATUS_COLORS = {
 
 export default function BranchDashboard() {
   const addToast = useToast();
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const isAdmin = user.role === 'super_admin' || user.role === 'admin';
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState('');
   const [detail, setDetail] = useState(null);
+  const [courierOrder, setCourierOrder] = useState(null);
+  const [company, setCompany] = useState(null);
   const [updateForm, setUpdateForm] = useState({ status: '', location: '', note: '' });
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { load(); }, [filter]);
+  useEffect(() => { load(); api.get('/company').then(r => setCompany(r.data)).catch(() => {}); }, [filter]);
 
   const load = () => {
     const params = {};
@@ -29,11 +35,18 @@ export default function BranchDashboard() {
     api.get('/tracking/branch-orders', { params }).then(r => setOrders(r.data)).catch(() => {});
   };
 
-  const loadDetail = (orderId) => {
-    api.get(`/tracking/${orderId}`).then(r => {
-      setDetail(r.data);
-      setUpdateForm({ status: r.data.status, location: r.data.currentLocation || '', note: '' });
-    }).catch(() => addToast('Failed to load tracking', 'error'));
+  const loadDetail = async (order) => {
+    try {
+      const { data } = await api.get(`/tracking/${order.orderId._id || order.orderId}`);
+      setDetail(data);
+      setUpdateForm({ status: data.status, location: data.currentLocation || '', note: '' });
+      if (data.trackingNumber) {
+        try {
+          const { data: co } = await api.get(`/courier-orders/by-tracking/${data.trackingNumber}`);
+          setCourierOrder(co);
+        } catch (_) { setCourierOrder(null); }
+      }
+    } catch (_) { addToast('Failed to load tracking', 'error'); }
   };
 
   const handleStatusUpdate = async () => {
@@ -46,9 +59,7 @@ export default function BranchDashboard() {
       addToast('Status updated', 'success');
     } catch (err) {
       addToast(err.response?.data?.message || 'Failed to update status', 'error');
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   return (
@@ -70,14 +81,16 @@ export default function BranchDashboard() {
             <thead><tr><th>Order</th><th>Customer</th><th>Status</th><th>Driver</th><th>Location</th><th>Updated</th><th>Action</th></tr></thead>
             <tbody>
               {orders.map(t => (
-                <tr key={t._id}>
+                <tr key={t._id} onClick={() => loadDetail(t)} style={{ cursor: 'pointer' }}>
                   <td><strong>{t.orderNumber}</strong><br /><span style={{ fontSize: '0.75rem', color: '#64748b' }}>{t.trackingNumber || 'No tracking #'}</span></td>
                   <td>{t.customer?.name || t.customerName || '-'}</td>
                   <td><span className={`badge ${STATUS_COLORS[t.status]}`}>{STATUS_LABELS[t.status]}</span></td>
                   <td>{t.driver?.name || <span style={{ color: '#f59e0b' }}>Unassigned</span>}</td>
                   <td>{t.currentLocation || '-'}</td>
                   <td>{new Date(t.updatedAt).toLocaleDateString('en-GB')}</td>
-                  <td><button className="btn btn-sm btn-primary" onClick={() => loadDetail(t.orderId._id || t.orderId)}>Update</button></td>
+                  <td className="action-cell" onClick={e => e.stopPropagation()}>
+                    <button className="btn btn-sm btn-primary" onClick={() => loadDetail(t)}>View</button>
+                  </td>
                 </tr>
               ))}
               {orders.length === 0 && <tr><td colSpan="7" className="text-center">No orders for this branch</td></tr>}
@@ -87,34 +100,73 @@ export default function BranchDashboard() {
       </div>
 
       {detail && (
-        <div className="modal-overlay" onClick={() => setDetail(null)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
+        <div className="modal-overlay" onClick={() => { setDetail(null); setCourierOrder(null); }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 700, maxHeight: '90vh', overflowY: 'auto' }}>
             <div className="modal-header">
               <h3 style={{ margin: 0 }}>Order {detail.orderNumber}</h3>
-              <button className="btn btn-sm modal-close-x" onClick={() => setDetail(null)}>&times;</button>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                {detail.trackingNumber && <button className="btn btn-sm" onClick={() => printTrackingLabel(detail, company)} title="Print Tracking Label">Print Label</button>}
+                {courierOrder && <button className="btn btn-sm" onClick={() => printCourierInvoice(courierOrder, company)} title="Print Invoice">Print Invoice</button>}
+                {courierOrder && <button className="btn btn-sm" onClick={() => printDeliverySlip(courierOrder, company)} title="Print Delivery Slip">Print Slip</button>}
+                <button className="btn btn-sm modal-close-x" onClick={() => { setDetail(null); setCourierOrder(null); }}>&times;</button>
+              </div>
             </div>
             <div className="modal-body">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
-                <div><strong>Customer:</strong> {detail.customer?.name || '-'}</div>
+                <div><strong>Customer:</strong> {detail.customer?.name || detail.customerName || '-'}</div>
                 <div><strong>Status:</strong> <span className={`badge ${STATUS_COLORS[detail.status]}`}>{STATUS_LABELS[detail.status]}</span></div>
+                <div><strong>Tracking #:</strong> <code style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px' }}>{detail.trackingNumber || '-'}</code></div>
+                <div><strong>Current Location:</strong> {detail.currentLocation || '-'}</div>
                 <div><strong>Driver:</strong> {detail.driver?.name || 'Unassigned'}</div>
-                <div><strong>Location:</strong> {detail.currentLocation || '-'}</div>
-                <div><strong>Tracking #:</strong> {detail.trackingNumber || '-'}</div>
+                <div><strong>Branch:</strong> {detail.branch?.name || '-'}</div>
+                <div><strong>Carrier:</strong> {detail.carrier ? detail.carrier.toUpperCase() : '-'}</div>
+                <div><strong>Est. Delivery:</strong> {detail.estimatedDelivery ? adToBsStr(new Date(detail.estimatedDelivery)) : '-'}</div>
               </div>
-              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px' }}>
-                <h4 style={{ marginTop: 0 }}>Update Status</h4>
-                <div className="form-grid">
-                  <div className="form-group"><label>Status</label>
-                    <select value={updateForm.status} onChange={e => setUpdateForm({ ...updateForm, status: e.target.value })}>
-                      {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                    </select>
+
+              {courierOrder && (
+                <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div style={{ padding: '0.5rem', background: '#f0fdf4', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: '#166534', marginBottom: '0.35rem' }}>Sender</div>
+                      <div style={{ fontSize: '0.85rem' }}><strong>{courierOrder.sender?.name || '-'}</strong></div>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{courierOrder.sender?.phone || '-'} | {courierOrder.sender?.address || '-'}</div>
+                    </div>
+                    <div style={{ padding: '0.5rem', background: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: '#1e40af', marginBottom: '0.35rem' }}>Receiver</div>
+                      <div style={{ fontSize: '0.85rem' }}><strong>{courierOrder.receiver?.name || '-'}</strong></div>
+                      <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{courierOrder.receiver?.phone || '-'} | {courierOrder.receiver?.address || '-'}</div>
+                    </div>
+                    <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.5rem' }}>
+                      <div><span style={{ fontSize: '0.75rem', color: '#64748b' }}>Invoice #</span><br /><strong>{courierOrder.sale?.invoiceNumber || '-'}</strong></div>
+                      <div><span style={{ fontSize: '0.75rem', color: '#64748b' }}>Delivery Type</span><br /><strong>{courierOrder.deliveryType === 'branch_pickup' ? 'Branch Pickup' : 'Home Delivery'}</strong></div>
+                      <div><span style={{ fontSize: '0.75rem', color: '#64748b' }}>Location</span><br /><strong>{courierOrder.deliveryLocation || '-'}</strong></div>
+                      <div><span style={{ fontSize: '0.75rem', color: '#64748b' }}>Amount</span><br /><strong>Rs. {Number(courierOrder.price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></div>
+                      <div><span style={{ fontSize: '0.75rem', color: '#64748b' }}>Payment</span><br /><strong>{courierOrder.paymentMethod === 'qr' ? 'QR' : 'Cash'}</strong></div>
+                      <div><span style={{ fontSize: '0.75rem', color: '#64748b' }}>Est. Delivery</span><br /><strong>{courierOrder.estimatedDelivery ? adToBsStr(new Date(courierOrder.estimatedDelivery)) : '-'}</strong></div>
+                    </div>
+                    {courierOrder.instructions && <div style={{ gridColumn: '1 / -1', padding: '0.5rem', background: '#fefce8', borderRadius: '6px', border: '1px dashed #eab308', fontSize: '0.85rem' }}><strong style={{ color: '#a16207', fontSize: '0.75rem' }}>Instructions:</strong> {courierOrder.instructions}</div>}
+                    {courierOrder.remarks && <div style={{ gridColumn: '1 / -1', padding: '0.5rem', background: '#f0f9ff', borderRadius: '6px', border: '1px solid #bae6fd', fontSize: '0.85rem' }}><strong style={{ color: '#0369a1', fontSize: '0.75rem' }}>Remarks:</strong> {courierOrder.remarks}</div>}
                   </div>
-                  <div className="form-group"><label>Location</label><input value={updateForm.location} onChange={e => setUpdateForm({ ...updateForm, location: e.target.value })} placeholder="e.g. Local Hub" /></div>
-                  <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Note</label><input value={updateForm.note} onChange={e => setUpdateForm({ ...updateForm, note: e.target.value })} placeholder="Optional note" /></div>
                 </div>
-                <button className="btn btn-primary" onClick={handleStatusUpdate} disabled={saving}>{saving ? 'Saving...' : 'Update Status'}</button>
-              </div>
-              <h4 style={{ marginTop: '1rem' }}>Timeline</h4>
+              )}
+
+              {isAdmin && (
+                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
+                  <h4 style={{ marginTop: 0 }}>Update Status</h4>
+                  <div className="form-grid">
+                    <div className="form-group"><label>Status</label>
+                      <select value={updateForm.status} onChange={e => setUpdateForm({ ...updateForm, status: e.target.value })}>
+                        {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group"><label>Location</label><input value={updateForm.location} onChange={e => setUpdateForm({ ...updateForm, location: e.target.value })} placeholder="e.g. Local Hub" /></div>
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Note</label><input value={updateForm.note} onChange={e => setUpdateForm({ ...updateForm, note: e.target.value })} placeholder="Optional note" /></div>
+                  </div>
+                  <button className="btn btn-primary" onClick={handleStatusUpdate} disabled={saving}>{saving ? 'Saving...' : 'Update Status'}</button>
+                </div>
+              )}
+
+              <h4 style={{ marginTop: isAdmin ? 0 : '1rem' }}>Timeline</h4>
               <div style={{ position: 'relative', paddingLeft: '1.5rem' }}>
                 {(detail.events || []).slice().reverse().map((ev, i) => (
                   <div key={i} style={{ marginBottom: '1rem', position: 'relative' }}>
@@ -128,6 +180,7 @@ export default function BranchDashboard() {
                     </div>
                   </div>
                 ))}
+                {(!detail.events || detail.events.length === 0) && <p style={{ color: '#94a3b8' }}>No events recorded</p>}
               </div>
             </div>
           </div>

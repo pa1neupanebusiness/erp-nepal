@@ -113,7 +113,7 @@ export default function Layout({ user, onLogout, children }) {
     if (path === '/' || path === '/login') { setActiveSection(null); return; }
     const sectionMap = {
       'Sales': ['/pos', '/emi', '/sales', '/pos-summary', '/request-refund', '/admin/refund-approvals', '/refund'],
-      'Courier': ['/tracking'],
+      'Courier': ['/tracking', '/courier-sales'],
       'Purchase': ['/purchases'],
       'Store': ['/products', '/categories', '/suppliers', '/stock-reports', '/customers', '/damage'],
       'Accounting': ['/accounts', '/vouchers', '/ledger', '/accounting/expenses', '/fixed-assets', '/reports/monthly-sales-register', '/expenses'],
@@ -162,6 +162,7 @@ export default function Layout({ user, onLogout, children }) {
   };
   const salesVisible = !isSuperAdmin && (v.pos || v.sales || v.emi || v.posAdmin);
   const courierVisible = !isSuperAdmin && v.tracking;
+  const showCreateInvoice = !courierVisible && v.sales;
   const purchaseVisible = !isSuperAdmin && v.purchase;
   const storeVisible = !isSuperAdmin && v.purchase;
   const accountingVisible = !isSuperAdmin && v.accounts;
@@ -203,18 +204,19 @@ export default function Layout({ user, onLogout, children }) {
           {salesVisible && <NavSection title="Sales" paths={['/pos', '/emi', '/sales', '/pos-summary', '/request-refund', '/admin/refund-approvals', '/refund']} activeSection={activeSection} onToggle={toggleSection}>
             {v.pos && <NavLink to="/pos" className={linkClass} onClick={closeSidebar}><Icon name="pos" /><span className="nav-text">POS</span></NavLink>}
             {v.emi && <NavLink to="/emi" className={linkClass} onClick={closeSidebar}><Icon name="emi" /><span className="nav-text">EMI</span></NavLink>}
-            {v.sales && <NavLink to="/sales/new" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Create Sales Invoice</span></NavLink>}
-            {v.sales && <NavLink to="/sales" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Sales History</span></NavLink>}
-            {v.sales && <NavLink to="/sales/payment-in" className={linkClass} onClick={closeSidebar}><Icon name="paymentin" /><span className="nav-text">Payment In</span></NavLink>}
-            {v.sales && <NavLink to="/sales/returns" className={linkClass} onClick={closeSidebar}><Icon name="salesreturn" /><span className="nav-text">Sales Returns</span></NavLink>}
+            {showCreateInvoice && <NavLink to="/sales/new" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Create Sales Invoice</span></NavLink>}
+            {showCreateInvoice && <NavLink to="/sales" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Sales History</span></NavLink>}
+            {showCreateInvoice && <NavLink to="/sales/payment-in" className={linkClass} onClick={closeSidebar}><Icon name="paymentin" /><span className="nav-text">Payment In</span></NavLink>}
+            {showCreateInvoice && <NavLink to="/sales/returns" className={linkClass} onClick={closeSidebar}><Icon name="salesreturn" /><span className="nav-text">Sales Returns</span></NavLink>}
             {v.pos && <NavLink to="/pos-summary" className={linkClass} onClick={closeSidebar}><Icon name="summary" /><span className="nav-text">Daily Summary</span></NavLink>}
             {v.pos && <NavLink to="/request-refund" className={linkClass} onClick={closeSidebar}><Icon name="refund" /><span className="nav-text">Request Refund</span></NavLink>}
             {v.posAdmin && <NavLink to="/admin/refund-approvals" className={linkClass} onClick={closeSidebar}><Icon name="approval" /><span className="nav-text">Refund Approvals</span></NavLink>}
             {v.posAdmin && <NavLink to="/refund" className={linkClass} onClick={closeSidebar}><Icon name="refund" /><span className="nav-text">Direct Refund</span></NavLink>}
           </NavSection>}
 
-          {courierVisible && <NavSection title="Courier" paths={['/tracking']} activeSection={activeSection} onToggle={toggleSection}>
-            <NavLink to="/tracking" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Order Tracking</span></NavLink>
+          {courierVisible && <NavSection title="Courier" paths={['/tracking', '/courier-sales']} activeSection={activeSection} onToggle={toggleSection}>
+            {isAdmin && <NavLink to="/courier-sales" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Courier Sales</span></NavLink>}
+            <NavLink to="/tracking" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Order Tracking</span></NavLink>}
             {((user?.groups || []).includes('branch') || isAdmin) && <NavLink to="/tracking/branch" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Orders</span></NavLink>}
             {((user?.groups || []).includes('driver') || isAdmin) && <NavLink to="/tracking/driver" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">My Deliveries</span></NavLink>}
           </NavSection>}

@@ -6,30 +6,32 @@ import api from '../../api';
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'user', groups: [] });
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'user', groups: [], branch: '' });
   const [editing, setEditing] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [detail, setDetail] = useState(null);
+  const [branches, setBranches] = useState([]);
   const addToast = useToast();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const isSuperAdmin = user.role === 'super_admin';
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); loadBranches(); }, []);
 
   const load = () => api.get('/users').then(r => setUsers(r.data.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)))).catch(() => {});
+  const loadBranches = () => api.get('/branches').then(r => setBranches(r.data)).catch(() => {});
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       if (editing) {
-        const payload = { name: form.name, email: form.email, role: form.role, groups: form.groups };
+        const payload = { name: form.name, email: form.email, role: form.role, groups: form.groups, branch: form.branch || null };
         if (form.password) payload.password = form.password;
         await api.put(`/users/${editing._id}`, payload);
       } else {
-        await api.post('/users', form);
+        await api.post('/users', { ...form, branch: form.branch || null });
       }
-      setForm({ name: '', email: '', password: '', role: 'user', groups: [] });
+      setForm({ name: '', email: '', password: '', role: 'user', groups: [], branch: '' });
       setEditing(null);
       setShowForm(false);
       load();
@@ -39,7 +41,7 @@ export default function UserManagement() {
   };
 
   const edit = (user) => {
-    setForm({ name: user.name, email: user.email, password: '', role: user.role, groups: user.groups || [] });
+    setForm({ name: user.name, email: user.email, password: '', role: user.role, groups: user.groups || [], branch: user.branch?._id || user.branch || '' });
     setEditing(user);
     setShowForm(true);
   };
@@ -61,7 +63,7 @@ export default function UserManagement() {
     <div>
       <div className="page-header">
         <h1>User Management</h1>
-        <button className="btn btn-primary" onClick={() => { setShowForm(!showForm); setEditing(null); setForm({ name: '', email: '', password: '', role: 'user', groups: [] }); }}>
+        <button className="btn btn-primary" onClick={() => { setShowForm(!showForm); setEditing(null); setForm({ name: '', email: '', password: '', role: 'user', groups: [], branch: '' }); }}>
           {showForm ? 'Cancel' : 'Add User'}
         </button>
       </div>
@@ -77,6 +79,10 @@ export default function UserManagement() {
               <option value="user">User</option>
               <option value="admin">Admin</option>
               {isSuperAdmin && <option value="super_admin">Super Admin</option>}
+            </select></div>
+            <div className="form-group"><label>Branch</label><select value={form.branch} onChange={e => setForm({ ...form, branch: e.target.value })}>
+              <option value="">None</option>
+              {branches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
             </select></div>
           </div>
           <div className="form-group"><label>Access Groups</label>
@@ -97,7 +103,7 @@ export default function UserManagement() {
         <div className="table-responsive">
           <table className="table">
             <thead>
-              <tr><th>Name</th><th>Email</th>{isSuperAdmin && <th>Company</th>}<th>Role</th><th>Access Groups</th><th>Status</th><th>Actions</th></tr>
+              <tr><th>Name</th><th>Email</th>{isSuperAdmin && <th>Company</th>}<th>Role</th><th>Branch</th><th>Access Groups</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {users.map(u => (
@@ -106,6 +112,7 @@ export default function UserManagement() {
                   <td>{u.email}</td>
                   {isSuperAdmin && <td>{u.company?.name || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No company</span>}</td>}
                   <td><span className={`badge ${u.role === 'super_admin' ? 'badge-danger' : u.role === 'admin' ? 'badge-warning' : 'badge-info'}`}>{u.role}</span></td>
+                  <td>{u.branch?.name || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>None</span>}</td>
                   <td>{(u.groups || []).map(g => <span key={g} className="badge badge-success" style={{ marginRight: 4 }}>{g}</span>)}</td>
                   <td><span className={`badge ${u.isActive === false ? 'badge-danger' : 'badge-success'}`}>{u.isActive === false ? 'Inactive' : 'Active'}</span></td>
                   <td className="action-cell" onClick={e => e.stopPropagation()}>
@@ -115,7 +122,7 @@ export default function UserManagement() {
                   </td>
                 </tr>
               ))}
-              {users.length === 0 && <tr><td colSpan={isSuperAdmin ? 7 : 6} className="text-center">No users</td></tr>}
+              {users.length === 0 && <tr><td colSpan={isSuperAdmin ? 8 : 7} className="text-center">No users</td></tr>}
             </tbody>
           </table>
         </div>
@@ -129,6 +136,7 @@ export default function UserManagement() {
             { label: 'Email', value: detail.email },
             ...(isSuperAdmin ? [{ label: 'Company', value: detail.company?.name || 'None' }] : []),
             { label: 'Role', value: detail.role },
+            { label: 'Branch', value: detail.branch?.name || 'None' },
             { label: 'Status', value: detail.isActive === false ? 'Inactive' : 'Active' },
             { label: 'Access Groups', value: (detail.groups || []).join(', ') || 'None' },
             { label: 'Created', value: detail.createdAt ? new Date(detail.createdAt).toLocaleDateString('en-IN') : '-' },

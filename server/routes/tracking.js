@@ -40,11 +40,14 @@ router.get('/driver-orders', protect, requireTrackingModule, async (req, res) =>
   if (!isDriver(req.user) && req.user.role !== 'super_admin' && req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Driver access required' });
   }
-  const filter = { company: req.companyId, driver: req.user._id };
+  const isAdmin = req.user.role === 'super_admin' || req.user.role === 'admin';
+  const filter = { company: req.companyId };
+  if (!isAdmin) filter.driver = req.user._id;
   if (req.query.status) filter.status = req.query.status;
   const items = await OrderTracking.find(filter)
     .populate('customer', 'name phone')
     .populate('branch', 'name address phone')
+    .populate('driver', 'name phone')
     .sort({ updatedAt: -1 });
   res.json(items);
 });
@@ -53,11 +56,14 @@ router.get('/branch-orders', protect, requireTrackingModule, async (req, res) =>
   if (!isBranchStaff(req.user) && req.user.role !== 'super_admin' && req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Branch access required' });
   }
-  const filter = { company: req.companyId, branch: req.user.branch };
+  const isAdmin = req.user.role === 'super_admin' || req.user.role === 'admin';
+  const filter = { company: req.companyId };
+  if (!isAdmin && req.user.branch) filter.branch = req.user.branch;
   if (req.query.status) filter.status = req.query.status;
   const items = await OrderTracking.find(filter)
-    .populate('driver', 'name')
+    .populate('driver', 'name phone')
     .populate('customer', 'name phone')
+    .populate('branch', 'name address phone')
     .sort({ updatedAt: -1 });
   res.json(items);
 });

@@ -9,7 +9,7 @@ router.get('/', protect, adminOnly, async (req, res) => {
     const filter = isSuperAdmin
       ? {}
       : { company: req.companyId, isCompanySuperAdmin: { $ne: true } };
-    const users = await User.find(filter).select('-password').populate('company', 'name').sort({ createdAt: -1 });
+    const users = await User.find(filter).select('-password').populate('company', 'name').populate('branch', 'name').sort({ createdAt: -1 });
     res.json(users);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -18,7 +18,7 @@ router.get('/', protect, adminOnly, async (req, res) => {
 
 router.post('/', protect, adminOnly, async (req, res) => {
   try {
-    const { name, email, password, role, groups } = req.body;
+    const { name, email, password, role, groups, branch } = req.body;
     if (req.user.role !== 'super_admin' && (role === 'super_admin' || role === 'admin')) {
       return res.status(403).json({ message: 'You can only create users with role "user"' });
     }
@@ -27,8 +27,9 @@ router.post('/', protect, adminOnly, async (req, res) => {
     const user = await User.create({
       name, email, password, role: role || 'user', groups: groups || [],
       company: req.companyId,
+      branch: branch || null,
     });
-    res.status(201).json({ _id: user._id, name: user.name, email: user.email, role: user.role, groups: user.groups });
+    res.status(201).json({ _id: user._id, name: user.name, email: user.email, role: user.role, groups: user.groups, branch: user.branch });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -36,7 +37,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
 
 router.put('/:id', protect, adminOnly, async (req, res) => {
   try {
-    const { name, email, password, role, groups, isActive } = req.body;
+    const { name, email, password, role, groups, isActive, branch } = req.body;
     const scope = req.user.role === 'super_admin' ? { _id: req.params.id } : { _id: req.params.id, company: req.companyId };
     const user = await User.findOne(scope);
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -52,8 +53,10 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     if (groups) user.groups = groups;
     if (isActive !== undefined) user.isActive = isActive;
     if (password) user.password = password;
+    if (branch !== undefined) user.branch = branch || null;
     await user.save();
-    res.json({ _id: user._id, name: user.name, email: user.email, role: user.role, groups: user.groups, isActive: user.isActive });
+    const populated = await User.findById(user._id).select('-password').populate('branch', 'name');
+    res.json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
