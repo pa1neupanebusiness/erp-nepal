@@ -27,9 +27,9 @@ export function printCourierInvoice(order, company) {
     </div>
     <div class="section">
       <div class="section-title">Payment Details</div>
-      <div class="amount-row"><span>Delivery Charge</span><span>Rs. ${num(order.inclusiveVat ? order.price : (order.price - (order.vatAmount || 0))).toLocaleString('en-IN', {minimumFractionDigits:2})}</span></div>
-      ${order.vatAmount > 0 ? `<div class="amount-row"><span>VAT (${order.vatRate}%)</span><span>Rs. ${order.vatAmount.toLocaleString('en-IN', {minimumFractionDigits:2})}</span></div>` : ''}
-      <div class="total-row"><span>Total</span><span>Rs. ${order.price.toLocaleString('en-IN', {minimumFractionDigits:2})}</span></div>
+      <div class="amount-row"><span>Delivery Charge</span><span>Rs. ${order.inclusiveVat ? num(order.price - (order.vatAmount || 0)).toLocaleString('en-IN', {minimumFractionDigits:2}) : num(order.price).toLocaleString('en-IN', {minimumFractionDigits:2})}</span></div>
+      ${order.vatAmount > 0 ? `<div class="amount-row"><span>VAT (${order.vatRate}%)</span><span>Rs. ${num(order.vatAmount).toLocaleString('en-IN', {minimumFractionDigits:2})}</span></div>` : ''}
+      <div class="total-row"><span>Total</span><span>Rs. ${(order.inclusiveVat ? num(order.price) : num(order.price + (order.vatAmount || 0))).toLocaleString('en-IN', {minimumFractionDigits:2})}</span></div>
       <div class="amount-row" style="margin-top:4px;"><span>Payment Method</span><span class="value">${order.paymentMethod === 'qr' ? 'QR / Bank' : 'Cash'}</span></div>
       ${order.bank ? `<div class="amount-row"><span>Bank</span><span>${esc(order.bank.name || '')}</span></div>` : ''}
     </div>
@@ -83,7 +83,8 @@ export function printDeliverySlip(order, company) {
       <div class="detail-row"><span>Delivery Location</span><span>${esc(order.deliveryLocation || '-')}</span></div>
       <div class="detail-row"><span>Est. Delivery</span><span>${order.estimatedDelivery ? new Date(order.estimatedDelivery).toLocaleDateString('en-GB') : '-'}</span></div>
       <div class="detail-row"><span>Invoice #</span><span>${esc(order.sale?.invoiceNumber || '-')}</span></div>
-      <div class="detail-row"><span>Amount</span><span>Rs. ${order.price.toLocaleString('en-IN', {minimumFractionDigits:2})}</span></div>
+      <div class="detail-row"><span>Amount</span><span>Rs. ${(order.inclusiveVat ? num(order.price) : num(order.price + (order.vatAmount || 0))).toLocaleString('en-IN', {minimumFractionDigits:2})}</span></div>
+      ${order.vatAmount > 0 ? `<div class="detail-row"><span>VAT (${order.vatRate}%)</span><span>Rs. ${num(order.vatAmount).toLocaleString('en-IN', {minimumFractionDigits:2})}</span></div>` : ''}
     </div>
     ${order.instructions ? `<div class="instructions"><div class="instructions-title">Special Instructions</div><div>${esc(order.instructions)}</div></div>` : ''}
     ${order.remarks ? `<div style="margin-top:8px;padding:8px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;"><div style="font-size:10px;font-weight:700;color:#0369a1;margin-bottom:4px;">Remarks</div><div>${esc(order.remarks)}</div></div>` : ''}
