@@ -13,6 +13,7 @@ export default function Dashboard() {
   const [timeGreeting, setTimeGreeting] = useState('');
   const [detail, setDetail] = useState(null);
   const [showBanks, setShowBanks] = useState(false);
+  const [company, setCompany] = useState(null);
   const navigate = useNavigate();
   const { selectedYear } = useFiscalYear();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -31,9 +32,13 @@ export default function Dashboard() {
     api.get('/dashboard/recent-sales').then(r => setRecentSales(r.data)).catch(() => {});
     api.get('/dashboard/sales-chart').then(r => setChart(r.data)).catch(() => {});
     api.get('/products/low-stock').then(r => setLowStock(r.data)).catch(() => {});
+    api.get('/company').then(r => setCompany(r.data)).catch(() => {});
   }, [selectedYear]);
 
   const formatNPR = (n) => 'Rs. ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+
+  const enabled = company?.enabledModules || [];
+  const mod = (m) => isSuperAdmin || enabled.includes(m);
 
   const today = new Date();
   const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
@@ -249,43 +254,39 @@ export default function Dashboard() {
         <h2>Quick Actions</h2>
       </div>
       <div className="quick-actions">
-        {hasGroup('pos') && <button className="qa-btn qa-pos" onClick={() => navigate('/pos')}>
-          <span className="qa-icon"><Icon name="pos" /></span>
-          <span className="qa-text">New Sale (POS)</span>
-        </button>}
-        {hasGroup('inventory') && <button className="qa-btn qa-product" onClick={() => navigate('/products')}>
+        {mod('pos') && hasGroup('pos') && <button className="qa-btn qa-product" onClick={() => navigate('/products')}>
           <span className="qa-icon"><Icon name="product" /></span>
           <span className="qa-text">Add Product</span>
         </button>}
-        {hasGroup('inventory') && <button className="qa-btn qa-stock" onClick={() => navigate('/stock-reports')}>
+        {mod('pos') && hasGroup('pos') && <button className="qa-btn qa-stock" onClick={() => navigate('/stock-reports')}>
           <span className="qa-icon"><Icon name="stock" /></span>
           <span className="qa-text">Stock Report</span>
         </button>}
-        {hasGroup('accounts') && <button className="qa-btn qa-journal" onClick={() => navigate('/accounts/journal-entries')}>
+        {mod('accounts') && hasGroup('accounts') && <button className="qa-btn qa-journal" onClick={() => navigate('/accounts/journal-entries')}>
           <span className="qa-icon"><Icon name="journal" /></span>
           <span className="qa-text">Journal Entry</span>
         </button>}
-        {hasGroup('accounts') && <button className="qa-btn qa-pl" onClick={() => navigate('/accounts/income-statement')}>
+        {mod('accounts') && hasGroup('accounts') && <button className="qa-btn qa-pl" onClick={() => navigate('/accounts/income-statement')}>
           <span className="qa-icon"><Icon name="income" /></span>
           <span className="qa-text">Profit & Loss</span>
         </button>}
-        {hasGroup('accounts') && <button className="qa-btn qa-bs" onClick={() => navigate('/accounts/balance-sheet')}>
+        {mod('accounts') && hasGroup('accounts') && <button className="qa-btn qa-bs" onClick={() => navigate('/accounts/balance-sheet')}>
           <span className="qa-icon"><Icon name="balance" /></span>
           <span className="qa-text">Balance Sheet</span>
         </button>}
-        {hasGroup('inventory') && <button className="qa-btn qa-journal" onClick={() => navigate('/purchases')}>
+        {mod('purchase') && hasGroup('inventory') && <button className="qa-btn qa-journal" onClick={() => navigate('/purchases')}>
           <span className="qa-icon"><Icon name="purchase" /></span>
           <span className="qa-text">New Purchase</span>
         </button>}
-        {hasGroup('accounts') && <button className="qa-btn qa-stock" onClick={() => navigate('/vouchers')}>
+        {mod('accounts') && hasGroup('accounts') && <button className="qa-btn qa-stock" onClick={() => navigate('/vouchers')}>
           <span className="qa-icon"><Icon name="voucher" /></span>
           <span className="qa-text">Vouchers</span>
         </button>}
-        {hasGroup('accounts') && <button className="qa-btn qa-product" onClick={() => navigate('/ledger')}>
+        {mod('accounts') && hasGroup('accounts') && <button className="qa-btn qa-product" onClick={() => navigate('/ledger')}>
           <span className="qa-icon"><Icon name="ledger" /></span>
           <span className="qa-text">View Ledger</span>
         </button>}
-        {hasGroup('accounts') && <button className="qa-btn qa-customers" onClick={() => navigate('/reports/vat')}>
+        {mod('accounts') && hasGroup('accounts') && <button className="qa-btn qa-customers" onClick={() => navigate('/reports/vat')}>
           <span className="qa-icon"><Icon name="vat" /></span>
           <span className="qa-text">VAT Report</span>
         </button>}
