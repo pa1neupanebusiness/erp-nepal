@@ -405,16 +405,19 @@ export default function Dashboard() {
             { label: 'Grand Total', value: formatNPR(detail.grandTotal) },
             { label: 'Paid', value: formatNPR(detail.amountPaid) },
             { label: 'Change', value: formatNPR(detail.change) },
+            ...(detail.extraCharge?.amount > 0 ? [{ label: detail.extraCharge.remarks ? `Extra Charge (${detail.extraCharge.remarks})` : 'Extra Charge', value: `+ ${formatNPR(detail.extraCharge.amount)}` }] : []),
           ]}
           columns={[
             { key: 'product', label: 'Item', wide: true, render: (v) => v?.name || v || 'Unknown' },
-            { key: 'price', label: 'Price', align: 'right', render: (v) => formatNPR(v) },
+            { key: 'price', label: 'Rate', align: 'right', render: (v, r) => formatNPR(r.quantity > 0 ? (Number(r.subtotal) / Number(r.quantity)) : v) },
             { key: 'quantity', label: 'Qty', align: 'right' },
             { key: 'subtotal', label: 'Subtotal', align: 'right', render: (v) => formatNPR(v) },
           ]}
           rows={detail.items || []}
           footer={[
-            ...(detail.taxTotal > 0 ? [{ label: 'VAT', value: formatNPR(detail.taxTotal) }] : []),
+            { label: 'Subtotal', value: formatNPR((detail.subtotal || 0) + (detail.extraCharge?.amount || 0)) },
+            ...(detail.discount > 0 ? [{ label: 'Discount', value: `(-${formatNPR(detail.discount)})` }] : []),
+            ...(detail.taxTotal > 0 ? [{ label: 'Taxable Amount', value: formatNPR((detail.subtotal || 0) + (detail.extraCharge?.amount || 0) - (detail.discount || 0)) }, { label: 'VAT', value: formatNPR(detail.taxTotal) }] : []),
             { label: 'Grand Total', value: formatNPR(detail.grandTotal) },
             { label: 'Paid', value: formatNPR(detail.amountPaid) },
             { label: 'Change', value: formatNPR(detail.change) },

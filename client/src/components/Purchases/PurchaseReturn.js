@@ -219,7 +219,7 @@ export default function PurchaseReturn() {
                   <option value="">-- Product --</option>
                   {products.map(p => <option key={p._id} value={p._id}>{p.name} (Stock: {p.stock})</option>)}
                 </select>
-                <input type="number" min="1" value={it.quantity || ''} onChange={e => updateLine(idx, 'quantity', parseInt(e.target.value) || 0)} placeholder="Qty" style={{ flex: 1, padding: '0.5rem', borderRadius: 6, border: '1px solid #e2e8f0' }} />
+                <input type="number" min="1" value={it.quantity || ''} onChange={e => updateLine(idx, 'quantity', parseInt(e.target.value) || 0)} placeholder="Qty" style={{ flex: '0 0 70px', padding: '0.25rem 0.4rem', borderRadius: 4, border: '1px solid #e2e8f0', textAlign: 'right' }} />
                 <input type="number" value={it.costPrice || ''} onChange={e => updateLine(idx, 'costPrice', parseFloat(e.target.value) || 0)} placeholder="Cost Price" style={{ flex: 1.5, padding: '0.5rem', borderRadius: 6, border: '1px solid #e2e8f0' }} />
                 <div style={{ flex: 1.5, textAlign: 'right', fontWeight: 600 }}>{fmt((it.costPrice || 0) * (it.quantity || 0))}</div>
                 {standalone.items.length > 1 && <button className="btn btn-sm btn-danger" onClick={() => removeLine(idx)}>&times;</button>}
@@ -265,7 +265,7 @@ export default function PurchaseReturn() {
                         <td>{productName}</td>
                         <td>{it.quantity}</td>
                         <td>{already}</td>
-                        <td><input type="number" min="0" max={max} value={returnForm[String(productId)] || ''} onChange={e => setReturnForm({ ...returnForm, [String(productId)]: e.target.value })} placeholder={`0 / ${max}`} /></td>
+                        <td><input type="number" min="0" max={max} value={returnForm[String(productId)] || ''} onChange={e => setReturnForm({ ...returnForm, [String(productId)]: e.target.value })} placeholder={`0 / ${max}`} style={{ width: 70, maxWidth: 70, padding: '0.25rem 0.4rem', borderRadius: 4, border: '1px solid #e2e8f0', textAlign: 'right' }} /></td>
                       </tr>
                     );
                   })}

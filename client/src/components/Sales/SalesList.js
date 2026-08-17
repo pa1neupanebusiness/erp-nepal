@@ -10,6 +10,7 @@ import { printCreditNote } from '../UI/printCreditNote';
 import { printDebitNote } from '../UI/printDebitNote';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
 import NepaliDatePicker, { adToBsStr, bsToADStr } from '../UI/NepaliDatePicker';
+import { sortByDate } from '../../utils/timeService';
 
 export default function SalesList() {
   const navigate = useNavigate();
@@ -50,7 +51,7 @@ export default function SalesList() {
         cashier: e.createdBy,
         emiData: e,
       }));
-      setItems([...salesRes.data, ...emiRows].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+      setItems(sortByDate([...salesRes.data, ...emiRows]));
     });
   };
 
@@ -158,8 +159,9 @@ meta={[
               { label: 'Status', value: detail.status },
               { label: 'Grand Total', value: formatNPR(detail.grandTotal) },
               { label: 'Paid', value: formatNPR(detail.amountPaid) },
-              { label: 'Due', value: formatNPR(detail.dueAmount) },
-              ...(detail.creditNoteNumber ? [{ label: 'Credit Note', value: detail.creditNoteNumber }] : []),
+            { label: 'Due', value: formatNPR(detail.dueAmount) },
+            ...(detail.extraCharge?.amount > 0 ? [{ label: detail.extraCharge.remarks ? `Extra Charge (${detail.extraCharge.remarks})` : 'Extra Charge', value: `+ ${formatNPR(detail.extraCharge.amount)}` }] : []),
+            ...(detail.creditNoteNumber ? [{ label: 'Credit Note', value: detail.creditNoteNumber }] : []),
               ...(detail.debitNoteNumber ? [{ label: 'Debit Note', value: detail.debitNoteNumber }] : []),
               ...(detail.notes ? [{ label: 'Notes', value: detail.notes }] : []),
             ]}
@@ -171,9 +173,9 @@ meta={[
           ]}
           rows={detail.items || []}
           footer={[
-            { label: 'Subtotal', value: formatNPR(detail.subtotal) },
+            { label: 'Subtotal', value: formatNPR((detail.subtotal || 0) + (detail.extraCharge?.amount || 0)) },
             ...(detail.discount > 0 ? [{ label: 'Discount', value: `(-${formatNPR(detail.discount)})` }] : []),
-            ...(detail.taxTotal > 0 ? [{ label: 'VAT', value: formatNPR(detail.taxTotal) }] : []),
+            ...(detail.taxTotal > 0 ? [{ label: 'Taxable Amount', value: formatNPR((detail.subtotal || 0) + (detail.extraCharge?.amount || 0) - (detail.discount || 0)) }, { label: 'VAT', value: formatNPR(detail.taxTotal) }] : []),
             { label: 'Grand Total', value: formatNPR(detail.grandTotal) },
             { label: 'Paid', value: formatNPR(detail.amountPaid) },
             { label: 'Change', value: formatNPR(detail.change) },

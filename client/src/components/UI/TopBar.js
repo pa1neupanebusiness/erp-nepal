@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../api';
 import NotificationBell from './NotificationBell';
+import { TimestampToggle } from '../utils/timeService';
 
 export default function TopBar() {
   const [open, setOpen] = useState(false);
@@ -172,6 +173,7 @@ export default function TopBar() {
           📧
         </button>
 
+        <TimestampToggle />
         <button
           onClick={toggleTheme}
           title="Toggle theme"

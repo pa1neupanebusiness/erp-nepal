@@ -116,7 +116,6 @@ export function renderLedgerHtml(ledger, company, opts = {}) {
       </div>
       <div class="text-right">
         <strong>Statement Period:</strong> ${escapeHtml(periodLabel)}<br>
-        <strong>Printed On:</strong> ${escapeHtml(bsDateStr(new Date()))}<br>
         <strong>Account Type:</strong> ${escapeHtml(accountTypeLabel || '-')}
       </div>
     </div>

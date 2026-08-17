@@ -20,6 +20,9 @@ export function renderDebitNoteHtml(sale, company) {
   const grandTotal = sale.grandTotal || 0;
   const storedSubtotal = sale.subtotal || 0;
   const discount = sale.discount || 0;
+  const extraCharge = sale.extraCharge;
+  const extraChargeAmount = extraCharge ? (typeof extraCharge === 'number' ? extraCharge : (extraCharge.amount || 0)) : 0;
+  const extraChargeRemark = (extraCharge && typeof extraCharge === 'object' && extraCharge.remarks) || '';
 
   const rawItems = (sale.items || []).map(i => ({
     name: i.product?.name || i.name || 'Item',
@@ -112,6 +115,14 @@ export function renderDebitNoteHtml(sale, company) {
       </thead>
       <tbody>
         ${rows}
+        ${extraChargeAmount > 0 ? `<tr>
+          <td class="col-sn">${items.length + 1}</td>
+          <td class="col-hs text-center"></td>
+          <td class="col-particulars"><strong>${escapeHtml(extraChargeRemark || 'Extra Charge')}</strong></td>
+          <td class="col-qty">1</td>
+          <td class="col-rate">${num(extraChargeAmount)}</td>
+          <td class="col-total">${num(extraChargeAmount)}</td>
+        </tr>` : ''}
         <tr>
           <td colspan="3" class="words-cell">
             <div class="words-title">Amount in Words:</div>
@@ -120,23 +131,20 @@ export function renderDebitNoteHtml(sale, company) {
           </td>
           <td colspan="3" style="padding: 0;">
             <table class="summary-table">
+              <tr>
+                <td class="summary-label">Subtotal</td>
+                <td class="summary-val">${num(displaySubtotal + extraChargeAmount)}</td>
+              </tr>
               ${discount > 0 ? `<tr>
-                <td class="summary-label">${isInclusive ? 'Total (before VAT)' : 'Gross Amount'}</td>
-                <td class="summary-val">${num(displaySubtotal)}</td>
-              </tr>
-              <tr>
                 <td class="summary-label">Discount</td>
-                <td class="summary-val">${num(discount)}</td>
-              </tr>` : (!isInclusive ? `<tr>
-                <td class="summary-label">Gross Amount</td>
-                <td class="summary-val">${num(subTotalGross)}</td>
-              </tr>` : '')}
+                <td class="summary-val">(-${num(discount)})</td>
+              </tr>` : ''}
               ${taxTotal > 0 ? `<tr>
-                <td class="summary-label">Taxable Value</td>
-                <td class="summary-val">${num(storedSubtotal)}</td>
+                <td class="summary-label">Taxable Amount</td>
+                <td class="summary-val">${num(displaySubtotal + extraChargeAmount - discount)}</td>
               </tr>
               <tr>
-                <td class="summary-label">${vatRate}% VAT${isInclusive ? ' (included)' : ''}</td>
+                <td class="summary-label">${vatRate}% VAT</td>
                 <td class="summary-val">${num(taxTotal)}</td>
               </tr>` : ''}
               <tr>

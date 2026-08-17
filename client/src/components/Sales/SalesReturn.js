@@ -211,7 +211,7 @@ export default function SalesReturn() {
                           <td style={{ textAlign: 'right' }}>
                             <input type="number" min="0" max={ri.max} value={ri.qty || ''} disabled={ri.qty === 0}
                               onChange={e => setItemQty(pid, parseInt(e.target.value) || 0)}
-                              style={{ width: 70, padding: '0.3rem 0.5rem', borderRadius: 4, border: '1px solid #e2e8f0', textAlign: 'right' }}
+                              style={{ width: 64, maxWidth: 64, padding: '0.25rem 0.4rem', borderRadius: 4, border: '1px solid #e2e8f0', textAlign: 'right' }}
                             />
                           </td>
                           <td style={{ textAlign: 'right', fontWeight: 600 }}>{fmt(ri.qty * it.price)}</td>

@@ -5,6 +5,7 @@ import { useToast } from '../UI/Toast';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
 import SearchableSelect from '../UI/SearchableSelect';
 import NepaliDatePicker, { adToBsStr, bsToADStr } from '../UI/NepaliDatePicker';
+import { sortByDate } from '../../utils/timeService';
 
 const fmt = (n) => 'Rs. ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
 
@@ -27,7 +28,7 @@ export default function PaymentOut() {
     const params = {};
     if (startDate) params.startDate = bsToADStr(startDate);
     if (endDate) params.endDate = bsToADStr(endDate);
-    api.get('/payment-out', { params }).then(r => setItems(r.data.sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0)))).catch(() => {});
+    api.get('/payment-out', { params }).then(r => setItems(sortByDate(r.data))).catch(() => {});
   };
 
   useEffect(() => {

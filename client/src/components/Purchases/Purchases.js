@@ -5,6 +5,7 @@ import { formatNPR as printNPR } from '../UI/printEntry';
 import { printPurchaseVoucher } from '../UI/printPurchase';
 import api from '../../api';
 import NepaliDatePicker, { adToBsStr, bsToADStr } from '../UI/NepaliDatePicker';
+import { sortByDate } from '../../utils/timeService';
 
 export default function Purchases() {
   const [items, setItems] = useState([]);
@@ -50,7 +51,7 @@ export default function Purchases() {
 
   useEffect(() => { load(); api.get('/products').then(r => setProducts(r.data.filter(p => p.isActive))); api.get('/suppliers').then(r => setSuppliers(r.data)); api.get('/categories').then(r => setCategories(r.data)); api.get('/banks').then(r => setBanks(r.data)).catch(() => {}); }, []);
 
-  const load = () => api.get('/purchases').then(r => setItems(r.data.sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0))));
+  const load = () => api.get('/purchases').then(r => setItems(sortByDate(r.data)));
 
   const resetForm = () => {
     setForm({ date: adToBsStr(new Date()), type: 'direct', supplier: '', items: [{ product: '', quantity: 1, costPrice: 0, sellingPrice: 0, batch: '', subtotal: 0 }], discount: 0, vatPercent: 0, applyVat: false, inclusiveVat: false, applyTds: false, paidAmount: 0, paymentMethod: 'cash', bank: '', chequeNumber: '', paymentRemarks: '', supplierInvoiceNo: '', note: '' });

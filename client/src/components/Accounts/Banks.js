@@ -3,6 +3,7 @@ import { showConfirm } from '../UI/ConfirmDialog';
 import { useToast } from '../UI/Toast';
 import api from '../../api';
 import { openPrintWindow } from '../UI/printCommon';
+import { TimestampToggle } from '../../utils/timeService';
 
 const fmt = (n) => 'Rs. ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
 
@@ -23,7 +24,6 @@ const printBankLedger = (bank, txns) => {
 
   const bodyHtml = `
     <div class="meta-list">
-      <div class="meta-item"><span class="mlabel">Generated On</span><span class="mvalue">${new Date().toLocaleDateString('en-IN')}</span></div>
       <div class="meta-item"><span class="mlabel">Current Balance</span><span class="mvalue">${fmt(bank.balance)}</span></div>
     </div>
     <table class="data-table">
@@ -142,6 +142,7 @@ export default function Banks() {
         <button className="btn btn-primary" onClick={() => { if (!showForm) resetForm(); setShowForm(!showForm); }}>
           {showForm ? 'Cancel' : '+ New Bank'}
         </button>
+        <TimestampToggle />
       </div>
 
       {showForm && (

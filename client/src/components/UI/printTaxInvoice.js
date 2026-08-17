@@ -1,9 +1,10 @@
 import { escapeHtml } from './printEntry';
 import { amountToWords } from '../../utils/numberToWords';
 import { adToBsStr } from './NepaliDatePicker';
+import { getSystemTime, formatTimestamp, isTimestampEnabled } from '../../utils/timeService';
 
 const BS_MONTHS = ['Baishakh', 'Jestha', 'Ashadh', 'Shrawan', 'Bhadra', 'Ashwin', 'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'];
-const num = (n) => 'Rs. ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const num = (n) => 'Rs.\u00A0' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function getMiti(date) {
   try {
@@ -26,6 +27,9 @@ function paymentLabel(method) {
 export function renderTaxInvoiceHtml(sale, company) {
   const vatRate = company?.vatRate || 13;
   const discount = sale.discount || 0;
+  const extraCharge = sale.extraCharge;
+  const extraChargeAmount = extraCharge ? (typeof extraCharge === 'number' ? extraCharge : (extraCharge.amount || 0)) : 0;
+  const extraChargeRemark = (extraCharge && typeof extraCharge === 'object' && extraCharge.remarks) || '';
   const taxTotal = sale.taxTotal || 0;
   const grandTotal = sale.grandTotal || 0;
   const storedSubtotal = sale.subtotal || 0;
@@ -116,6 +120,14 @@ export function renderTaxInvoiceHtml(sale, company) {
       </thead>
       <tbody>
         ${rows}
+        ${extraChargeAmount > 0 ? `<tr>
+          <td class="col-sn">${items.length + 1}</td>
+          <td class="col-hs text-center"></td>
+          <td class="col-particulars"><strong>${escapeHtml(extraChargeRemark || 'Extra Charge')}</strong></td>
+          <td class="col-qty">1</td>
+          <td class="col-rate">${num(extraChargeAmount)}</td>
+          <td class="col-total">${num(extraChargeAmount)}</td>
+        </tr>` : ''}
         <tr>
           <td colspan="3" class="words-cell">
             <div class="words-title">Amount in Words:</div>
@@ -124,27 +136,24 @@ export function renderTaxInvoiceHtml(sale, company) {
           </td>
           <td colspan="3" style="padding: 0;">
             <table class="summary-table">
+              <tr>
+                <td class="summary-label">Subtotal</td>
+                <td class="summary-val">${num(displaySubtotal + extraChargeAmount)}</td>
+              </tr>
               ${discount > 0 ? `<tr>
-                <td class="summary-label">${isInclusive ? 'Total (before VAT)' : 'Gross Amount'}</td>
-                <td class="summary-val">${num(displaySubtotal)}</td>
-              </tr>
-              <tr>
                 <td class="summary-label">Discount</td>
-                <td class="summary-val">${num(discount)}</td>
-              </tr>` : (!isInclusive ? `<tr>
-                <td class="summary-label">Gross Amount</td>
-                <td class="summary-val">${num(subTotalGross)}</td>
-              </tr>` : '')}
+                <td class="summary-val">(-${num(discount)})</td>
+              </tr>` : ''}
               ${taxTotal > 0 ? `<tr>
-                <td class="summary-label">Taxable Value</td>
-                <td class="summary-val">${num(storedSubtotal)}</td>
+                <td class="summary-label">Taxable Amount</td>
+                <td class="summary-val">${num(displaySubtotal + extraChargeAmount - discount)}</td>
               </tr>
               <tr>
-                <td class="summary-label">${vatRate}% VAT${isInclusive ? ' (included)' : ''}</td>
+                <td class="summary-label">${vatRate}% VAT</td>
                 <td class="summary-val">${num(taxTotal)}</td>
               </tr>` : ''}
               <tr>
-                <td class="summary-label">Total Amount</td>
+                <td class="summary-label">Grand Total</td>
                 <td class="summary-val">${num(grandTotal)}</td>
               </tr>
             </table>
@@ -170,11 +179,11 @@ export function renderTaxInvoiceHtml(sale, company) {
   </div>`;
 }
 
-export function printTaxInvoice(sale, company) {
+export async function printTaxInvoice(sale, company) {
   if (!sale) return;
   if (!company) { company = JSON.parse(localStorage.getItem('user') || '{}').company || {}; }
   const bodyHtml = renderTaxInvoiceHtml(sale, company);
-  const dateStr = new Date().toLocaleString('en-IN');
+  const tsLine = isTimestampEnabled() ? escapeHtml(formatTimestamp(await getSystemTime(), { nepali: true })) : '';
   const companyName = (company?.name || 'Your Company').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const address = [company?.address, company?.city].filter(Boolean).join(', ');
   const phone = company?.phone || '-';
@@ -213,8 +222,8 @@ table.invoice-table th { font-weight: bold; text-align: center; font-size: 12px;
 .words-dotted { border-bottom: 1px dotted #000; display: block; margin-top: 15px; width: 100%; height: 10px; }
 .summary-table { width: 100%; border-collapse: collapse; }
 .summary-table td { border: 1px solid #000; padding: 5px; }
-.summary-label { font-weight: bold; text-align: left; }
-.summary-val { text-align: right; width: 40%; }
+.summary-label { font-weight: bold; text-align: left; white-space: nowrap; }
+.summary-val { text-align: right; width: 40%; white-space: nowrap; }
 .signatures-section { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 30px; font-size: 12px; }
 .signature-box { text-align: center; }
 .sig-line-dotted { border-bottom: 1px dotted #000; width: 150px; margin: 0 auto 5px auto; }
@@ -234,7 +243,7 @@ table.invoice-table th { font-weight: bold; text-align: center; font-size: 12px;
     ${bodyHtml}
     <div class="footer-section">
       <div class="footer-text">Generated by ERP</div>
-      <div class="footer-text">${dateStr}</div>
+      <div class="footer-text">${tsLine}</div>
     </div>
   </div>
 </body>

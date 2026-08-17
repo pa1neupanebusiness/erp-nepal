@@ -15,6 +15,10 @@ const saleSchema = new mongoose.Schema({
   subtotal: { type: Number, required: true },
   taxTotal: { type: Number, default: 0 },
   discount: { type: Number, default: 0 },
+  extraCharge: {
+    remarks: { type: String, default: '' },
+    amount: { type: Number, default: 0 },
+  },
   grandTotal: { type: Number, required: true },
   amountPaid: { type: Number, required: true },
   dueAmount: { type: Number, default: 0 },

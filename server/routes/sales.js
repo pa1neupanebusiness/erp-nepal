@@ -376,7 +376,7 @@ router.get('/:id', protect, async (req, res) => {
 });
 
 router.post('/', protect, requirePANForLargeTx, async (req, res) => {
-  const { items, subtotal, taxTotal, discount, grandTotal, amountPaid, change, paymentMethod, paymentSplits, customer, bank, invoiceNumber, date, notes, images, source, inclusiveVat } = req.body;
+  const { items, subtotal, taxTotal, discount, extraCharge, grandTotal, amountPaid, change, paymentMethod, paymentSplits, customer, bank, invoiceNumber, date, notes, images, source, inclusiveVat } = req.body;
 
   const totalPaid = paymentMethod === 'split' && paymentSplits?.length
     ? paymentSplits.reduce((s, sp) => s + (sp.amount || 0), 0)
@@ -430,7 +430,7 @@ router.post('/', protect, requirePANForLargeTx, async (req, res) => {
     try {
       sale = await Sale.create({
         invoiceNumber: invNo,
-        items, subtotal, taxTotal, discount, grandTotal,
+        items, subtotal, taxTotal, discount, extraCharge, grandTotal,
         amountPaid: totalPaid, dueAmount, paymentStatus, change, paymentMethod,
         paymentSplits: paymentMethod === 'split' ? ((paymentSplits || []).filter(sp => sp.amount > 0).map(sp => ({ method: sp.method, amount: Math.round((sp.amount || 0) * 100) / 100, bank: ((sp.method || '') === 'qr' || sp.method === 'bank') ? (sp.bank || null) : null }))) : [],
         customer: customerId || null,
@@ -480,7 +480,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     if (!sale) return res.status(404).json({ message: 'Sale not found' });
     if (sale.status === 'refunded') return res.status(400).json({ message: 'Cannot edit a refunded sale' });
 
-    const { items: newItems, subtotal, taxTotal, discount, grandTotal, amountPaid, paymentMethod, paymentSplits, customer, bank, date, notes, inclusiveVat } = req.body;
+    const { items: newItems, subtotal, taxTotal, discount, extraCharge, grandTotal, amountPaid, paymentMethod, paymentSplits, customer, bank, date, notes, inclusiveVat } = req.body;
 
     if (newItems && Array.isArray(newItems)) {
       for (const item of sale.items) {
@@ -508,6 +508,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     if (subtotal !== undefined) sale.subtotal = subtotal;
     if (taxTotal !== undefined) sale.taxTotal = taxTotal;
     if (discount !== undefined) sale.discount = discount;
+    if (extraCharge !== undefined) sale.extraCharge = extraCharge;
     if (grandTotal !== undefined) sale.grandTotal = grandTotal;
     if (amountPaid !== undefined) sale.amountPaid = amountPaid;
     if (paymentMethod) sale.paymentMethod = paymentMethod;

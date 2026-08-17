@@ -51,7 +51,13 @@ async function getCompanyHeader(companyId) {
 
 /* ──────────────── HTML SHELL ──────────────── */
 
-function htmlShell({ title, subtitle, company, period, body, printJs }) {
+function htmlShell({ title, subtitle, company, period, body, printJs, showTimestamp = true }) {
+  const now = new Date();
+  const bsDate = adToBikramSambat(now);
+  const bsTime = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  const timestampHtml = showTimestamp
+    ? `<span>Generated: ${escapeHtml(bsDate)}, ${escapeHtml(bsTime)}</span>`
+    : '';
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -73,7 +79,7 @@ function htmlShell({ title, subtitle, company, period, body, printJs }) {
   ${body}
 
   <div class="report-footer">
-    <span>Generated: ${new Date().toLocaleString('en-GB')}</span>
+    ${timestampHtml}
     <span>Page <span class="page-num"></span> of <span class="pages-total"></span></span>
   </div>
 </div>

@@ -6,6 +6,7 @@ import api from '../../api';
 import { useFiscalYear } from '../../context/FiscalYearContext';
 import NepaliDatePicker, { adToBsStr, bsToADStr } from '../UI/NepaliDatePicker';
 import { printLedger } from '../UI/printLedger';
+import { TimestampToggle } from '../../utils/timeService';
 
 function formatNPR(n) {
   return 'Rs. ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
@@ -172,6 +173,7 @@ export default function LedgerView() {
             <button className="btn btn-sm btn-secondary" onClick={() => setNewestFirst(s => !s)}>{newestFirst ? 'Show Oldest' : 'Show Latest'}</button>
           </div>
         )}
+        <TimestampToggle />
       </div>
 
       <div className="card" style={{ marginBottom: '1rem' }}>
