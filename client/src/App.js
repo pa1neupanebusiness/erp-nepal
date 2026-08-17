@@ -21,6 +21,9 @@ import CreateSalesInvoice from './components/Sales/CreateSalesInvoice';
 import SalesEdit from './components/Sales/SalesEdit';
 import EmiPage from './components/Sales/EmiPage';
 import TrackingPage from './components/Tracking/TrackingPage';
+import BranchDashboard from './components/Tracking/BranchDashboard';
+import DriverDashboard from './components/Tracking/DriverDashboard';
+import BranchManagement from './components/Admin/BranchManagement';
 import Refund from './components/Sales/Refund';
 import RefundRequest from './components/Sales/RefundRequest';
 import RefundApproval from './components/Admin/RefundApproval';
@@ -188,6 +191,9 @@ function AppContent() {
           <Route path="/sales/returns" element={<SalesReturn />} />
           <Route path="/emi" element={(user?.role === 'super_admin' || (user?.company?.enabledModules || []).includes('emi')) ? <EmiPage /> : <Navigate to="/" />} />
           <Route path="/tracking" element={(user?.role === 'super_admin' || (user?.company?.enabledModules || []).includes('tracking')) ? <TrackingPage /> : <Navigate to="/" />} />
+          <Route path="/tracking/branches" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('tracking') && (user?.role === 'super_admin' || user?.role === 'admin'))) ? <BranchManagement /> : <Navigate to="/" />} />
+          <Route path="/tracking/driver" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('tracking') && (user?.groups || []).includes('driver'))) ? <DriverDashboard /> : <Navigate to="/" />} />
+          <Route path="/tracking/branch" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('tracking') && (user?.groups || []).includes('branch'))) ? <BranchDashboard /> : <Navigate to="/" />} />
           <Route path="/refund" element={<Refund />} />
           <Route path="/request-refund" element={<RefundRequest />} />
           <Route path="/admin/refund-approvals" element={<RefundApproval />} />

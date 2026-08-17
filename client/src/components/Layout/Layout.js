@@ -112,7 +112,7 @@ export default function Layout({ user, onLogout, children }) {
     const path = location.pathname;
     if (path === '/' || path === '/login') { setActiveSection(null); return; }
     const sectionMap = {
-      'Sales': ['/pos', '/emi', '/sales', '/pos-summary', '/request-refund', '/admin/refund-approvals', '/refund'],
+      'Sales': ['/pos', '/emi', '/sales', '/pos-summary', '/request-refund', '/admin/refund-approvals', '/refund', '/tracking'],
       'Purchase': ['/purchases'],
       'Store': ['/products', '/categories', '/suppliers', '/stock-reports', '/customers', '/damage'],
       'Accounting': ['/accounts', '/vouchers', '/ledger', '/accounting/expenses', '/fixed-assets', '/reports/monthly-sales-register', '/expenses'],
@@ -202,6 +202,9 @@ export default function Layout({ user, onLogout, children }) {
             {v.pos && <NavLink to="/pos" className={linkClass} onClick={closeSidebar}><Icon name="pos" /><span className="nav-text">POS</span></NavLink>}
             {v.emi && <NavLink to="/emi" className={linkClass} onClick={closeSidebar}><Icon name="emi" /><span className="nav-text">EMI</span></NavLink>}
             {v.tracking && <NavLink to="/tracking" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Order Tracking</span></NavLink>}
+            {v.tracking && isAdmin && <NavLink to="/tracking/branches" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Management</span></NavLink>}
+            {v.tracking && ((user?.groups || []).includes('driver') || isAdmin) && <NavLink to="/tracking/driver" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">My Deliveries</span></NavLink>}
+            {v.tracking && ((user?.groups || []).includes('branch') || isAdmin) && <NavLink to="/tracking/branch" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Orders</span></NavLink>}
             {v.sales && <NavLink to="/sales/new" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Create Sales Invoice</span></NavLink>}
             {v.sales && <NavLink to="/sales" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Sales History</span></NavLink>}
             {v.sales && <NavLink to="/sales/payment-in" className={linkClass} onClick={closeSidebar}><Icon name="paymentin" /><span className="nav-text">Payment In</span></NavLink>}
