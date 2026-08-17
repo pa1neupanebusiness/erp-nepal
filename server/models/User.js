@@ -6,8 +6,9 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, enum: ['super_admin', 'admin', 'hr', 'user'], default: 'user' },
-  groups: [{ type: String, enum: ['pos', 'inventory', 'accounts', 'hr'] }],
+  groups: [{ type: String, enum: ['pos', 'inventory', 'accounts', 'hr', 'driver', 'branch'] }],
   company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
+  branch: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', default: null },
   isCompanySuperAdmin: { type: Boolean, default: false },
   isActive: { type: Boolean, default: true },
 }, { timestamps: true });

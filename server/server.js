@@ -27,6 +27,39 @@ app.use('/api/setup', require('./routes/setup'));
 app.use('/api/date-format', require('./routes/dateFormat'));
 app.use('/api/companies', require('./routes/companies'));
 
+app.get('/api/public/track/:trackingNumber', async (req, res) => {
+  try {
+    const OrderTracking = require('./models/OrderTracking');
+    const item = await OrderTracking.findOne({ trackingNumber: req.params.trackingNumber })
+      .populate('customer', 'name phone address')
+      .populate('branch', 'name address phone')
+      .populate('driver', 'name phone')
+      .populate('events.updatedBy', 'name');
+    if (!item) return res.status(404).json({ message: 'No tracking record found for this number' });
+    res.json({
+      orderNumber: item.orderNumber,
+      status: item.status,
+      carrier: item.carrier,
+      trackingNumber: item.trackingNumber,
+      estimatedDelivery: item.estimatedDelivery,
+      currentLocation: item.currentLocation,
+      branch: item.branch ? { name: item.branch.name, address: item.branch.address, phone: item.branch.phone } : null,
+      driver: item.driver ? { name: item.driver.name } : null,
+      events: item.events.map(e => ({
+        status: e.status,
+        location: e.location,
+        note: e.note,
+        timestamp: e.timestamp,
+        updatedBy: e.updatedBy?.name || '',
+      })),
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    });
+  } catch (_) {
+    res.status(500).json({ message: 'Failed to fetch tracking info' });
+  }
+});
+
 app.use(companyScope);
 app.use(fiscalYearFilter);
 app.use('/api/fiscal-years', require('./routes/fiscalYears'));
@@ -61,6 +94,7 @@ app.use('/api/audit', require('./routes/audit'));
 app.use('/api/backup', require('./routes/backup'));
   app.use('/api/system', require('./routes/system'));
   app.use('/api/tracking', require('./routes/tracking'));
+  app.use('/api/branches', require('./routes/branches'));
 app.use('/api', require('./routes/assistant'));
 
 const { protect } = require('./middleware/auth');
