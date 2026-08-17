@@ -1,5 +1,6 @@
 const express = require('express');
 const OrderTracking = require('../models/OrderTracking');
+const Company = require('../models/Company');
 const Branch = require('../models/Branch');
 const Sale = require('../models/Sale');
 const { protect, adminOnly, requireTrackingModule } = require('../middleware/auth');
@@ -13,6 +14,16 @@ function isDriver(user) {
 function isBranchStaff(user) {
   return user && Array.isArray(user.groups) && user.groups.includes('branch');
 }
+
+router.get('/available-sales', protect, adminOnly, requireTrackingModule, async (req, res) => {
+  const trackedOrderIds = await OrderTracking.find({ company: req.companyId }).distinct('orderId');
+  const sales = await Sale.find({ ...req.companyFilter, _id: { $nin: trackedOrderIds } })
+    .populate('customer', 'name phone address')
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .select('invoiceNumber customer grandTotal date items');
+  res.json(sales);
+});
 
 router.get('/company-stats', protect, requireTrackingModule, async (req, res) => {
   const stats = await OrderTracking.aggregate([
@@ -98,12 +109,20 @@ router.get('/', protect, requireTrackingModule, async (req, res) => {
 });
 
 router.post('/', protect, adminOnly, requireTrackingModule, async (req, res) => {
-  const { orderId, carrier, trackingNumber, estimatedDelivery, note } = req.body;
+  const { orderId, carrier, estimatedDelivery, note } = req.body;
   if (!orderId) return res.status(400).json({ message: 'orderId is required' });
   const existing = await OrderTracking.findOne({ orderId, company: req.companyId });
   if (existing) return res.status(400).json({ message: 'Tracking already exists for this order' });
   const sale = await Sale.findOne({ _id: orderId, ...req.companyFilter }).populate('customer', 'name');
   if (!sale) return res.status(404).json({ message: 'Sale not found' });
+
+  const company = await Company.findById(req.companyId);
+  if (!company) return res.status(404).json({ message: 'Company not found' });
+  company.trackingCounter = (company.trackingCounter || 0) + 1;
+  await company.save();
+  const seq = String(company.trackingCounter).padStart(5, '0');
+  const trackingNumber = `TRK-${seq}`;
+
   const tracking = await OrderTracking.create({
     orderId: sale._id,
     orderNumber: sale.invoiceNumber,
@@ -111,7 +130,7 @@ router.post('/', protect, adminOnly, requireTrackingModule, async (req, res) => 
     customerName: sale.customer?.name || '',
     status: 'pending',
     carrier: carrier || '',
-    trackingNumber: trackingNumber || '',
+    trackingNumber,
     estimatedDelivery: estimatedDelivery || undefined,
     company: req.companyId,
     events: [{ status: 'pending', note: note || 'Order tracking created', updatedBy: req.user._id, updatedByRole: req.user.role }],

@@ -1,0 +1,64 @@
+export function printTrackingLabel(tracking, company) {
+  const html = `<!DOCTYPE html><html><head><style>
+    @page { size: 80mm 50mm; margin: 3mm; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Courier New', monospace; font-size: 11px; width: 74mm; padding: 2mm; }
+    .label { border: 2px solid #000; padding: 3mm; }
+    .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 2mm; margin-bottom: 2mm; }
+    .company { font-size: 13px; font-weight: bold; letter-spacing: 1px; }
+    .sub { font-size: 8px; color: #555; margin-top: 1mm; }
+    .tracking-num { text-align: center; font-size: 22px; font-weight: bold; letter-spacing: 3px; margin: 3mm 0; padding: 2mm; border: 1px solid #000; background: #f5f5f5; }
+    .barcode { text-align: center; margin: 2mm 0; }
+    .barcode-line { display: inline-block; width: 1.5px; background: #000; margin: 0 0.5px; vertical-align: bottom; }
+    .details { display: grid; grid-template-columns: 1fr 1fr; gap: 1mm 3mm; font-size: 9px; }
+    .details .label-text { color: #666; }
+    .details .value { font-weight: bold; }
+    .footer { text-align: center; font-size: 8px; border-top: 1px dashed #000; padding-top: 2mm; margin-top: 2mm; color: #555; }
+    .route { font-size: 8px; text-align: center; margin-top: 2mm; border: 1px solid #000; padding: 1mm; }
+  </style></head><body>
+    <div class="label">
+      <div class="header">
+        <div class="company">${escape(company?.name || 'ERP')}</div>
+        <div class="sub">${escape(company?.address || '')} ${company?.phone ? '| ' + escape(company.phone) : ''}</div>
+      </div>
+      <div class="tracking-num">${escape(tracking.trackingNumber)}</div>
+      <div class="details">
+        <div><span class="label-text">Order:</span> <span class="value">${escape(tracking.orderNumber)}</span></div>
+        <div><span class="label-text">Status:</span> <span class="value">${escape(tracking.status?.replace(/_/g, ' ').toUpperCase())}</span></div>
+        <div><span class="label-text">To:</span> <span class="value">${escape(tracking.customerName || tracking.customer?.name || '-')}</span></div>
+        <div><span class="label-text">Carrier:</span> <span class="value">${escape((tracking.carrier || 'N/A').toUpperCase())}</span></div>
+      </div>
+      ${tracking.branch ? `<div class="route">Branch: ${escape(tracking.branch.name || '')} | Driver: ${escape(tracking.driver?.name || 'Unassigned')}</div>` : ''}
+      <div class="footer">
+        Track at: ${escape(window.location.origin)}/track/${escape(tracking.trackingNumber)}
+      </div>
+    </div>
+  </body></html>`;
+
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '80mm';
+  iframe.style.height = '50mm';
+  iframe.style.zIndex = '-1';
+  iframe.style.opacity = '0.01';
+  document.body.appendChild(iframe);
+  const idoc = iframe.contentWindow.document;
+  idoc.open();
+  idoc.write(html);
+  idoc.close();
+  const w = iframe.contentWindow;
+  const cleanup = () => { if (iframe.parentNode) iframe.parentNode.removeChild(iframe); };
+  const tryPrint = () => {
+    try { w.focus(); w.print(); } catch (_) { /* ignore */ }
+    cleanup();
+  };
+  if (idoc.readyState === 'complete') setTimeout(tryPrint, 300);
+  else iframe.onload = () => setTimeout(tryPrint, 400);
+  setTimeout(cleanup, 60000);
+}
+
+function escape(str) {
+  return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}

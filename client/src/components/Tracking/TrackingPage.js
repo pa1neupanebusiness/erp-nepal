@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../api';
 import { useToast } from '../UI/Toast';
 import { adToBsStr } from '../UI/NepaliDatePicker';
+import { printTrackingLabel } from './printTrackingLabel';
 
 const STATUS_LABELS = {
   pending: 'Pending',
@@ -21,7 +22,7 @@ const STATUS_COLORS = {
   returned: 'badge-danger',
 };
 
-const CARRIERS = ['', 'fedex', 'dhl', 'pathao', 'custom'];
+const CARRIERS = ['fedex', 'dhl', 'pathao', 'custom'];
 
 export default function TrackingPage() {
   const addToast = useToast();
@@ -34,11 +35,14 @@ export default function TrackingPage() {
   const [search, setSearch] = useState('');
   const [detail, setDetail] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [createForm, setCreateForm] = useState({ orderId: '', carrier: '', trackingNumber: '', estimatedDelivery: '', note: '' });
+  const [availableSales, setAvailableSales] = useState([]);
+  const [selectedSale, setSelectedSale] = useState(null);
+  const [createForm, setCreateForm] = useState({ carrier: '', estimatedDelivery: '', note: '' });
   const [updateForm, setUpdateForm] = useState({ status: '', location: '', note: '', carrier: '', trackingNumber: '' });
   const [saving, setSaving] = useState(false);
+  const [company, setCompany] = useState(null);
 
-  useEffect(() => { load(); loadStats(); }, []);
+  useEffect(() => { load(); loadStats(); api.get('/company').then(r => setCompany(r.data)).catch(() => {}); }, []);
 
   const load = () => {
     const params = {};
@@ -51,6 +55,17 @@ export default function TrackingPage() {
     api.get('/tracking/company-stats').then(r => setStats(r.data)).catch(() => {});
   };
 
+  const loadAvailableSales = () => {
+    api.get('/tracking/available-sales').then(r => setAvailableSales(r.data)).catch(() => {});
+  };
+
+  const openCreate = () => {
+    setShowCreate(true);
+    setSelectedSale(null);
+    setCreateForm({ carrier: '', estimatedDelivery: '', note: '' });
+    loadAvailableSales();
+  };
+
   const loadDetail = (orderId) => {
     api.get(`/tracking/${orderId}`).then(r => {
       setDetail(r.data);
@@ -59,15 +74,21 @@ export default function TrackingPage() {
   };
 
   const handleCreate = async () => {
-    if (!createForm.orderId) return addToast('Enter an Order ID', 'error');
+    if (!selectedSale) return addToast('Select a sale order first', 'error');
     setSaving(true);
     try {
-      await api.post('/tracking', createForm);
-      addToast('Tracking created', 'success');
+      const { data } = await api.post('/tracking', {
+        orderId: selectedSale._id,
+        carrier: createForm.carrier,
+        estimatedDelivery: createForm.estimatedDelivery || undefined,
+        note: createForm.note,
+      });
+      addToast(`Tracking created: ${data.trackingNumber}`, 'success');
       setShowCreate(false);
-      setCreateForm({ orderId: '', carrier: '', trackingNumber: '', estimatedDelivery: '', note: '' });
+      setSelectedSale(null);
       load();
       loadStats();
+      printTrackingLabel(data, company);
     } catch (err) {
       addToast(err.response?.data?.message || 'Failed to create tracking', 'error');
     } finally {
@@ -97,7 +118,7 @@ export default function TrackingPage() {
     <div>
       <div className="page-header">
         <h1>Order Tracking <span className="badge badge-info">{stats.total || 0}</span></h1>
-        {isAdmin && <button className="btn btn-primary" onClick={() => setShowCreate(!showCreate)}>{showCreate ? 'Cancel' : 'Add Tracking'}</button>}
+        {isAdmin && <button className="btn btn-primary" onClick={showCreate ? () => setShowCreate(false) : openCreate}>{showCreate ? 'Cancel' : 'Add Tracking'}</button>}
       </div>
 
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
@@ -112,20 +133,74 @@ export default function TrackingPage() {
 
       {isAdmin && showCreate && (
         <div className="card" style={{ marginBottom: '1rem' }}>
-          <h3>Add Order Tracking</h3>
-          <div className="form-grid">
-            <div className="form-group"><label>Order ID *</label><input value={createForm.orderId} onChange={e => setCreateForm({ ...createForm, orderId: e.target.value })} placeholder="Sale _id" /></div>
-            <div className="form-group"><label>Carrier</label>
-              <select value={createForm.carrier} onChange={e => setCreateForm({ ...createForm, carrier: e.target.value })}>
-                <option value="">None</option>
-                {CARRIERS.filter(Boolean).map(c => <option key={c} value={c}>{c.toUpperCase()}</option>)}
-              </select>
+          <h3>Create Order Tracking</h3>
+          <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '0.75rem' }}>Select a sale order from the list below. Tracking number will be auto-generated.</p>
+
+          <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+            <label style={{ fontWeight: 600 }}>Select Sale Order *</label>
+            <input
+              type="text"
+              placeholder="Search by invoice number or customer name..."
+              style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border)', marginBottom: '0.5rem' }}
+              onChange={(e) => {
+                const q = e.target.value.toLowerCase();
+                if (!q) { loadAvailableSales(); return; }
+                setAvailableSales(prev => prev.filter(s =>
+                  (s.invoiceNumber || '').toLowerCase().includes(q) ||
+                  (s.customer?.name || '').toLowerCase().includes(q)
+                ));
+              }}
+            />
+            <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px' }}>
+              {availableSales.length === 0 && <p style={{ padding: '1rem', color: '#64748b', textAlign: 'center', fontSize: '0.85rem' }}>No untracked sales available</p>}
+              {availableSales.map(s => (
+                <div key={s._id}
+                  onClick={() => setSelectedSale(s)}
+                  style={{
+                    padding: '0.6rem 0.75rem', cursor: 'pointer', borderBottom: '1px solid var(--border)',
+                    background: selectedSale?._id === s._id ? '#eff6ff' : 'transparent',
+                    borderLeft: selectedSale?._id === s._id ? '3px solid #3b82f6' : '3px solid transparent',
+                    transition: 'all 0.15s',
+                  }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <strong style={{ fontSize: '0.9rem' }}>{s.invoiceNumber}</strong>
+                      <span style={{ color: '#64748b', fontSize: '0.8rem', marginLeft: '0.5rem' }}>{s.customer?.name || 'Walk-in'}</span>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{formatNPR(s.grandTotal)}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{s.date ? new Date(s.date).toLocaleDateString('en-GB') : ''}</div>
+                    </div>
+                  </div>
+                  {selectedSale?._id === s._id && (
+                    <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: '#dbeafe', borderRadius: '6px', fontSize: '0.8rem' }}>
+                      <div><strong>Customer:</strong> {s.customer?.name || 'Walk-in'} {s.customer?.phone ? `| ${s.customer.phone}` : ''}</div>
+                      <div><strong>Items:</strong> {(s.items || []).map(i => i.name || i.productName).filter(Boolean).join(', ') || '-'}</div>
+                      <div style={{ marginTop: '0.25rem', color: '#1d4ed8', fontWeight: 600 }}>Tracking number will be auto-generated after creation</div>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-            <div className="form-group"><label>Tracking Number</label><input value={createForm.trackingNumber} onChange={e => setCreateForm({ ...createForm, trackingNumber: e.target.value })} /></div>
-            <div className="form-group"><label>Est. Delivery</label><input type="date" value={createForm.estimatedDelivery} onChange={e => setCreateForm({ ...createForm, estimatedDelivery: e.target.value })} /></div>
-            <div className="form-group"><label>Note</label><input value={createForm.note} onChange={e => setCreateForm({ ...createForm, note: e.target.value })} /></div>
           </div>
-          <button className="btn btn-primary" onClick={handleCreate} disabled={saving}>{saving ? 'Creating...' : 'Create Tracking'}</button>
+
+          {selectedSale && (
+            <div className="form-grid" style={{ marginTop: '0.75rem' }}>
+              <div className="form-group"><label>Carrier</label>
+                <select value={createForm.carrier} onChange={e => setCreateForm({ ...createForm, carrier: e.target.value })}>
+                  <option value="">Select carrier...</option>
+                  {CARRIERS.map(c => <option key={c} value={c}>{c.toUpperCase()}</option>)}
+                </select>
+              </div>
+              <div className="form-group"><label>Est. Delivery</label><input type="date" value={createForm.estimatedDelivery} onChange={e => setCreateForm({ ...createForm, estimatedDelivery: e.target.value })} /></div>
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Note</label><input value={createForm.note} onChange={e => setCreateForm({ ...createForm, note: e.target.value })} placeholder="Optional note" /></div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
+            <button className="btn btn-primary" onClick={handleCreate} disabled={saving || !selectedSale}>{saving ? 'Creating...' : 'Create Tracking'}</button>
+            <button className="btn btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
+          </div>
         </div>
       )}
 
@@ -145,10 +220,13 @@ export default function TrackingPage() {
                   <td>{t.customerName || t.customer?.name || '-'}</td>
                   <td><span className={`badge ${STATUS_COLORS[t.status] || 'badge-secondary'}`}>{STATUS_LABELS[t.status] || t.status}</span></td>
                   <td>{t.carrier ? t.carrier.toUpperCase() : '-'}</td>
-                  <td>{t.trackingNumber || '-'}</td>
+                  <td><code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '0.8rem' }}>{t.trackingNumber || '-'}</code></td>
                   <td>{t.estimatedDelivery ? adToBsStr(new Date(t.estimatedDelivery)) : '-'}</td>
                   <td>{new Date(t.updatedAt).toLocaleDateString('en-GB')}</td>
-                  <td><button className="btn btn-sm" onClick={() => loadDetail(t.orderId._id || t.orderId)}>View</button></td>
+                  <td className="action-cell">
+                    <button className="btn btn-sm" onClick={() => loadDetail(t.orderId._id || t.orderId)}>View</button>
+                    {t.trackingNumber && <button className="btn btn-sm" onClick={() => printTrackingLabel(t, company)} title="Print tracking label">Print</button>}
+                  </td>
                 </tr>
               ))}
               {items.length === 0 && <tr><td colSpan="8" className="text-center">No tracking records</td></tr>}
@@ -162,15 +240,19 @@ export default function TrackingPage() {
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 700, maxHeight: '90vh', overflowY: 'auto' }}>
             <div className="modal-header">
               <h3 style={{ margin: 0 }}>Tracking - {detail.orderNumber}</h3>
-              <button className="btn btn-sm modal-close-x" onClick={() => setDetail(null)}>&times;</button>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                {detail.trackingNumber && <button className="btn btn-sm" onClick={() => printTrackingLabel(detail, company)}>Print Label</button>}
+                <button className="btn btn-sm modal-close-x" onClick={() => setDetail(null)}>&times;</button>
+              </div>
             </div>
             <div className="modal-body">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
                 <div><strong>Customer:</strong> {detail.customerName || detail.customer?.name || '-'}</div>
                 <div><strong>Status:</strong> <span className={`badge ${STATUS_COLORS[detail.status]}`}>{STATUS_LABELS[detail.status]}</span></div>
                 <div><strong>Carrier:</strong> {detail.carrier ? detail.carrier.toUpperCase() : '-'}</div>
-                <div><strong>Tracking #:</strong> {detail.trackingNumber || '-'}</div>
+                <div><strong>Tracking #:</strong> <code style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px' }}>{detail.trackingNumber || '-'}</code></div>
                 <div><strong>Est. Delivery:</strong> {detail.estimatedDelivery ? adToBsStr(new Date(detail.estimatedDelivery)) : '-'}</div>
+                <div><strong>Current Location:</strong> {detail.currentLocation || '-'}</div>
               </div>
 
               {isAdmin && (
@@ -186,11 +268,10 @@ export default function TrackingPage() {
                     <div className="form-group"><label>Carrier</label>
                       <select value={updateForm.carrier} onChange={e => setUpdateForm({ ...updateForm, carrier: e.target.value })}>
                         <option value="">None</option>
-                        {CARRIERS.filter(Boolean).map(c => <option key={c} value={c}>{c.toUpperCase()}</option>)}
+                        {CARRIERS.map(c => <option key={c} value={c}>{c.toUpperCase()}</option>)}
                       </select>
                     </div>
-                    <div className="form-group"><label>Tracking Number</label><input value={updateForm.trackingNumber} onChange={e => setUpdateForm({ ...updateForm, trackingNumber: e.target.value })} /></div>
-                    <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Note</label><input value={updateForm.note} onChange={e => setUpdateForm({ ...updateForm, note: e.target.value })} placeholder="Optional note" /></div>
+                    <div className="form-group"><label>Note</label><input value={updateForm.note} onChange={e => setUpdateForm({ ...updateForm, note: e.target.value })} placeholder="Optional note" /></div>
                   </div>
                   <button className="btn btn-primary" onClick={handleStatusUpdate} disabled={saving}>{saving ? 'Saving...' : 'Update Status'}</button>
                 </div>

@@ -272,8 +272,8 @@ export default function Layout({ user, onLogout, children }) {
           </NavSection>}
 
           {v.settings && <NavSection title="Admin" paths={['/company-settings', '/users', '/tracking/branches']} activeSection={activeSection} onToggle={toggleSection}>
-            <NavLink to="/company-settings" className={linkClass} onClick={closeSidebar}><Icon name="settings" /><span className="nav-text">Company Settings</span></NavLink>}
-            <NavLink to="/users" className={linkClass} onClick={closeSidebar}><Icon name="employee" /><span className="nav-text">User Management</span></NavLink>}
+            <NavLink to="/company-settings" className={linkClass} onClick={closeSidebar}><Icon name="settings" /><span className="nav-text">Company Settings</span></NavLink>
+            <NavLink to="/users" className={linkClass} onClick={closeSidebar}><Icon name="employee" /><span className="nav-text">User Management</span></NavLink>
             {v.tracking && <NavLink to="/tracking/branches" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Management</span></NavLink>}
           </NavSection>}
         </div>
