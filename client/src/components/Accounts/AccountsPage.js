@@ -9,6 +9,7 @@ import Banks from './Banks';
 import { formatDate as fmtDate } from '../UI/printEntry';
 import { showConfirm } from '../UI/ConfirmDialog';
 import { printHtmlDocument } from '../UI/printCommon';
+import { sortByDate } from '../../utils/timeService';
 import { ADToBS } from 'bikram-sambat-js';
 import NepaliDatePicker, { adToBsStr, bsToADStr } from '../UI/NepaliDatePicker';
 
@@ -292,7 +293,7 @@ function JournalEntryList() {
     if (endDate) params.endDate = bsToADStr(endDate);
     if (bankFilter) params.bankId = bankFilter;
     params.excludeSource = 'MONTH_END';
-    api.get('/journal-entries', { params }).then(r => setEntries(r.data.sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0)))).catch(() => {});
+    api.get('/journal-entries', { params }).then(r => setEntries(sortByDate(r.data))).catch(() => {});
     api.get('/accounts').then(r => setAccounts(r.data)).catch(() => {});
   };
 
@@ -429,9 +430,7 @@ function JournalEntryList() {
 
   const formatNPR = (n) => 'Rs. ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
 
-  const displayedEntries = newestFirst
-    ? entries.slice().sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0))
-    : entries.slice().sort((a, b) => new Date(a.date || a.createdAt || 0) - new Date(b.date || b.createdAt || 0));
+  const displayedEntries = sortByDate(entries, newestFirst);
 
   return (
     <div>
@@ -461,9 +460,14 @@ function JournalEntryList() {
         </div>
       </div>
       {showForm && (
-        <form onSubmit={handleSubmit} className="card form-card">
-          <h3>{editing ? 'Edit Journal Entry' : 'New Journal Entry'}</h3>
-          <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 760, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="modal-header">
+              <h3 style={{ margin: 0 }}>{editing ? 'Edit Journal Entry' : 'New Journal Entry'}</h3>
+              <button type="button" className="btn btn-sm modal-close-x" onClick={() => setShowForm(false)} title="Close">&times;</button>
+            </div>
+            <form onSubmit={handleSubmit} className="form-card">
+              <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
             <div className="form-group"><label>Date</label><NepaliDatePicker value={form.date} onChange={val => setForm({ ...form, date: val })} /></div>
             <div className="form-group"><label>Miti (Nepali)</label><div className="miti-display">{mitiStr || '-'}</div></div>
             <div className="form-group"><label>Reference</label><input value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })} /></div>
@@ -522,8 +526,13 @@ function JournalEntryList() {
               </tr>
             </tfoot>
           </table>
-          <button type="submit" className="btn btn-primary" disabled={!balanced || controlMissing || posting}>{posting ? 'Saving...' : (editing ? 'Update Entry' : 'Post Entry')}</button>
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+            <button type="button" className="btn btn-sm btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={!balanced || controlMissing || posting}>{posting ? 'Saving...' : (editing ? 'Update Entry' : 'Post Entry')}</button>
+          </div>
         </form>
+          </div>
+        </div>
       )}
       <div className="card">
         <div className="table-responsive">

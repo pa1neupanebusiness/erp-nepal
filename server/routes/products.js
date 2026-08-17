@@ -87,7 +87,13 @@ router.put('/:id', protect, async (req, res) => {
   res.json(item);
 });
 
-router.post('/:id/adjust-stock', protect, superAdminOnly, async (req, res) => {
+router.post('/:id/adjust-stock', protect, (req, res, next) => {
+  if (req.user && (req.user.role === 'super_admin' || req.user.role === 'admin')) {
+    next();
+  } else {
+    return res.status(403).json({ message: 'Super admin or admin access required' });
+  }
+}, async (req, res) => {
   const { quantity, type, note } = req.body;
   const product = await Product.findOne({ _id: req.params.id, ...req.companyFilter });
   if (!product) return res.status(404).json({ message: 'Product not found' });
