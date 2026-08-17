@@ -112,7 +112,8 @@ export default function Layout({ user, onLogout, children }) {
     const path = location.pathname;
     if (path === '/' || path === '/login') { setActiveSection(null); return; }
     const sectionMap = {
-      'Sales': ['/pos', '/emi', '/sales', '/pos-summary', '/request-refund', '/admin/refund-approvals', '/refund', '/tracking'],
+      'Sales': ['/pos', '/emi', '/sales', '/pos-summary', '/request-refund', '/admin/refund-approvals', '/refund'],
+      'Courier': ['/tracking'],
       'Purchase': ['/purchases'],
       'Store': ['/products', '/categories', '/suppliers', '/stock-reports', '/customers', '/damage'],
       'Accounting': ['/accounts', '/vouchers', '/ledger', '/accounting/expenses', '/fixed-assets', '/reports/monthly-sales-register', '/expenses'],
@@ -159,7 +160,8 @@ export default function Layout({ user, onLogout, children }) {
     settings: mod('settings') && isAdmin,
     tracking: mod('tracking') && hasGroup('pos'),
   };
-  const salesVisible = !isSuperAdmin && (v.pos || v.sales || v.emi || v.posAdmin || v.tracking);
+  const salesVisible = !isSuperAdmin && (v.pos || v.sales || v.emi || v.posAdmin);
+  const courierVisible = !isSuperAdmin && v.tracking;
   const purchaseVisible = !isSuperAdmin && v.purchase;
   const storeVisible = !isSuperAdmin && v.purchase;
   const accountingVisible = !isSuperAdmin && v.accounts;
@@ -201,10 +203,6 @@ export default function Layout({ user, onLogout, children }) {
           {salesVisible && <NavSection title="Sales" paths={['/pos', '/emi', '/sales', '/pos-summary', '/request-refund', '/admin/refund-approvals', '/refund']} activeSection={activeSection} onToggle={toggleSection}>
             {v.pos && <NavLink to="/pos" className={linkClass} onClick={closeSidebar}><Icon name="pos" /><span className="nav-text">POS</span></NavLink>}
             {v.emi && <NavLink to="/emi" className={linkClass} onClick={closeSidebar}><Icon name="emi" /><span className="nav-text">EMI</span></NavLink>}
-            {v.tracking && <NavLink to="/tracking" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Order Tracking</span></NavLink>}
-            {v.tracking && isAdmin && <NavLink to="/tracking/branches" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Management</span></NavLink>}
-            {v.tracking && ((user?.groups || []).includes('driver') || isAdmin) && <NavLink to="/tracking/driver" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">My Deliveries</span></NavLink>}
-            {v.tracking && ((user?.groups || []).includes('branch') || isAdmin) && <NavLink to="/tracking/branch" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Orders</span></NavLink>}
             {v.sales && <NavLink to="/sales/new" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Create Sales Invoice</span></NavLink>}
             {v.sales && <NavLink to="/sales" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Sales History</span></NavLink>}
             {v.sales && <NavLink to="/sales/payment-in" className={linkClass} onClick={closeSidebar}><Icon name="paymentin" /><span className="nav-text">Payment In</span></NavLink>}
@@ -213,6 +211,12 @@ export default function Layout({ user, onLogout, children }) {
             {v.pos && <NavLink to="/request-refund" className={linkClass} onClick={closeSidebar}><Icon name="refund" /><span className="nav-text">Request Refund</span></NavLink>}
             {v.posAdmin && <NavLink to="/admin/refund-approvals" className={linkClass} onClick={closeSidebar}><Icon name="approval" /><span className="nav-text">Refund Approvals</span></NavLink>}
             {v.posAdmin && <NavLink to="/refund" className={linkClass} onClick={closeSidebar}><Icon name="refund" /><span className="nav-text">Direct Refund</span></NavLink>}
+          </NavSection>}
+
+          {courierVisible && <NavSection title="Courier" paths={['/tracking']} activeSection={activeSection} onToggle={toggleSection}>
+            <NavLink to="/tracking" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Order Tracking</span></NavLink>
+            {((user?.groups || []).includes('branch') || isAdmin) && <NavLink to="/tracking/branch" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Orders</span></NavLink>}
+            {((user?.groups || []).includes('driver') || isAdmin) && <NavLink to="/tracking/driver" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">My Deliveries</span></NavLink>}
           </NavSection>}
 
           {purchaseVisible && <NavSection title="Purchase" paths={['/purchases', '/purchases/payment-out', '/purchases/returns']} activeSection={activeSection} onToggle={toggleSection}>
@@ -267,9 +271,10 @@ export default function Layout({ user, onLogout, children }) {
             <NavLink to="/admin/companies" className={linkClass} onClick={closeSidebar}><Icon name="company" /><span className="nav-text">Companies</span></NavLink>
           </NavSection>}
 
-          {v.settings && <NavSection title="Admin" paths={['/company-settings', '/users']} activeSection={activeSection} onToggle={toggleSection}>
-            <NavLink to="/company-settings" className={linkClass} onClick={closeSidebar}><Icon name="settings" /><span className="nav-text">Company Settings</span></NavLink>
-            <NavLink to="/users" className={linkClass} onClick={closeSidebar}><Icon name="employee" /><span className="nav-text">User Management</span></NavLink>
+          {v.settings && <NavSection title="Admin" paths={['/company-settings', '/users', '/tracking/branches']} activeSection={activeSection} onToggle={toggleSection}>
+            <NavLink to="/company-settings" className={linkClass} onClick={closeSidebar}><Icon name="settings" /><span className="nav-text">Company Settings</span></NavLink>}
+            <NavLink to="/users" className={linkClass} onClick={closeSidebar}><Icon name="employee" /><span className="nav-text">User Management</span></NavLink>}
+            {v.tracking && <NavLink to="/tracking/branches" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Management</span></NavLink>}
           </NavSection>}
         </div>
         <div className="sidebar-footer">
