@@ -43,6 +43,7 @@ const Icon = ({ name, size = 18, color = 'currentColor' }) => {
     paymentin: <path d="M12 5v14M5 12h14M9 8l3-3 3 3M9 16l3 3 3-3" />,
     paymentout: <path d="M12 5v14M5 12h14M9 8l3-3 3 3M9 16l3 3 3-3" />,
     salesreturn: <path d="M9 15l-5 5m0-5l5 5M3 3h7a7 7 0 017 7v4M9 3a3 3 0 00-3 3v12" />,
+    tracking: <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z" />,
     purchasereturn: <path d="M9 15l-5 5m0-5l5 5M3 3h7a7 7 0 017 7v4M9 3a3 3 0 00-3 3v12" />,
     menu: <path d="M3 12h18M3 6h18M3 18h18" />,
     close: <path d="M18 6L6 18M6 6l12 12" />,
@@ -156,8 +157,9 @@ export default function Layout({ user, onLogout, children }) {
     reports: mod('reports') && hasGroup('accounts'),
     hr: mod('hr') && hasGroup('hr'),
     settings: mod('settings') && isAdmin,
+    tracking: mod('tracking') && hasGroup('pos'),
   };
-  const salesVisible = !isSuperAdmin && (v.pos || v.sales || v.emi || v.posAdmin);
+  const salesVisible = !isSuperAdmin && (v.pos || v.sales || v.emi || v.posAdmin || v.tracking);
   const purchaseVisible = !isSuperAdmin && v.purchase;
   const storeVisible = !isSuperAdmin && v.purchase;
   const accountingVisible = !isSuperAdmin && v.accounts;
@@ -199,6 +201,7 @@ export default function Layout({ user, onLogout, children }) {
           {salesVisible && <NavSection title="Sales" paths={['/pos', '/emi', '/sales', '/pos-summary', '/request-refund', '/admin/refund-approvals', '/refund']} activeSection={activeSection} onToggle={toggleSection}>
             {v.pos && <NavLink to="/pos" className={linkClass} onClick={closeSidebar}><Icon name="pos" /><span className="nav-text">POS</span></NavLink>}
             {v.emi && <NavLink to="/emi" className={linkClass} onClick={closeSidebar}><Icon name="emi" /><span className="nav-text">EMI</span></NavLink>}
+            {v.tracking && <NavLink to="/tracking" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Order Tracking</span></NavLink>}
             {v.sales && <NavLink to="/sales/new" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Create Sales Invoice</span></NavLink>}
             {v.sales && <NavLink to="/sales" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Sales History</span></NavLink>}
             {v.sales && <NavLink to="/sales/payment-in" className={linkClass} onClick={closeSidebar}><Icon name="paymentin" /><span className="nav-text">Payment In</span></NavLink>}

@@ -20,6 +20,7 @@ import SalesList from './components/Sales/SalesList';
 import CreateSalesInvoice from './components/Sales/CreateSalesInvoice';
 import SalesEdit from './components/Sales/SalesEdit';
 import EmiPage from './components/Sales/EmiPage';
+import TrackingPage from './components/Tracking/TrackingPage';
 import Refund from './components/Sales/Refund';
 import RefundRequest from './components/Sales/RefundRequest';
 import RefundApproval from './components/Admin/RefundApproval';
@@ -186,6 +187,7 @@ function AppContent() {
           <Route path="/sales/payment-in" element={<PaymentIn />} />
           <Route path="/sales/returns" element={<SalesReturn />} />
           <Route path="/emi" element={(user?.role === 'super_admin' || (user?.company?.enabledModules || []).includes('emi')) ? <EmiPage /> : <Navigate to="/" />} />
+          <Route path="/tracking" element={(user?.role === 'super_admin' || (user?.company?.enabledModules || []).includes('tracking')) ? <TrackingPage /> : <Navigate to="/" />} />
           <Route path="/refund" element={<Refund />} />
           <Route path="/request-refund" element={<RefundRequest />} />
           <Route path="/admin/refund-approvals" element={<RefundApproval />} />

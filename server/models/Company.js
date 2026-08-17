@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const MODULE_OPTIONS = ['pos', 'sales', 'emi', 'purchase', 'accounts', 'reports', 'hr', 'settings'];
+const MODULE_OPTIONS = ['pos', 'sales', 'emi', 'purchase', 'accounts', 'reports', 'hr', 'settings', 'tracking'];
 const DEFAULT_MODULES = ['sales', 'emi', 'purchase', 'accounts', 'reports', 'settings'];
 
 const companySchema = new mongoose.Schema({

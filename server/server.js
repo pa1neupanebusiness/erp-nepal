@@ -59,7 +59,8 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/daybook', require('./routes/daybook'));
 app.use('/api/audit', require('./routes/audit'));
 app.use('/api/backup', require('./routes/backup'));
-app.use('/api/system', require('./routes/system'));
+  app.use('/api/system', require('./routes/system'));
+  app.use('/api/tracking', require('./routes/tracking'));
 app.use('/api', require('./routes/assistant'));
 
 const { protect } = require('./middleware/auth');
