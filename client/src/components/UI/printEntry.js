@@ -1,6 +1,7 @@
 import { openPrintWindow } from './printCommon';
 
 export function escapeHtml(s) {
+  if (s && typeof s === 'object') s = s.name || s.label || '';
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 

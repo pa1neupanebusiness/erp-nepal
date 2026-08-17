@@ -205,7 +205,8 @@ router.post('/', adminOnly, async (req, res) => {
       });
 
       if (paymentMethod === 'qr' && bankId) {
-        await adjustBankBalance(bankId, grandTotal, req.companyFilter).catch(e => console.error('Courier bank adjust error:', e.message));
+        const updated = await adjustBankBalance(bankId, grandTotal, req.companyFilter);
+        if (!updated) console.error(`adjustBankBalance returned null - bankId ${bankId} not found or company mismatch`);
       }
     }
   } catch (jeErr) {

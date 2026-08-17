@@ -111,10 +111,9 @@ export default function Layout({ user, onLogout, children }) {
   const hasCourier = (user?.company?.enabledModules || []).includes('tracking');
 
   useEffect(() => {
-    if (!hasCourier) return;
     const mainEl = document.querySelector('.main-content');
     if (mainEl) mainEl.scrollTop = 0;
-  }, [location.pathname, hasCourier]);
+  }, [location.pathname]);
 
   useEffect(() => {
     const path = location.pathname;
@@ -222,10 +221,11 @@ export default function Layout({ user, onLogout, children }) {
             {v.posAdmin && <NavLink to="/refund" className={linkClass} onClick={closeSidebar}><Icon name="refund" /><span className="nav-text">Direct Refund</span></NavLink>}
           </NavSection>}
 
-          {courierVisible && <NavSection title="Courier" paths={['/tracking', '/courier-sales']} activeSection={activeSection} onToggle={toggleSection}>
+          {courierVisible && <NavSection title="Courier" paths={['/tracking', '/courier-sales', '/branch-deliveries']} activeSection={activeSection} onToggle={toggleSection}>
             {isAdmin && <NavLink to="/courier-sales" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Courier Sales</span></NavLink>}
             {isAdmin && <NavLink to="/courier-sales/history" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Sales History</span></NavLink>}
             <NavLink to="/tracking" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Order Tracking</span></NavLink>
+            {isAdmin && <NavLink to="/branch-deliveries" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Deliveries</span></NavLink>}
             {(user?.groups || []).includes('branch') && <NavLink to="/tracking/branch" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Orders</span></NavLink>}
             {(user?.groups || []).includes('driver') && <NavLink to="/tracking/driver" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">My Deliveries</span></NavLink>}
           </NavSection>}

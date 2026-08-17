@@ -63,7 +63,7 @@ router.get('/summary', protect, async (req, res) => {
     todayRefunds: todayRefundTotal, todayRefundCount: todayRefunds.length,
     monthRefunds: monthRefundTotal,
     cashBalance: isAdmin ? (cashBalance?.balance || 0) : undefined,
-    bankBalance: isAdmin ? (totalBankBalance || bankBalance?.balance || 0) : undefined,
+    bankBalance: isAdmin ? (bankBalance?.balance || 0) : undefined,
     stockValuation,
     banks: isAdmin ? banks : undefined,
   });

@@ -31,10 +31,12 @@ export default function CourierSalesForm() {
   const [editForm, setEditForm] = useState({});
   const [list, setList] = useState([]);
   const [showList, setShowList] = useState(false);
+  const [company, setCompany] = useState(null);
 
   useEffect(() => {
     api.get('/banks').then(r => setBanks(r.data)).catch(() => {});
     api.get('/branches').then(r => setBranches(r.data)).catch(() => {});
+    api.get('/company').then(r => setCompany(r.data)).catch(() => {});
   }, []);
 
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
@@ -243,8 +245,8 @@ export default function CourierSalesForm() {
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button className="btn btn-sm" onClick={() => { setDetail(null); setEditMode(false); }}>New Order</button>
               {!editMode && <button className="btn btn-sm" onClick={startEdit}>Edit</button>}
-              <button className="btn btn-sm" onClick={() => printCourierInvoice(detail, user.company)}>Print Invoice</button>
-              <button className="btn btn-sm" onClick={() => printDeliverySlip(detail, user.company)}>Print Delivery Slip</button>
+              <button className="btn btn-sm" onClick={() => printCourierInvoice(detail, company)}>Print Invoice</button>
+              <button className="btn btn-sm" onClick={() => printDeliverySlip(detail, company)}>Print Delivery Slip</button>
             </div>
           </div>
 

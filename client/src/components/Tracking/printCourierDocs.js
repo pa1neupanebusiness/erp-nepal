@@ -176,14 +176,13 @@ table.invoice-table th { font-weight: bold; text-align: center; font-size: 7.5px
 
     <div class="signatures-section">
       <div>
-        <div>Goods sold would not be refundable E. &amp; O.E.</div>
         <div style="margin-top: 15px;">
           <strong>Customer's signature:</strong> <span class="sig-line-dotted" style="display:inline-block; width: 120px;"></span>
         </div>
       </div>
       <div class="signature-box">
         <div style="margin-bottom: 25px;">
-          <u><strong>Seller's Signature (or For ${escapeHtml(company?.name || '')})</strong></u>
+          <u><strong>Authorized Signature</strong></u>
         </div>
         <div class="sig-line-dotted"></div>
       </div>
@@ -301,4 +300,7 @@ function printHtml(html) {
   setTimeout(cleanup, 60000);
 }
 
-function esc(str) { return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function esc(str) {
+  if (str && typeof str === 'object') str = str.name || str.label || JSON.stringify(str);
+  return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}

@@ -69,8 +69,7 @@ export default function Daybook() {
         } catch { tabs[tab.key] = { entries: [], summary: { totalDebit: 0, totalCredit: 0, cancelled: 0 } }; }
       }
       setTabData(tabs);
-      
-      // Check if selected date is closed via API
+
       try {
         const closuresRes = await api.get('/daybook-closures');
         const closures = closuresRes.data || [];
@@ -100,6 +99,22 @@ export default function Daybook() {
 
   const handleDateChange = () => { loadAll(); loadAudit(); };
 
+  const toggleDayBookClose = async () => {
+    const selectedAD = bsToADStr(date);
+    try {
+      if (isDayBookClosed) {
+        await api.delete('/daybook-closures/' + selectedAD);
+        addToast('Daybook reopened for ' + date, 'success');
+      } else {
+        await api.post('/daybook-closures', { date: selectedAD });
+        addToast('Daybook closed for ' + date, 'success');
+      }
+      loadAll();
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Failed to update daybook status', 'error');
+    }
+  };
+
   const verifyChain = async () => {
     try {
       const { data } = await api.get('/audit/verify');
@@ -116,7 +131,7 @@ export default function Daybook() {
     <div>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
-          <h1 style={{ margin: 0 }}>📚 Day Book</h1>
+          <h1 style={{ margin: 0 }}>Day Book</h1>
           <p className="text-muted" style={{ margin: '0.25rem 0 0' }}>Chronological ledger with tamper-evident IRD audit trail</p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -124,8 +139,8 @@ export default function Daybook() {
             const el = document.querySelector('.table-responsive table');
             if (el) printHtmlDocument(el.outerHTML, 'Day Book');
           }}>Print</button>
-          <button className="btn btn-secondary" onClick={verifyChain}>🔐 Verify Chain</button>
-          {isDayBookClosed ? <button className="btn btn-secondary" onClick={toggleDayBookClose}>📭 Reopen Day Book</button> : <button className="btn btn-danger" onClick={toggleDayBookClose}>Close Day Book</button>}
+          <button className="btn btn-secondary" onClick={verifyChain}>Verify Chain</button>
+          {isDayBookClosed ? <button className="btn btn-secondary" onClick={toggleDayBookClose}>Reopen Day Book</button> : <button className="btn btn-danger" onClick={toggleDayBookClose}>Close Day Book</button>}
         </div>
       </div>
 
@@ -150,30 +165,14 @@ export default function Daybook() {
 
       {verifyResult && (
         <div className="card" style={{ marginBottom: '1rem', padding: '0.75rem 1rem', borderLeft: verifyResult.valid ? '4px solid #16a34a' : '4px solid #dc2626' }}>
-          <strong style={{ color: verifyResult.valid ? '#166534' : '#991b1b' }}>{verifyResult.valid ? '✓ Audit chain verified' : `✗ Chain broken at ${verifyResult.broken.length} record(s)`}</strong>
+          <strong style={{ color: verifyResult.valid ? '#166534' : '#991b1b' }}>{verifyResult.valid ? 'Audit chain verified' : `Chain broken at ${verifyResult.broken.length} record(s)`}</strong>
         </div>
       )}
 
       <div className="tabs" style={{ marginBottom: '1rem', display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
         {DAYBOOK_TABS.map(tab => {
           const count = (tabData[tab.key]?.entries || []).length;
-  const toggleDayBookClose = async () => {
-    const selectedAD = bsToADStr(date);
-    try {
-      if (isDayBookClosed) {
-        await api.delete('/daybook-closures/' + selectedAD);
-        addToast('Daybook reopened for ' + date, 'success');
-      } else {
-        await api.post('/daybook-closures', { date: selectedAD });
-        addToast('Daybook closed for ' + date, 'success');
-      }
-      loadAll();
-    } catch (err) {
-      addToast(err.response?.data?.message || 'Failed to update daybook status', 'error');
-    }
-  };
-
-  return (
+          return (
             <button key={tab.key} className={`tab ${activeTab === tab.key ? 'active' : ''}`} onClick={() => setActiveTab(tab.key)} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               <span>{tab.icon}</span> {tab.label}
               {count > 0 && <span style={{ fontSize: '0.7rem', background: activeTab === tab.key ? '#fff' : '#e2e8f0', borderRadius: 999, padding: '0.1rem 0.4rem' }}>{count}</span>}
@@ -243,7 +242,7 @@ export default function Daybook() {
 
       <div className="card">
         <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.6rem' }}>
-          <strong>🛡️ IRD Activity Audit Log</strong>
+          <strong>IRD Activity Audit Log</strong>
           <span className="text-muted" style={{ fontSize: '0.8rem' }}>{audit.length} event(s)</span>
         </div>
         <div className="table-responsive">
@@ -258,7 +257,7 @@ export default function Daybook() {
                     <td>{a.moduleName}</td>
                     <td>{a.documentNumber}</td>
                     <td>{a.userName || a.userId?.name || '-'}</td>
-                    <td style={{ fontSize: '0.7rem', color: '#64748b', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={a.currentHash}>{a.currentHash ? a.currentHash.slice(0, 24) + '…' : '-'}</td>
+                    <td style={{ fontSize: '0.7rem', color: '#64748b', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={a.currentHash}>{a.currentHash ? a.currentHash.slice(0, 24) + '...' : '-'}</td>
                   </tr>
                 ))}
             </tbody>

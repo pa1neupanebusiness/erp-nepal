@@ -83,6 +83,31 @@ router.get('/branch-orders', protect, requireTrackingModule, async (req, res) =>
   res.json(items);
 });
 
+router.get('/branch-stats', protect, requireTrackingModule, async (req, res) => {
+  const isAdmin = req.user.role === 'super_admin' || req.user.role === 'admin';
+  const filter = { company: req.companyId };
+  if (!isAdmin && req.user.branch) filter.branch = req.user.branch;
+
+  const branches = await Branch.find({ company: req.companyId }).select('name address phone');
+  const allOrders = await OrderTracking.find({ company: req.companyId })
+    .populate('branch', 'name');
+
+  const branchMap = {};
+  for (const b of branches) {
+    branchMap[b._id.toString()] = { _id: b._id, name: b.name, address: b.address, phone: b.phone, total: 0, pending: 0, processing: 0, shipped: 0, out_for_delivery: 0, delivered: 0, returned: 0 };
+  }
+
+  for (const o of allOrders) {
+    const bId = o.branch?._id?.toString();
+    if (!bId || !branchMap[bId]) continue;
+    branchMap[bId].total++;
+    if (branchMap[bId][o.status] !== undefined) branchMap[bId][o.status]++;
+  }
+
+  const stats = Object.values(branchMap).sort((a, b) => b.total - a.total);
+  res.json(stats);
+});
+
 router.get('/track/:trackingNumber', async (req, res) => {
   try {
     const item = await OrderTracking.findOne({ trackingNumber: req.params.trackingNumber })

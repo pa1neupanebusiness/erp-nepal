@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [recentSales, setRecentSales] = useState([]);
   const [chart, setChart] = useState([]);
   const [lowStock, setLowStock] = useState([]);
+  const [branchStats, setBranchStats] = useState([]);
   const [timeGreeting, setTimeGreeting] = useState('');
   const [detail, setDetail] = useState(null);
   const [showBanks, setShowBanks] = useState(false);
@@ -36,6 +37,12 @@ export default function Dashboard() {
     api.get('/company').then(r => setCompany(r.data)).catch(() => {});
   }, [selectedYear]);
 
+  useEffect(() => {
+    if (hasCourier) {
+      api.get('/tracking/branch-stats').then(r => setBranchStats(r.data)).catch(() => {});
+    }
+  }, [hasCourier]);
+
   const formatNPR = (n) => 'Rs. ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
 
   const enabled = company?.enabledModules || [];
@@ -55,7 +62,7 @@ export default function Dashboard() {
       desc: 'Billing, sales & customers',
       items: [
         { label: 'POS / Billing', icon: <Icon name="pos" />, path: '/pos', desc: 'New sale & checkout', color: '#059669' },
-        { label: 'Sales History', icon: <Icon name="sales" />, path: '/sales', desc: 'View past sales', color: '#1e293b' },
+        { label: 'Sales History', icon: <Icon name="sales" />, path: hasCourier ? '/courier-sales/history' : '/sales', desc: 'View past sales', color: '#1e293b' },
         { label: 'Customers', icon: <Icon name="customer" />, path: '/customers', desc: 'Customer database', color: '#be185d' },
       ],
     },
@@ -114,6 +121,7 @@ export default function Dashboard() {
   const activeGroups = moduleGroups.filter(g => hasGroup(g.key));
   const activeModuleCount = activeGroups.reduce((s, g) => s + g.items.length, 0);
 
+  const salesPath = hasCourier ? '/courier-sales/history' : '/sales';
   const maxChartValue = chart.length > 0 ? Math.max(...chart.map(x => x.total), 0.01) : 1;
 
   return (
@@ -136,7 +144,7 @@ export default function Dashboard() {
       <div className="kpi-grid">
         {isAdmin ? (
           <>
-            <div className="kpi-card kpi-today" style={{ cursor: 'pointer' }} onClick={() => navigate('/sales')}>
+            <div className="kpi-card kpi-today" style={{ cursor: 'pointer' }} onClick={() => navigate(salesPath)}>
               <div className="kpi-top">
                 <span className="kpi-icon"><Icon name="sales" /></span>
                 <span className="kpi-change positive">+{data?.todayCount || 0} today</span>
@@ -144,7 +152,7 @@ export default function Dashboard() {
               <div className="kpi-value">{formatNPR(data?.todaySales || 0)}</div>
               <div className="kpi-label">Today's Sales</div>
             </div>
-            <div className="kpi-card kpi-month" style={{ cursor: 'pointer' }} onClick={() => navigate('/sales')}>
+            <div className="kpi-card kpi-month" style={{ cursor: 'pointer' }} onClick={() => navigate(salesPath)}>
               <div className="kpi-top">
             <span className="kpi-icon"><Icon name="sales" /></span>
             <span className="kpi-change">This month</span>
@@ -189,7 +197,7 @@ export default function Dashboard() {
           </>
         ) : (
           <>
-            <div className="kpi-card kpi-today" style={{ cursor: 'pointer' }} onClick={() => navigate('/sales')}>
+            <div className="kpi-card kpi-today" style={{ cursor: 'pointer' }} onClick={() => navigate(salesPath)}>
               <div className="kpi-top">
                 <span className="kpi-icon"><Icon name="sales" /></span>
                 <span className="kpi-change positive">+{data?.todayCount || 0} today</span>
@@ -197,7 +205,7 @@ export default function Dashboard() {
               <div className="kpi-value">{formatNPR(data?.todaySales || 0)}</div>
               <div className="kpi-label">Today's Sales</div>
             </div>
-            <div className="kpi-card kpi-refund" style={{ cursor: 'pointer' }} onClick={() => navigate('/sales')}>
+            <div className="kpi-card kpi-refund" style={{ cursor: 'pointer' }} onClick={() => navigate(salesPath)}>
               <div className="kpi-top">
                 <span className="kpi-icon"><Icon name="refund" /></span>
                 <span className="kpi-change">Today</span>
@@ -205,7 +213,7 @@ export default function Dashboard() {
               <div className="kpi-value">{formatNPR(data?.todayRefunds || 0)}</div>
               <div className="kpi-label">Today's Refunds</div>
             </div>
-            <div className="kpi-card kpi-month" style={{ cursor: 'pointer' }} onClick={() => navigate('/sales')}>
+            <div className="kpi-card kpi-month" style={{ cursor: 'pointer' }} onClick={() => navigate(salesPath)}>
               <div className="kpi-top">
                 <span className="kpi-icon"><Icon name="sales" /></span>
                 <span className="kpi-change">This month</span>
@@ -213,7 +221,7 @@ export default function Dashboard() {
               <div className="kpi-value">{formatNPR(data?.monthSales || 0)}</div>
               <div className="kpi-label">Monthly Sales</div>
             </div>
-            <div className="kpi-card kpi-refund-month" style={{ cursor: 'pointer' }} onClick={() => navigate('/sales')}>
+            <div className="kpi-card kpi-refund-month" style={{ cursor: 'pointer' }} onClick={() => navigate(salesPath)}>
               <div className="kpi-top">
                 <span className="kpi-icon"><Icon name="refund" /></span>
                 <span className="kpi-change">This month</span>
@@ -225,11 +233,37 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* Branch Delivery Stats - Courier Companies Only */}
+      {hasCourier && branchStats.length > 0 && (
+        <div className="db-card" style={{ marginBottom: '1rem' }}>
+          <div className="db-card-header">
+            <h3>Branch Delivery Overview</h3>
+            <button className="btn btn-sm btn-secondary" onClick={() => navigate('/branch-deliveries')}>View All</button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem', padding: '0.75rem' }}>
+            {branchStats.map(b => (
+              <div key={b._id} style={{ padding: '0.75rem', background: 'var(--card-bg, #fff)', border: '1px solid var(--border, #e2e8f0)', borderRadius: '8px', cursor: 'pointer' }} onClick={() => navigate('/branch-deliveries')}>
+                <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.25rem' }}>{b.name}</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#2563eb' }}>{b.total}</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>total orders</div>
+                <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap', marginTop: '0.35rem', fontSize: '0.65rem' }}>
+                  {b.pending > 0 && <span className="badge badge-secondary">{b.pending} pending</span>}
+                  {b.processing > 0 && <span className="badge badge-info">{b.processing} processing</span>}
+                  {b.shipped > 0 && <span className="badge badge-warning">{b.shipped} shipped</span>}
+                  {b.delivered > 0 && <span className="badge badge-success">{b.delivered} delivered</span>}
+                  {b.returned > 0 && <span className="badge badge-danger">{b.returned} returned</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Recent Transactions */}
       <div className="db-card recent-sales-card" style={{ marginBottom: '1rem' }}>
         <div className="db-card-header">
           <h3>Recent Transactions</h3>
-          <button className="btn btn-sm btn-secondary" onClick={() => navigate('/sales')}>View All</button>
+          <button className="btn btn-sm btn-secondary" onClick={() => navigate(salesPath)}>View All</button>
         </div>
         <div className="db-card-body">
           <table className="table">
@@ -418,7 +452,7 @@ export default function Dashboard() {
             { label: 'Paid', value: formatNPR(detail.amountPaid) },
             { label: 'Change', value: formatNPR(detail.change) },
           ]}
-          onPrint={hasCourier ? () => printInvoice(detail, company) : undefined}
+          onPrint={() => printInvoice(detail, company)}
           onClose={() => setDetail(null)}
         />
       )}
