@@ -9,7 +9,7 @@ const Purchase = require('../models/Purchase');
 const Supplier = require('../models/Supplier');
 const Bank = require('../models/Bank');
 const Company = require('../models/Company');
-const { protect, requirePANForLargeTx } = require('../middleware/auth');
+const { protect, requirePANForLargeTx, requireEmiModule } = require('../middleware/auth');
 const { round100, buildIRDPayload, adToBikramSambat, getBSFiscalYear } = require('../utils/dateUtils');
 const { postJournalEntryAtomic, postEmiAtomic } = require('../utils/postingEngine');
 const { ensureCompanyEmiAccounts } = require('../utils/ensureEmiAccounts');
@@ -45,7 +45,7 @@ async function generateEmiNumber(companyId) {
   throw new Error('Could not generate a unique EMI number');
 }
 
-router.get('/', protect, async (req, res) => {
+router.get('/', protect, requireEmiModule, async (req, res) => {
   const filter = { ...req.fyFilter, ...req.companyFilter };
   if (req.query.startDate) filter.createdAt = { $gte: new Date(req.query.startDate) };
   if (req.query.endDate) {
@@ -61,7 +61,7 @@ router.get('/', protect, async (req, res) => {
   res.json(items);
 });
 
-router.post('/', protect, requirePANForLargeTx, async (req, res) => {
+router.post('/', protect, requireEmiModule, requirePANForLargeTx, async (req, res) => {
   const {
     product, customer, productTotal, exchangeEnabled, exchangeAmount, exchangeItems,
     exchangeCustomerName, exchangePaidAmount, downPayment, downPaymentPercent, downPaymentMethod, bank,
@@ -368,7 +368,7 @@ function calculateAmortization(remainingBalance, monthlyPayment, interestRate = 
   };
 }
 
-router.post('/:id/pay', protect, async (req, res) => {
+router.post('/:id/pay', protect, requireEmiModule, async (req, res) => {
   const emi = await Emi.findOne({ _id: req.params.id, ...req.companyFilter })
     .populate('customer', 'name phone pan');
   if (!emi) return res.status(404).json({ message: 'EMI not found' });
@@ -484,7 +484,7 @@ router.post('/:id/pay', protect, async (req, res) => {
 
 // Stage 2: Bank disburses the financed loan to the company (clears the Bank EMI Clearing A/C)
 // Dr Company Bank + Dr Bank Charges → Cr EMI Clearing
-router.post('/:id/disburse', protect, async (req, res) => {
+router.post('/:id/disburse', protect, requireEmiModule, async (req, res) => {
   const emi = await Emi.findOne({ _id: req.params.id, ...req.companyFilter })
     .populate('customer', 'name phone pan');
   if (!emi) return res.status(404).json({ message: 'EMI not found' });

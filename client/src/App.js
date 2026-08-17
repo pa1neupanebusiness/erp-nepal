@@ -185,7 +185,7 @@ function AppContent() {
           <Route path="/sales/edit/:id" element={<SalesEdit />} />
           <Route path="/sales/payment-in" element={<PaymentIn />} />
           <Route path="/sales/returns" element={<SalesReturn />} />
-          <Route path="/emi" element={<EmiPage />} />
+          <Route path="/emi" element={(user?.role === 'super_admin' || (user?.company?.enabledModules || []).includes('emi')) ? <EmiPage /> : <Navigate to="/" />} />
           <Route path="/refund" element={<Refund />} />
           <Route path="/request-refund" element={<RefundRequest />} />
           <Route path="/admin/refund-approvals" element={<RefundApproval />} />

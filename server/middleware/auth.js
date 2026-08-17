@@ -73,6 +73,16 @@ const hasHrAccess = (user) => {
   return Array.isArray(user.groups) && user.groups.includes('hr');
 };
 
+const requireEmiModule = async (req, res, next) => {
+  if (req.user && req.user.role === 'super_admin') return next();
+  try {
+    const Company = require('../models/Company');
+    const company = await Company.findById(req.companyId).select('enabledModules');
+    if (company && Array.isArray(company.enabledModules) && company.enabledModules.includes('emi')) return next();
+  } catch (_) { /* fall through */ }
+  return res.status(403).json({ message: 'EMI module is not enabled for this company' });
+};
+
 module.exports = {
   protect,
   adminOnly,
@@ -82,4 +92,5 @@ module.exports = {
   validatePAN,
   requirePANForLargeTx,
   hasHrAccess,
+  requireEmiModule,
 };

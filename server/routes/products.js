@@ -2,7 +2,7 @@ const express = require('express');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
 const InventoryMovement = require('../models/InventoryMovement');
-const { protect, superAdminOnly } = require('../middleware/auth');
+const { protect, superAdminOnly, requireEmiModule } = require('../middleware/auth');
 const router = express.Router();
 
 router.get('/', protect, async (req, res) => {
@@ -20,7 +20,7 @@ router.get('/low-stock', protect, async (req, res) => {
   res.json(lowStock);
 });
 
-router.get('/emi-products', protect, async (req, res) => {
+router.get('/emi-products', protect, requireEmiModule, async (req, res) => {
   const items = await Product.find({ ...req.companyFilter, isActive: true, itemCondition: { $ne: 'second_hand' } })
     .select('name sku stock unit sellingPrice costPrice taxRate vatEnabled priceIncludesTax itemCondition category')
     .populate('category', 'name')
