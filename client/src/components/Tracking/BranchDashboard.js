@@ -15,6 +15,22 @@ const STATUS_COLORS = {
   out_for_delivery: 'badge-info', delivered: 'badge-success', returned: 'badge-danger',
 };
 
+const STATUS_ORDER = ['pending', 'processing', 'shipped', 'out_for_delivery', 'delivered'];
+
+function canTransitionTo(current, target) {
+  if (target === 'returned') return true;
+  const curIdx = STATUS_ORDER.indexOf(current);
+  const tgtIdx = STATUS_ORDER.indexOf(target);
+  if (curIdx === -1 || tgtIdx === -1) return false;
+  return tgtIdx === curIdx + 1;
+}
+
+function nextAllowedStatus(current) {
+  const idx = STATUS_ORDER.indexOf(current);
+  if (idx === -1 || idx >= STATUS_ORDER.length - 1) return null;
+  return STATUS_ORDER[idx + 1];
+}
+
 export default function BranchDashboard() {
   const addToast = useToast();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -41,7 +57,7 @@ export default function BranchDashboard() {
     try {
       const { data } = await api.get(`/tracking/${order.orderId._id || order.orderId}`);
       setDetail(data);
-      setUpdateForm({ status: data.status, location: data.currentLocation || '', note: '' });
+      setUpdateForm({ status: nextAllowedStatus(data.status) || data.status, location: data.currentLocation || '', note: '' });
       if (data.trackingNumber) {
         try {
           const { data: co } = await api.get(`/courier-orders/by-tracking/${data.trackingNumber}`);
@@ -140,7 +156,7 @@ export default function BranchDashboard() {
                     </div>
                     <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.5rem' }}>
                       <div><span style={{ fontSize: '0.75rem', color: '#64748b' }}>Invoice #</span><br /><strong>{courierOrder.sale?.invoiceNumber || '-'}</strong></div>
-                      <div><span style={{ fontSize: '0.75rem', color: '#64748b' }}>Delivery Type</span><br /><strong>{courierOrder.deliveryType === 'branch_pickup' ? 'Branch Pickup' : 'Home Delivery'}</strong></div>
+                      <div><span style={{ fontSize: '0.75rem', color: '#64748b' }}>Delivery Type</span><br /><strong>{courierOrder.deliveryType === 'international' ? 'International' : 'National'}</strong></div>
                       <div><span style={{ fontSize: '0.75rem', color: '#64748b' }}>Location</span><br /><strong>{courierOrder.deliveryLocation || '-'}</strong></div>
                       <div><span style={{ fontSize: '0.75rem', color: '#64748b' }}>Amount</span><br /><strong>Rs. {Number(courierOrder.price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong></div>
                       <div><span style={{ fontSize: '0.75rem', color: '#64748b' }}>Payment</span><br /><strong>{courierOrder.paymentMethod === 'qr' ? 'QR' : 'Cash'}</strong></div>
@@ -155,10 +171,21 @@ export default function BranchDashboard() {
               {canUpdate && (
                 <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
                   <h4 style={{ marginTop: 0 }}>Update Status</h4>
+                  {detail.status !== 'returned' && nextAllowedStatus(detail.status) && (
+                    <div style={{ marginBottom: '0.5rem', fontSize: '0.8rem', color: '#64748b' }}>
+                      Current: <strong>{STATUS_LABELS[detail.status]}</strong> → Next: <strong style={{ color: '#2563eb' }}>{STATUS_LABELS[nextAllowedStatus(detail.status)]}</strong>
+                      {detail.status !== 'delivered' && <span> | Also: <strong style={{ color: '#dc2626' }}>Returned</strong></span>}
+                    </div>
+                  )}
+                  {detail.status === 'delivered' && <div style={{ marginBottom: '0.5rem', fontSize: '0.8rem', color: '#16a34a', fontWeight: 600 }}>Delivery completed</div>}
+                  {detail.status === 'returned' && <div style={{ marginBottom: '0.5rem', fontSize: '0.8rem', color: '#dc2626', fontWeight: 600 }}>Order returned</div>}
                   <div className="form-grid">
                     <div className="form-group"><label>Status</label>
                       <select value={updateForm.status} onChange={e => setUpdateForm({ ...updateForm, status: e.target.value })}>
-                        {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                        {Object.entries(STATUS_LABELS).map(([k, v]) => {
+                          const allowed = canTransitionTo(detail.status, k);
+                          return <option key={k} value={k} disabled={!allowed}>{v}{!allowed && k !== detail.status ? ' (not available)' : ''}</option>;
+                        })}
                       </select>
                     </div>
                     <div className="form-group"><label>Location</label><input value={updateForm.location} onChange={e => setUpdateForm({ ...updateForm, location: e.target.value })} placeholder="e.g. Local Hub" /></div>

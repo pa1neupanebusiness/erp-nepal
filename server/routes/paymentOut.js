@@ -12,6 +12,7 @@ const { postJournalEntryAtomic } = require('../utils/postingEngine');
 const { createNotification } = require('../utils/notifyService');
 const { postDaybookEntries, cancelDaybookEntries } = require('../utils/daybookService');
 const { getClientIp } = require('../utils/irdAudit');
+const { isDayBookClosed } = require('../utils/daybookClosure');
 const router = express.Router();
 
 function getFiscalYear(date) {
@@ -157,6 +158,9 @@ router.post('/:id/cancel', protect, adminOnly, async (req, res) => {
   const payment = await PaymentOut.findOne({ _id: req.params.id, ...req.companyFilter });
   if (!payment) return res.status(404).json({ message: 'Payment not found' });
   if (payment.status === 'cancelled') return res.status(400).json({ message: 'Payment already cancelled' });
+  if (await isDayBookClosed(req.companyId, payment.date)) {
+    return res.status(400).json({ message: 'Daybook is closed for this date. Cannot cancel.' });
+  }
 
   // Reverse the allocations: restore the supplier dues.
   for (const alloc of payment.allocations || []) {

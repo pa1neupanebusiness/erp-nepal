@@ -96,6 +96,7 @@ app.use('/api/backup', require('./routes/backup'));
   app.use('/api/tracking', require('./routes/tracking'));
   app.use('/api/branches', require('./routes/branches'));
   app.use('/api/courier-orders', require('./routes/courierOrders'));
+  app.use('/api/daybook-closures', require('./routes/daybookClosures'));
 app.use('/api', require('./routes/assistant'));
 
 const { protect } = require('./middleware/auth');

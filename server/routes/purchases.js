@@ -14,6 +14,7 @@ const { adjustBankBalance } = require('../utils/bankService');
 const { adToBikramSambat, getBSFiscalYear } = require('../utils/dateUtils');
 const { postJournalEntryAtomic } = require('../utils/postingEngine');
 const { createNotification } = require('../utils/notifyService');
+const { isDayBookClosed } = require('../utils/daybookClosure');
 const router = express.Router();
 
 async function generatePurchaseNo(companyId) {
@@ -351,6 +352,10 @@ router.post('/:id/pay', protect, adminOnly, async (req, res) => {
 router.put('/:id', protect, adminOnly, async (req, res) => {
   const purchased = await Purchase.findOne({ _id: req.params.id, ...req.companyFilter });
   if (!purchased) return res.status(404).json({ message: 'Purchase not found' });
+
+  if (await isDayBookClosed(req.companyId, req.body.date || purchased.date)) {
+    return res.status(400).json({ message: 'Daybook is closed for this date. Cannot edit.' });
+  }
 
   try {
     await cancelDaybookEntries({

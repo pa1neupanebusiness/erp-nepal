@@ -5,6 +5,7 @@ const Account = require('../models/Account');
 const JournalEntry = require('../models/JournalEntry');
 const { protect } = require('../middleware/auth');
 const { getBSFiscalYear } = require('../utils/dateUtils');
+const { isDayBookClosed } = require('../utils/daybookClosure');
 const router = express.Router();
 
 function getFiscalYear(date) {
@@ -128,6 +129,12 @@ router.post('/', protect, async (req, res) => {
 });
 
 router.put('/:id/cancel', protect, async (req, res) => {
+  const existing = await Voucher.findOne({ _id: req.params.id, ...req.companyFilter });
+  if (!existing) return res.status(404).json({ message: 'Voucher not found' });
+  if (existing.status === 'cancelled') return res.status(400).json({ message: 'Already cancelled' });
+  if (await isDayBookClosed(req.companyId, existing.date)) {
+    return res.status(400).json({ message: 'Daybook is closed for this date. Cannot cancel.' });
+  }
   const voucher = await Voucher.findOneAndUpdate({ _id: req.params.id, ...req.companyFilter }, { status: 'cancelled' }, { new: true });
   try {
     const accountDoc = await Account.findOne({ _id: voucher.account, ...req.companyFilter });

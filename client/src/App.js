@@ -25,6 +25,8 @@ import BranchDashboard from './components/Tracking/BranchDashboard';
 import DriverDashboard from './components/Tracking/DriverDashboard';
 import BranchManagement from './components/Admin/BranchManagement';
 import CourierSalesForm from './components/Tracking/CourierSalesForm';
+import CourierSalesHistory from './components/Tracking/CourierSalesHistory';
+import TrackPublic from './components/Tracking/TrackPublic';
 import Refund from './components/Sales/Refund';
 import RefundRequest from './components/Sales/RefundRequest';
 import RefundApproval from './components/Admin/RefundApproval';
@@ -151,6 +153,7 @@ function AppContent() {
         <Router>
           <Routes>
             <Route path="/register" element={<Register />} />
+            <Route path="/track/:trackingNumber" element={<TrackPublic />} />
             <Route path="*" element={<Login onLogin={handleLogin} />} />
           </Routes>
         </Router>
@@ -196,6 +199,8 @@ function AppContent() {
           <Route path="/tracking/driver" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('tracking') && (user?.groups || []).includes('driver'))) ? <DriverDashboard /> : <Navigate to="/" />} />
           <Route path="/tracking/branch" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('tracking') && (user?.groups || []).includes('branch'))) ? <BranchDashboard /> : <Navigate to="/" />} />
           <Route path="/courier-sales" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('tracking') && (user?.role === 'super_admin' || user?.role === 'admin'))) ? <CourierSalesForm /> : <Navigate to="/" />} />
+          <Route path="/courier-sales/history" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('tracking') && (user?.role === 'super_admin' || user?.role === 'admin'))) ? <CourierSalesHistory /> : <Navigate to="/" />} />
+          <Route path="/track/:trackingNumber" element={<TrackPublic />} />
           <Route path="/refund" element={<Refund />} />
           <Route path="/request-refund" element={<RefundRequest />} />
           <Route path="/admin/refund-approvals" element={<RefundApproval />} />

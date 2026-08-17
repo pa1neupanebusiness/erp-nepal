@@ -7,6 +7,21 @@ const { protect, adminOnly, requireTrackingModule } = require('../middleware/aut
 const router = express.Router();
 
 const VALID_STATUSES = ['pending', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'returned'];
+const STATUS_ORDER = ['pending', 'processing', 'shipped', 'out_for_delivery', 'delivered'];
+
+function isValidTransition(currentStatus, newStatus) {
+  if (newStatus === 'returned') return true;
+  const curIdx = STATUS_ORDER.indexOf(currentStatus);
+  const newIdx = STATUS_ORDER.indexOf(newStatus);
+  if (curIdx === -1 || newIdx === -1) return false;
+  return newIdx === curIdx + 1;
+}
+
+function nextAllowedStatus(currentStatus) {
+  const idx = STATUS_ORDER.indexOf(currentStatus);
+  if (idx === -1 || idx >= STATUS_ORDER.length - 1) return null;
+  return STATUS_ORDER[idx + 1];
+}
 
 function isDriver(user) {
   return user && Array.isArray(user.groups) && user.groups.includes('driver');
@@ -197,6 +212,9 @@ router.put('/:orderId/status', protect, requireTrackingModule, async (req, res) 
 
   if (status) {
     if (!VALID_STATUSES.includes(status)) return res.status(400).json({ message: 'Invalid status' });
+    if (!isValidTransition(item.status, status)) {
+      return res.status(400).json({ message: `Cannot skip status. Current: "${item.status}". Next allowed: "${nextAllowedStatus(item.status) || 'delivered'}"` });
+    }
     item.status = status;
     const roleLabel = isOwner ? 'Driver' : isBranchMember ? 'Branch' : 'Admin';
     item.events.push({

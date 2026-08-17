@@ -108,6 +108,14 @@ export default function Layout({ user, onLogout, children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState(null);
 
+  const hasCourier = (user?.company?.enabledModules || []).includes('tracking');
+
+  useEffect(() => {
+    if (!hasCourier) return;
+    const mainEl = document.querySelector('.main-content');
+    if (mainEl) mainEl.scrollTop = 0;
+  }, [location.pathname, hasCourier]);
+
   useEffect(() => {
     const path = location.pathname;
     if (path === '/' || path === '/login') { setActiveSection(null); return; }
@@ -216,9 +224,10 @@ export default function Layout({ user, onLogout, children }) {
 
           {courierVisible && <NavSection title="Courier" paths={['/tracking', '/courier-sales']} activeSection={activeSection} onToggle={toggleSection}>
             {isAdmin && <NavLink to="/courier-sales" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Courier Sales</span></NavLink>}
-            <NavLink to="/tracking" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Order Tracking</span></NavLink>}
-            {(isAdmin || (user?.groups || []).includes('branch')) && <NavLink to="/tracking/branch" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Orders</span></NavLink>}
-            {(isAdmin || (user?.groups || []).includes('driver')) && <NavLink to="/tracking/driver" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">My Deliveries</span></NavLink>}
+            {isAdmin && <NavLink to="/courier-sales/history" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Sales History</span></NavLink>}
+            <NavLink to="/tracking" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Order Tracking</span></NavLink>
+            {(user?.groups || []).includes('branch') && <NavLink to="/tracking/branch" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Orders</span></NavLink>}
+            {(user?.groups || []).includes('driver') && <NavLink to="/tracking/driver" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">My Deliveries</span></NavLink>}
           </NavSection>}
 
           {purchaseVisible && <NavSection title="Purchase" paths={['/purchases', '/purchases/payment-out', '/purchases/returns']} activeSection={activeSection} onToggle={toggleSection}>

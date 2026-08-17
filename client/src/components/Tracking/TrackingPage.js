@@ -24,6 +24,22 @@ const STATUS_COLORS = {
 
 const CARRIERS = ['fedex', 'dhl', 'pathao', 'custom'];
 
+const STATUS_ORDER = ['pending', 'processing', 'shipped', 'out_for_delivery', 'delivered'];
+
+function canTransitionTo(current, target) {
+  if (target === 'returned') return true;
+  const curIdx = STATUS_ORDER.indexOf(current);
+  const tgtIdx = STATUS_ORDER.indexOf(target);
+  if (curIdx === -1 || tgtIdx === -1) return false;
+  return tgtIdx === curIdx + 1;
+}
+
+function nextAllowedStatus(current) {
+  const idx = STATUS_ORDER.indexOf(current);
+  if (idx === -1 || idx >= STATUS_ORDER.length - 1) return null;
+  return STATUS_ORDER[idx + 1];
+}
+
 export default function TrackingPage() {
   const addToast = useToast();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -41,8 +57,16 @@ export default function TrackingPage() {
   const [updateForm, setUpdateForm] = useState({ status: '', location: '', note: '', carrier: '', trackingNumber: '' });
   const [saving, setSaving] = useState(false);
   const [company, setCompany] = useState(null);
+  const [menuRow, setMenuRow] = useState(null);
 
   useEffect(() => { load(); loadStats(); api.get('/company').then(r => setCompany(r.data)).catch(() => {}); }, []);
+
+  useEffect(() => {
+    if (menuRow === null) return;
+    const close = () => setMenuRow(null);
+    const timer = setTimeout(() => document.addEventListener('click', close), 0);
+    return () => { clearTimeout(timer); document.removeEventListener('click', close); };
+  }, [menuRow]);
 
   const load = () => {
     const params = {};
@@ -69,7 +93,7 @@ export default function TrackingPage() {
   const loadDetail = (orderId) => {
     api.get(`/tracking/${orderId}`).then(r => {
       setDetail(r.data);
-      setUpdateForm({ status: r.data.status, location: '', note: '', carrier: r.data.carrier || '', trackingNumber: r.data.trackingNumber || '' });
+      setUpdateForm({ status: nextAllowedStatus(r.data.status) || r.data.status, location: '', note: '', carrier: r.data.carrier || '', trackingNumber: r.data.trackingNumber || '' });
     }).catch(() => addToast('Failed to load tracking', 'error'));
   };
 
@@ -121,15 +145,28 @@ export default function TrackingPage() {
         {isAdmin && <button className="btn btn-primary" onClick={showCreate ? () => setShowCreate(false) : openCreate}>{showCreate ? 'Cancel' : 'Add Tracking'}</button>}
       </div>
 
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-        {['', 'pending', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'returned'].map(s => (
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${STATUS_ORDER.length + 1}, 1fr)`, gap: '0.5rem', marginBottom: '1rem' }}>
+        <button className={`btn btn-sm ${filter === '' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => { setFilter(''); setTimeout(load, 0); }} style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{stats.total || 0}</div>
+          <div style={{ fontSize: '0.7rem' }}>All</div>
+        </button>
+        {STATUS_ORDER.map(s => (
           <button key={s} className={`btn btn-sm ${filter === s ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => { setFilter(s); setTimeout(load, 0); }}>
-            {s ? STATUS_LABELS[s] : `All (${stats.total || 0})`}
-            {s && stats[s] ? ` (${stats[s]})` : ''}
+            onClick={() => { setFilter(s); setTimeout(load, 0); }} style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>{stats[s] || 0}</div>
+            <div style={{ fontSize: '0.7rem' }}>{STATUS_LABELS[s]}</div>
           </button>
         ))}
       </div>
+      {stats.returned > 0 && (
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+          <button className={`btn btn-sm ${filter === 'returned' ? 'btn-danger' : 'btn-secondary'}`}
+            onClick={() => { setFilter('returned'); setTimeout(load, 0); }} style={{ textAlign: 'center' }}>
+            <span style={{ fontWeight: 700 }}>{stats.returned}</span> Returned
+          </button>
+        </div>
+      )}
 
       {isAdmin && showCreate && (
         <div className="card" style={{ marginBottom: '1rem' }}>
@@ -215,7 +252,7 @@ export default function TrackingPage() {
             </thead>
             <tbody>
               {items.map(t => (
-                <tr key={t._id}>
+                <tr key={t._id} onClick={() => loadDetail(t.orderId._id || t.orderId)} style={{ cursor: 'pointer' }}>
                   <td><strong>{t.orderNumber}</strong></td>
                   <td>{t.customerName || t.customer?.name || '-'}</td>
                   <td><span className={`badge ${STATUS_COLORS[t.status] || 'badge-secondary'}`}>{STATUS_LABELS[t.status] || t.status}</span></td>
@@ -223,9 +260,17 @@ export default function TrackingPage() {
                   <td><code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '0.8rem' }}>{t.trackingNumber || '-'}</code></td>
                   <td>{t.estimatedDelivery ? adToBsStr(new Date(t.estimatedDelivery)) : '-'}</td>
                   <td>{new Date(t.updatedAt).toLocaleDateString('en-GB')}</td>
-                  <td className="action-cell">
-                    <button className="btn btn-sm" onClick={() => loadDetail(t.orderId._id || t.orderId)}>View</button>
-                    {t.trackingNumber && <button className="btn btn-sm" onClick={() => printTrackingLabel(t, company)} title="Print tracking label">Print</button>}
+                  <td className="action-cell" onClick={e => e.stopPropagation()}>
+                    {t.trackingNumber && <button className="btn btn-sm" onClick={() => printTrackingLabel(t, company)} title="Print label">Print</button>}
+                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                      <button className="btn btn-sm" onClick={() => setMenuRow(menuRow === t._id ? null : t._id)}>&#8942;</button>
+                      {menuRow === t._id && (
+                        <div style={{ position: 'absolute', right: 0, top: '100%', background: '#fff', border: '1px solid var(--border)', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.12)', zIndex: 10, minWidth: '150px', padding: '0.25rem 0' }}>
+                          <button className="dropdown-item" onClick={() => { loadDetail(t.orderId._id || t.orderId); setMenuRow(null); }}>View Details</button>
+                          {t.trackingNumber && <button className="dropdown-item" onClick={() => { printTrackingLabel(t, company); setMenuRow(null); }}>Print Label</button>}
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -258,10 +303,21 @@ export default function TrackingPage() {
               {isAdmin && (
                 <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', marginBottom: '1rem' }}>
                   <h4 style={{ marginTop: 0 }}>Update Status</h4>
+                  {detail.status !== 'returned' && nextAllowedStatus(detail.status) && (
+                    <div style={{ marginBottom: '0.5rem', fontSize: '0.8rem', color: '#64748b' }}>
+                      Current: <strong>{STATUS_LABELS[detail.status]}</strong> → Next: <strong style={{ color: '#2563eb' }}>{STATUS_LABELS[nextAllowedStatus(detail.status)]}</strong>
+                      {detail.status !== 'delivered' && <span> | Also: <strong style={{ color: '#dc2626' }}>Returned</strong></span>}
+                    </div>
+                  )}
+                  {detail.status === 'delivered' && <div style={{ marginBottom: '0.5rem', fontSize: '0.8rem', color: '#16a34a', fontWeight: 600 }}>Delivery completed</div>}
+                  {detail.status === 'returned' && <div style={{ marginBottom: '0.5rem', fontSize: '0.8rem', color: '#dc2626', fontWeight: 600 }}>Order returned</div>}
                   <div className="form-grid">
                     <div className="form-group"><label>Status</label>
                       <select value={updateForm.status} onChange={e => setUpdateForm({ ...updateForm, status: e.target.value })}>
-                        {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                        {Object.entries(STATUS_LABELS).map(([k, v]) => {
+                          const allowed = canTransitionTo(detail.status, k);
+                          return <option key={k} value={k} disabled={!allowed}>{v}{!allowed && k !== detail.status ? ' (not available)' : ''}</option>;
+                        })}
                       </select>
                     </div>
                     <div className="form-group"><label>Location</label><input value={updateForm.location} onChange={e => setUpdateForm({ ...updateForm, location: e.target.value })} placeholder="e.g. Kathmandu Hub" /></div>

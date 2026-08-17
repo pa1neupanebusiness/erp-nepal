@@ -40,6 +40,7 @@ export default function Daybook() {
   const [verifyResult, setVerifyResult] = useState(null);
   const [detailEntry, setDetailEntry] = useState(null);
   const [isDayBookClosed, setIsDayBookClosed] = useState(false);
+  const [closedDates, setClosedDates] = useState([]);
   const addToast = useToast();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const company = user?.company || {};
@@ -69,13 +70,18 @@ export default function Daybook() {
       }
       setTabData(tabs);
       
-      // Check if current date daybook is closed
-      const currentDateEntries = allRes.data.entries?.filter(e => e.dateAD === today);
-      if (currentDateEntries.length > 0 && currentDateEntries.some(e => e.status === 'CLOSED')) {
-        setIsDayBookClosed(true);
-      } else {
-        setIsDayBookClosed(false);
-      }
+      // Check if selected date is closed via API
+      try {
+        const closuresRes = await api.get('/daybook-closures');
+        const closures = closuresRes.data || [];
+        setClosedDates(closures);
+        const selectedAD = bsToADStr(date);
+        setIsDayBookClosed(closures.some(c => {
+          const cd = new Date(c.closedDate);
+          const ds = new Date(selectedAD);
+          return cd.getFullYear() === ds.getFullYear() && cd.getMonth() === ds.getMonth() && cd.getDate() === ds.getDate();
+        }));
+      } catch {}
     } catch (err) { addToast(err.response?.data?.message || 'Failed to load daybook', 'error'); }
     setLoading(false);
   };
@@ -119,7 +125,7 @@ export default function Daybook() {
             if (el) printHtmlDocument(el.outerHTML, 'Day Book');
           }}>Print</button>
           <button className="btn btn-secondary" onClick={verifyChain}>🔐 Verify Chain</button>
-          {isDayBookClosed ? <span className="text-muted">📭 Day Book Closed</span> : <button className="btn btn-danger" onClick={() => setIsDayBookClosed(!isDayBookClosed)}>{isDayBookClosed ? 'Open Day Book' : 'Close Day Book'}</button>}
+          {isDayBookClosed ? <button className="btn btn-secondary" onClick={toggleDayBookClose}>📭 Reopen Day Book</button> : <button className="btn btn-danger" onClick={toggleDayBookClose}>Close Day Book</button>}
         </div>
       </div>
 
@@ -151,7 +157,23 @@ export default function Daybook() {
       <div className="tabs" style={{ marginBottom: '1rem', display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
         {DAYBOOK_TABS.map(tab => {
           const count = (tabData[tab.key]?.entries || []).length;
-          return (
+  const toggleDayBookClose = async () => {
+    const selectedAD = bsToADStr(date);
+    try {
+      if (isDayBookClosed) {
+        await api.delete('/daybook-closures/' + selectedAD);
+        addToast('Daybook reopened for ' + date, 'success');
+      } else {
+        await api.post('/daybook-closures', { date: selectedAD });
+        addToast('Daybook closed for ' + date, 'success');
+      }
+      loadAll();
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Failed to update daybook status', 'error');
+    }
+  };
+
+  return (
             <button key={tab.key} className={`tab ${activeTab === tab.key ? 'active' : ''}`} onClick={() => setActiveTab(tab.key)} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
               <span>{tab.icon}</span> {tab.label}
               {count > 0 && <span style={{ fontSize: '0.7rem', background: activeTab === tab.key ? '#fff' : '#e2e8f0', borderRadius: 999, padding: '0.1rem 0.4rem' }}>{count}</span>}

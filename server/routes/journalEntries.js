@@ -5,6 +5,7 @@ const JournalEntry = require('../models/JournalEntry');
 const { protect, adminOnly } = require('../middleware/auth');
 const fiscalYearFilter = require('../middleware/fiscalYear');
 const { adToBikramSambat, getBSFiscalYear } = require('../utils/dateUtils');
+const { isDayBookClosed } = require('../utils/daybookClosure');
 const router = express.Router();
 
 function getFiscalYear(date) {
@@ -135,6 +136,9 @@ router.put('/:id', protect, canManageJournal, async (req, res) => {
   if (!entry) return res.status(404).json({ message: 'Journal entry not found' });
 
   const { date, reference, description } = req.body;
+  if (await isDayBookClosed(req.companyId, date || entry.date)) {
+    return res.status(400).json({ message: 'Daybook is closed for this date. Cannot edit.' });
+  }
   const parsed = await parseAndValidate(req, res);
   if (!parsed) return;
 
@@ -185,6 +189,9 @@ router.put('/:id', protect, canManageJournal, async (req, res) => {
 router.delete('/:id', protect, canManageJournal, async (req, res) => {
   const entry = await JournalEntry.findOne({ _id: req.params.id, ...req.companyFilter });
   if (!entry) return res.status(404).json({ message: 'Journal entry not found' });
+  if (await isDayBookClosed(req.companyId, entry.date)) {
+    return res.status(400).json({ message: 'Daybook is closed for this date. Cannot delete.' });
+  }
 
   const session = await mongoose.startSession();
   session.startTransaction();

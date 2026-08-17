@@ -6,6 +6,7 @@ const { protect } = require('../middleware/auth');
 const { postJournalEntryAtomic } = require('../utils/postingEngine');
 const { cancelDaybookEntries } = require('../utils/daybookService');
 const { adToBikramSambat, getBSFiscalYear } = require('../utils/dateUtils');
+const { isDayBookClosed } = require('../utils/daybookClosure');
 const router = express.Router();
 
 function getFiscalYear(date) {
@@ -114,6 +115,9 @@ router.put('/:id/cancel', protect, async (req, res) => {
   const expense = await PettyExpense.findOne({ _id: req.params.id, ...req.companyFilter });
   if (!expense) return res.status(404).json({ message: 'Expense not found' });
   if (expense.status === 'cancelled') return res.status(400).json({ message: 'Already cancelled' });
+  if (await isDayBookClosed(req.companyId, expense.date)) {
+    return res.status(400).json({ message: 'Daybook is closed for this date. Cannot cancel.' });
+  }
 
   expense.status = 'cancelled';
   await expense.save();

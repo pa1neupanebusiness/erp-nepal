@@ -4,6 +4,7 @@ import api from '../../api';
 import { useFiscalYear } from '../../context/FiscalYearContext';
 import { Icon } from '../Layout/Layout';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
+import { printInvoice } from '../POS/PrintInvoice';
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
@@ -39,6 +40,7 @@ export default function Dashboard() {
 
   const enabled = company?.enabledModules || [];
   const mod = (m) => isSuperAdmin || enabled.includes(m);
+  const hasCourier = mod('tracking');
 
   const today = new Date();
   const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
@@ -166,6 +168,7 @@ export default function Dashboard() {
               <div className="kpi-value">{formatNPR(data?.bankBalance || 0)}</div>
               <div className="kpi-label">Bank Balance</div>
             </div>
+            {!hasCourier && <>
             <div className="kpi-card kpi-products" style={{ cursor: 'pointer' }} onClick={() => navigate('/products')}>
               <div className="kpi-top">
                 <span className="kpi-icon"><Icon name="product" /></span>
@@ -182,6 +185,7 @@ export default function Dashboard() {
               <div className="kpi-value">{formatNPR(data?.stockValuation || 0)}</div>
               <div className="kpi-label">Stock Valuation</div>
             </div>
+            </>}
           </>
         ) : (
           <>
@@ -254,14 +258,16 @@ export default function Dashboard() {
         <h2>Quick Actions</h2>
       </div>
       <div className="quick-actions">
-        {mod('pos') && hasGroup('pos') && <button className="qa-btn qa-product" onClick={() => navigate('/products')}>
-          <span className="qa-icon"><Icon name="product" /></span>
-          <span className="qa-text">Add Product</span>
-        </button>}
-        {mod('pos') && hasGroup('pos') && <button className="qa-btn qa-stock" onClick={() => navigate('/stock-reports')}>
-          <span className="qa-icon"><Icon name="stock" /></span>
-          <span className="qa-text">Stock Report</span>
-        </button>}
+        {!hasCourier && <>
+          {mod('pos') && hasGroup('pos') && <button className="qa-btn qa-product" onClick={() => navigate('/products')}>
+            <span className="qa-icon"><Icon name="product" /></span>
+            <span className="qa-text">Add Product</span>
+          </button>}
+          {mod('pos') && hasGroup('pos') && <button className="qa-btn qa-stock" onClick={() => navigate('/stock-reports')}>
+            <span className="qa-icon"><Icon name="stock" /></span>
+            <span className="qa-text">Stock Report</span>
+          </button>}
+        </>}
         {mod('accounts') && hasGroup('accounts') && <button className="qa-btn qa-journal" onClick={() => navigate('/accounts/journal-entries')}>
           <span className="qa-icon"><Icon name="journal" /></span>
           <span className="qa-text">Journal Entry</span>
@@ -316,7 +322,7 @@ export default function Dashboard() {
         </div>
 
         {/* Low Stock Alerts */}
-        <div className="db-card">
+        {!hasCourier && <div className="db-card">
           <div className="db-card-header">
             <h3>Low Stock Alerts</h3>
             <span className="db-card-badge">{lowStock.length} items</span>
@@ -344,7 +350,7 @@ export default function Dashboard() {
               <div className="db-empty">All products are well-stocked ✅</div>
             )}
           </div>
-        </div>
+        </div>}
 
         {/* Module Access Grid */}
         <div className="db-card modules-card">
@@ -412,6 +418,7 @@ export default function Dashboard() {
             { label: 'Paid', value: formatNPR(detail.amountPaid) },
             { label: 'Change', value: formatNPR(detail.change) },
           ]}
+          onPrint={hasCourier ? () => printInvoice(detail, company) : undefined}
           onClose={() => setDetail(null)}
         />
       )}

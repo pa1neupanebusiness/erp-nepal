@@ -16,6 +16,7 @@ const { adjustBankBalance } = require('../utils/bankService');
 const { postJournalEntryAtomic } = require('../utils/postingEngine');
 const { createNotification } = require('../utils/notifyService');
 const { findOrCreateCustomerReceivable } = require('../utils/customerReceivable');
+const { isDayBookClosed } = require('../utils/daybookClosure');
 const router = express.Router();
 
 function getFiscalYear(date) {
@@ -481,6 +482,10 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     if (sale.status === 'refunded') return res.status(400).json({ message: 'Cannot edit a refunded sale' });
 
     const { items: newItems, subtotal, taxTotal, discount, extraCharge, grandTotal, amountPaid, paymentMethod, paymentSplits, customer, bank, date, notes, inclusiveVat } = req.body;
+
+    if (await isDayBookClosed(req.companyId, date || sale.invoiceDate)) {
+      return res.status(400).json({ message: 'Daybook is closed for this date. Cannot edit.' });
+    }
 
     if (newItems && Array.isArray(newItems)) {
       for (const item of sale.items) {

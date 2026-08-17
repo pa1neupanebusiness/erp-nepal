@@ -736,6 +736,7 @@ router.get('/monthly-sales-register', protect, async (req, res) => {
       const net = s.grandTotal || 0;
       const date = s.invoiceDate || s.createdAt;
       return {
+        _id: s._id,
         invoiceNumber: s.invoiceNumber,
         date: date.toISOString ? date.toISOString().split('T')[0] : date,
         miti: adToBikramSambat(date),

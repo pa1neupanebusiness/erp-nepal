@@ -8,6 +8,7 @@ const Bank = require('../models/Bank');
 const Customer = require('../models/Customer');
 const { protect, adminOnly, requireTrackingModule } = require('../middleware/auth');
 const { postJournalEntryAtomic } = require('../utils/postingEngine');
+const { adjustBankBalance } = require('../utils/bankService');
 const { getBSFiscalYear, adToBikramSambat } = require('../utils/dateUtils');
 const { createNotification } = require('../utils/notifyService');
 const router = express.Router();
@@ -69,8 +70,8 @@ router.post('/', adminOnly, async (req, res) => {
   const {
     senderName, senderAddress, senderPhone,
     receiverName, receiverAddress, receiverPhone,
-    instructions, deliveryLocation, deliveryType,
-    estimatedDelivery, price, weight, unit, ratePerUnit,
+    instructions, deliveryLocation, deliveryType, destinationBranch,
+    estimatedDelivery, price, weight, unit, quantity, ratePerUnit,
     vatRate, inclusiveVat,
     paymentMethod, bankId, remarks,
   } = req.body;
@@ -78,7 +79,10 @@ router.post('/', adminOnly, async (req, res) => {
   if (!senderName) return res.status(400).json({ message: 'Sender name is required' });
   if (!receiverName) return res.status(400).json({ message: 'Receiver name is required' });
 
-  const calculatedPrice = (weight && ratePerUnit) ? Math.round(weight * ratePerUnit * 100) / 100 : price;
+  const qty = Number(quantity) || 1;
+  const wt = Number(weight) || 0;
+  const rate = Number(ratePerUnit) || 0;
+  const calculatedPrice = (wt > 0 && rate > 0) ? Math.round(qty * wt * rate * 100) / 100 : (Number(price) || 0);
   if (!calculatedPrice || calculatedPrice <= 0) return res.status(400).json({ message: 'Price is required' });
 
   const companyDoc = await Company.findById(req.companyId);
@@ -153,11 +157,13 @@ router.post('/', adminOnly, async (req, res) => {
     receiver: { name: receiverName, address: receiverAddress || '', phone: receiverPhone || '' },
     instructions: instructions || '',
     deliveryLocation: deliveryLocation || '',
-    deliveryType: deliveryType || 'home_delivery',
+    deliveryType: deliveryType || 'national',
+    destinationBranch: destinationBranch || null,
     estimatedDelivery: estimatedDelivery || undefined,
-    weight: weight || 0,
+    weight: wt,
     unit: unit || 'pcs',
-    ratePerUnit: ratePerUnit || 0,
+    quantity: qty,
+    ratePerUnit: rate,
     price: calculatedPrice,
     vatRate: effectiveVatRate,
     vatAmount,
@@ -189,12 +195,18 @@ router.post('/', adminOnly, async (req, res) => {
         salesLines[0] = { account: bankAccount._id, debit: grandTotal, credit: 0, bank: bankId || null };
       }
 
+      const partyLine = { partyType: 'customer', partyId: customerDoc?._id || null, partyName: customerDoc?.name || 'Walk-in' };
       await postJournalEntryAtomic({
         companyId: req.companyId, date: jeDate, reference: invoiceNumber,
         description: `Courier Sale ${invoiceNumber}`,
         lines: salesLines.filter(l => l.account), createdBy: req.user._id, fiscalYear: fiscalYr,
         miti, companyFilter: req.companyFilter,
+        daybook: { date: jeDate, sourceModule: 'SALES_INVOICE', daybookType: 'SALES_BOOK', documentNumber: invoiceNumber, sourceRef: String(sale._id), createdBy: req.user._id, narration: `Courier sale ${invoiceNumber}`, lines: salesLines.filter(l => l.account).map(l => ({ ...l, accountName: '', ...partyLine })) },
       });
+
+      if (paymentMethod === 'qr' && bankId) {
+        await adjustBankBalance(bankId, grandTotal, req.companyFilter).catch(e => console.error('Courier bank adjust error:', e.message));
+      }
     }
   } catch (jeErr) {
     console.error('Courier JE posting failed:', jeErr.message);

@@ -4,6 +4,7 @@ import EntryDetailsModal from '../UI/EntryDetailsModal';
 import { amountToWords } from '../../utils/numberToWords';
 import { useToast } from '../UI/Toast';
 import { openPrintWindow } from '../UI/printCommon';
+import { printInvoice } from '../POS/PrintInvoice';
 
 const fmt = (n) => Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtBlank = (n) => Number(n || 0) === 0 ? '' : fmt(n);
@@ -16,9 +17,11 @@ export default function MonthlySalesRegister() {
   const [summary, setSummary] = useState({});
   const [loading, setLoading] = useState(false);
   const [detail, setDetail] = useState(null);
+  const [fullSale, setFullSale] = useState(null);
   const addToast = useToast();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const currencySymbol = user?.company?.currencySymbol || 'Rs. ';
+  const hasCourier = (user?.company?.enabledModules || []).includes('tracking');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -127,7 +130,16 @@ export default function MonthlySalesRegister() {
               {loading ? <tr><td colSpan={hasVat ? 11 : 9}>Loading...</td></tr>
                 : rows.length === 0 ? <tr><td colSpan={hasVat ? 11 : 9}>No sales found for this month</td></tr>
                 : rows.map((r, i) => (
-                  <tr key={i} onClick={() => setDetail(r)} style={{ cursor: 'pointer' }}>
+                  <tr key={i} onClick={async () => {
+                    setDetail(r);
+                    if (hasCourier) {
+                      setFullSale(null);
+                      try {
+                        const { data } = await api.get('/sales/' + r._id);
+                        setFullSale(data);
+                      } catch {}
+                    }
+                  }} style={{ cursor: 'pointer' }}>
                     <td style={{ fontWeight: 600 }}>{r.invoiceNumber}</td>
                     <td>{r.date}</td>
                     <td>{r.miti}</td>
@@ -169,7 +181,8 @@ export default function MonthlySalesRegister() {
             { label: 'Net Total', value: detail.netTotal },
           ]}
           footer={[{ label: 'Net Total', value: detail.netTotal, render: v => fmt(v) }]}
-          onClose={() => setDetail(null)}
+          onPrint={hasCourier && fullSale ? () => printInvoice(fullSale, user?.company) : undefined}
+          onClose={() => { setDetail(null); setFullSale(null); }}
         />
       )}
     </div>
