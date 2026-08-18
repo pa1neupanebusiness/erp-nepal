@@ -507,82 +507,112 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
 });
 
 router.post('/:id/return', protect, adminOnly, async (req, res) => {
-  const purchase = await Purchase.findOne({ _id: req.params.id, ...req.companyFilter });
-  if (!purchase) return res.status(404).json({ message: 'Purchase not found' });
-  const { items, reason } = req.body;
-  if (!items || items.length === 0) return res.status(400).json({ message: 'No items to return' });
-  const returned = [];
-  for (const r of items) {
-    const qty = Number(r.quantity);
-    if (!qty || qty <= 0) continue;
-    const line = purchase.items.find(it => String(it.product) === String(r.product));
-    if (!line) return res.status(400).json({ message: 'Item does not belong to this purchase' });
-    const already = (purchase.returns || [])
-      .filter(x => x.product && String(x.product) === String(r.product))
-      .reduce((s, x) => s + x.quantity, 0);
-    if (qty > line.quantity - already) {
-      return res.status(400).json({ message: `Return quantity ${qty} exceeds purchasable ${line.quantity - already}` });
-    }
-    const product = await Product.findOne({ _id: r.product, ...req.companyFilter });
-    if (product) {
-      product.stock -= qty;
-      if (product.stock < 0) product.stock = 0;
-      await product.save();
-      await InventoryMovement.create({
-        product: product._id, type: 'purchase_return', quantity: -qty,
-        reference: purchase.purchaseNumber, note: reason || 'Purchase return',
-        createdBy: req.user._id, company: req.companyId,
-        date: purchase.date || undefined, fiscalYearId: purchase.fiscalYearId || req.fiscalYearId || undefined,
-      });
-    }
-    returned.push({ product: r.product, quantity: qty, reason: reason || '', returnedBy: req.user._id, date: new Date() });
-  }
-  purchase.returns = [...(purchase.returns || []), ...returned];
-  await purchase.save();
-
   try {
-    const returnValue = returned.reduce((s, r) => {
-      const line = purchase.items.find(it => String(it.product) === String(r.product));
-      return s + (r.quantity || 0) * (line?.costPrice || 0);
-    }, 0);
-    if (returnValue > 0) {
-      const supplierDoc = purchase.supplier ? await Supplier.findOne({ _id: purchase.supplier, ...req.companyFilter }) : null;
-      const inventoryAccount = await Account.findOne({ code: '10400', ...req.companyFilter });
-      const payableAccount = await findOrCreateSupplierPayable(req.companyId, req.companyFilter, supplierDoc);
-      const lines = [
-        { account: payableAccount?._id, debit: returnValue, credit: 0 },
-        { account: inventoryAccount?._id, debit: 0, credit: returnValue },
-      ];
-      await postJournalEntryAtomic({
-        companyId: req.companyId,
-        date: new Date(),
-        reference: `DRN-${purchase.purchaseNumber}`,
-        description: `Purchase return ${purchase.purchaseNumber}${reason ? ' - ' + reason : ''}`,
-        lines,
-        createdBy: req.user._id,
-        fiscalYear: getFiscalYear(new Date()),
-        fiscalYearId: purchase.fiscalYearId || req.fiscalYearId || undefined,
-        miti: adToBikramSambat(new Date()),
-        companyFilter: req.companyFilter,
-        daybook: {
-          date: new Date(),
-          sourceModule: 'DEBIT_NOTE',
-          daybookType: 'PURCHASE_RETURNS',
-          documentNumber: `DRN-${purchase.purchaseNumber}`,
-          sourceRef: String(purchase._id),
-          narration: `Purchase return ${purchase.purchaseNumber}${reason ? ' - ' + reason : ''}`,
-          lines: [
-            { account: payableAccount?._id, accountName: payableAccount?.name || 'Accounts Payable', debit: returnValue, credit: 0, partyType: 'supplier', partyId: purchase.supplier, partyName: supplierDoc?.name || '' },
-            { account: inventoryAccount?._id, accountName: inventoryAccount?.name || 'Inventory Stock', debit: 0, credit: returnValue },
-          ],
-          createdBy: req.user._id,
-          terminalIp: getClientIp(req),
-        },
-      });
-    }
-  } catch (err) { console.error('Purchase return journal error:', err.message); }
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid purchase ID' });
+    const { items, reason, remark } = req.body;
+    const returnReason = remark || reason || '';
+    if (!returnReason?.trim() && (!items || items.length === 0)) return res.status(400).json({ message: 'Return reason or items required' });
+    const purchase = await Purchase.findOne({ _id: req.params.id, ...req.companyFilter }).populate('supplier', 'name');
+    if (!purchase) return res.status(404).json({ message: 'Purchase not found' });
+    if (purchase.status === 'returned') return res.status(400).json({ message: 'Purchase already fully returned' });
 
-  res.json(purchase);
+    let returnItems;
+    if (Array.isArray(items) && items.length > 0) {
+      returnItems = items.filter(it => it && parseInt(it.quantity) > 0).map(it => ({ product: it.product, quantity: parseInt(it.quantity) }));
+      if (returnItems.length === 0) return res.status(400).json({ message: 'Enter quantity to return for at least one item' });
+    } else {
+      returnItems = (purchase.items || []).map(it => ({ product: it.product, quantity: it.quantity }));
+    }
+
+    let cnNumber;
+    try { cnNumber = await generateCreditNote(req.companyId); } catch (e) { cnNumber = `CN-${purchase.purchaseNumber}`; }
+
+    let returnedValue = 0;
+    const returned = [];
+    for (const ri of returnItems) {
+      const line = (purchase.items || []).find(l => String(l.product) === String(ri.product));
+      if (!line) return res.status(400).json({ message: 'Item does not belong to this purchase' });
+      const already = (purchase.returns || []).filter(x => x.product && String(x.product) === String(ri.product)).reduce((s, x) => s + x.quantity, 0);
+      if (ri.quantity > line.quantity - already) {
+        return res.status(400).json({ message: `Return quantity ${ri.quantity} exceeds available ${line.quantity - already}` });
+      }
+      const product = await Product.findOne({ _id: ri.product, ...req.companyFilter });
+      if (product) {
+        product.stock = Math.max(0, (product.stock || 0) - ri.quantity);
+        await product.save();
+        await InventoryMovement.create({
+          product: product._id, type: 'purchase_return', quantity: -ri.quantity,
+          reference: purchase.purchaseNumber, note: returnReason || 'Purchase return',
+          createdBy: req.user._id, company: req.companyId,
+          date: purchase.date || undefined, fiscalYearId: purchase.fiscalYearId || req.fiscalYearId || undefined,
+        });
+      }
+      const costPrice = (line && line.costPrice) || (product && product.costPrice) || 0;
+      returnedValue += ri.quantity * costPrice;
+      returned.push({ product: ri.product, quantity: ri.quantity, costPrice, reason: returnReason || '', returnedBy: req.user._id, date: new Date() });
+    }
+
+    purchase.returns = [...(purchase.returns || []), ...returned];
+
+    const allReturned = returnItems.every(ri => {
+      const item = (purchase.items || []).find(l => String(l.product) === String(ri.product));
+      return item && ri.quantity >= item.quantity;
+    });
+    purchase.status = allReturned ? 'returned' : 'partial_return';
+    purchase.returnRemark = returnReason;
+    purchase.creditNoteNumber = cnNumber;
+    purchase.creditNoteDate = new Date();
+
+    if (allReturned) {
+      purchase.paidAmount = purchase.grandTotal;
+      purchase.dueAmount = 0;
+    } else {
+      purchase.dueAmount = Math.max(0, Math.round((purchase.dueAmount - returnedValue) * 100) / 100);
+    }
+
+    await purchase.save();
+
+    try {
+      if (returnedValue > 0) {
+        const supplierDoc = purchase.supplier ? await Supplier.findOne({ _id: purchase.supplier, ...req.companyFilter }) : null;
+        const inventoryAccount = await Account.findOne({ code: '10400', ...req.companyFilter });
+        const payableAccount = await findOrCreateSupplierPayable(req.companyId, req.companyFilter, supplierDoc);
+        const lines = [
+          { account: payableAccount?._id, debit: Math.round(returnedValue * 100) / 100, credit: 0 },
+          { account: inventoryAccount?._id, debit: 0, credit: Math.round(returnedValue * 100) / 100 },
+        ];
+        await postJournalEntryAtomic({
+          companyId: req.companyId,
+          date: new Date(),
+          reference: cnNumber,
+          description: `Purchase return ${cnNumber} for ${purchase.purchaseNumber}${returnReason ? ' - ' + returnReason : ''}`,
+          lines,
+          createdBy: req.user._id,
+          fiscalYear: getFiscalYear(new Date()),
+          fiscalYearId: purchase.fiscalYearId || req.fiscalYearId || undefined,
+          miti: adToBikramSambat(new Date()),
+          companyFilter: req.companyFilter,
+          daybook: {
+            date: new Date(),
+            sourceModule: 'CREDIT_NOTE',
+            daybookType: 'PURCHASE_RETURNS',
+            documentNumber: cnNumber,
+            sourceRef: String(purchase._id),
+            narration: `Purchase return ${cnNumber} for ${purchase.purchaseNumber}${returnReason ? ' - ' + returnReason : ''}`,
+            lines: [
+              { account: payableAccount?._id, accountName: payableAccount?.name || 'Accounts Payable', debit: Math.round(returnedValue * 100) / 100, credit: 0, partyType: 'supplier', partyId: purchase.supplier, partyName: supplierDoc?.name || '' },
+              { account: inventoryAccount?._id, accountName: inventoryAccount?.name || 'Inventory Stock', debit: 0, credit: Math.round(returnedValue * 100) / 100 },
+            ],
+            createdBy: req.user._id,
+            terminalIp: getClientIp(req),
+          },
+        });
+      }
+    } catch (err) { console.error('Purchase return journal error:', err.message); }
+
+    const populated = await Purchase.findOne({ _id: purchase._id, ...req.companyFilter }).populate('supplier', 'name').populate('items.product', 'name sku').populate('returns.product', 'name sku');
+    res.json(populated);
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 router.post('/standalone-return', protect, adminOnly, async (req, res) => {
@@ -671,103 +701,6 @@ router.post('/standalone-return', protect, adminOnly, async (req, res) => {
 
     res.json(purchase);
   } catch (err) { res.status(500).json({ message: err.message }); }
-});
-
-router.post('/:id/return', protect, adminOnly, async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid purchase ID' });
-  const { remark, reason, items } = req.body;
-  const returnReason = remark || reason || '';
-  if (!returnReason?.trim()) return res.status(400).json({ message: 'Refund reason/remark is required' });
-  const purchase = await Purchase.findOne({ _id: req.params.id, ...req.companyFilter }).populate('supplier', 'name');
-  if (!purchase) return res.status(404).json({ message: 'Purchase not found' });
-  if (purchase.status === 'returned') return res.status(400).json({ message: 'Purchase already returned' });
-
-  // Determine which items/quantities to return. The client sends an `items` array of
-  // { product, quantity }. If omitted, fall back to returning every line (full return).
-  let returnItems;
-  if (Array.isArray(items) && items.length > 0) {
-    returnItems = items.filter(it => it && parseInt(it.quantity) > 0).map(it => ({
-      product: it.product,
-      quantity: parseInt(it.quantity),
-    }));
-    if (returnItems.length === 0) return res.status(400).json({ message: 'Enter quantity to return for at least one item' });
-  } else {
-    returnItems = (purchase.items || []).map(it => ({ product: it.product, quantity: it.quantity }));
-  }
-
-  let cnNumber;
-  try { cnNumber = await generateCreditNote(req.companyId); } catch (e) { cnNumber = `CN-${purchase.purchaseNumber}`; }
-
-  let returnedValue = 0;
-  for (const ri of returnItems) {
-    const item = (purchase.items || []).find(l => String(l.product) === String(ri.product));
-    const product = await Product.findOne({ _id: ri.product, ...req.companyFilter });
-    if (product) {
-      product.stock = Math.max(0, (product.stock || 0) + ri.quantity);
-      await product.save();
-      await InventoryMovement.create({
-        product: product._id, type: 'purchase_return', quantity: ri.quantity,
-        reference: purchase.purchaseNumber, note: returnReason || 'Purchase return', createdBy: req.user._id, company: req.companyId,
-        date: purchase.date || undefined, fiscalYearId: purchase.fiscalYearId || req.fiscalYearId || undefined,
-      });
-    }
-    const costPrice = (item && item.costPrice) || (product && product.costPrice) || 0;
-    returnedValue += ri.quantity * costPrice;
-
-    purchase.returns.push({ product: ri.product, quantity: ri.quantity, reason: returnReason || '', returnedBy: req.user._id });
-  }
-
-  const allReturned = returnItems.length >= (purchase.items || []).length
-    && returnItems.every(ri => {
-      const item = (purchase.items || []).find(l => String(l.product) === String(ri.product));
-      return item && ri.quantity >= item.quantity;
-    });
-  purchase.status = allReturned ? 'returned' : 'partial_return';
-  purchase.returnRemark = returnReason;
-  purchase.dueAmount = allReturned ? 0 : purchase.dueAmount;
-  purchase.paidAmount = allReturned ? purchase.grandTotal : purchase.paidAmount;
-  purchase.creditNoteNumber = cnNumber;
-  purchase.creditNoteDate = new Date();
-  await purchase.save();
-
-  // Post a credit-note journal entry so the accounts-payable ledger records the return.
-  try {
-    const inventoryAccount = await Account.findOne({ code: '10400', ...req.companyFilter });
-    const supplierDoc = await Supplier.findOne({ _id: purchase.supplier, ...req.companyFilter });
-    const payableAccount = await findOrCreateSupplierPayable(req.companyId, req.companyFilter, supplierDoc);
-    const lines = [
-      { account: payableAccount?._id, accountName: payableAccount?.name || 'Accounts Payable', debit: Math.round(returnedValue * 100) / 100, credit: 0, partyType: 'supplier', partyId: purchase.supplier, partyName: supplierDoc?.name || '' },
-      { account: inventoryAccount?._id, accountName: inventoryAccount?.name || 'Inventory Stock', debit: 0, credit: Math.round(returnedValue * 100) / 100 },
-    ];
-    await postJournalEntryAtomic({
-      companyId: req.companyId,
-      date: purchase.date ? new Date(purchase.date) : new Date(),
-      reference: cnNumber,
-      description: `Purchase return ${cnNumber} for ${purchase.purchaseNumber}${returnReason ? ' - ' + returnReason : ''}`,
-      lines,
-      createdBy: req.user._id,
-      fiscalYear: getFiscalYear(purchase.date),
-      fiscalYearId: purchase.fiscalYearId || req.fiscalYearId || undefined,
-      miti: purchase.miti || (purchase.date ? adToBikramSambat(purchase.date) : undefined),
-      companyFilter: req.companyFilter,
-      daybook: {
-        date: purchase.date ? new Date(purchase.date) : new Date(),
-        sourceModule: 'CREDIT_NOTE',
-        daybookType: 'PURCHASE_RETURNS',
-        documentNumber: cnNumber,
-        sourceRef: String(purchase._id),
-        narration: `Purchase return ${cnNumber} for ${purchase.purchaseNumber}`,
-        lines: [
-          { account: payableAccount?._id, accountName: payableAccount?.name || 'Accounts Payable', debit: Math.round(returnedValue * 100) / 100, credit: 0, partyType: 'supplier', partyId: purchase.supplier, partyName: supplierDoc?.name || '' },
-          { account: inventoryAccount?._id, accountName: inventoryAccount?.name || 'Inventory Stock', debit: 0, credit: Math.round(returnedValue * 100) / 100 },
-        ],
-        createdBy: req.user._id,
-        terminalIp: getClientIp(req),
-      },
-    });
-  } catch (err) { console.error('Purchase return journal error:', err.message); }
-
-  res.json(purchase);
 });
 
 module.exports = router;

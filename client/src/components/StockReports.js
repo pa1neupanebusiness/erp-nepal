@@ -112,7 +112,7 @@ export default function StockReports() {
           <button className="btn btn-primary" onClick={load} disabled={loading}>{loading ? 'Loading...' : 'Apply Range'}</button>
           <button className="btn btn-secondary" onClick={() => { setFrom(''); setTo(''); }}>All</button>
           <button className="btn btn-secondary" onClick={() => {
-            const rows = filtered.map(r => ({ SKU: r.sku, Product: r.name, Category: r.category, Opening: fmtQty(r.opening), 'Stock In': fmtQty(r.stockIn), 'Stock Out': fmtQty(r.stockOut), 'Sales Return': fmtQty(r.salesReturn), 'Purchase Return': fmtQty(r.purchaseReturn), Remaining: fmtQty(r.remaining), 'Min Stock': fmtQty(r.minStock), 'Cost Price': fmtP(r.costPrice), 'Sell Price': fmtP(r.sellingPrice), Status: r.stockLevel }));
+            const rows = filtered.map(r => ({ SKU: r.sku, Product: r.name, Category: r.category, Opening: fmtQty(r.opening), 'Stock In': fmtQty(r.stockIn), 'Stock Out': fmtQty(r.stockOut), 'Sales Rt.': fmtQty(r.salesReturn), 'Purchase Rt.': fmtQty(r.purchaseReturn), Remaining: fmtQty(r.remaining), 'Min Stock': fmtQty(r.minStock), 'Cost Price': fmtP(r.costPrice), 'Sell Price': fmtP(r.sellingPrice), Status: r.stockLevel }));
             if (rows.length === 0) return;
             printEntry({ title: 'Stock & Inventory Overview', columns: Object.keys(rows[0]).map(k => ({ key: k, label: k, align: ['Opening','Stock In','Stock Out','Sales Return','Purchase Return','Remaining','Min Stock','Cost Price','Sell Price'].includes(k) ? 'right' : undefined })), rows, footer: [{ label: 'Total Products', value: String(rows.length) }] });
           }}>Print</button>
@@ -146,12 +146,12 @@ export default function StockReports() {
           <table className="table">
             <thead>
               <tr>
-                <th>SKU</th><th>Product</th><th>Category</th>
-                <th className="text-right">Opening</th><th className="text-right">Stock In</th><th className="text-right">Stock Out</th>
-                <th className="text-right">Sales Return</th><th className="text-right">Purchase Return</th>
-                <th className="text-right">Remaining</th><th className="text-right">Min</th>
-                <th className="text-right">Cost Price</th><th className="text-right">Sell Price</th>
-                <th>Status</th><th></th>
+                <th style={{ width: 80 }}>SKU</th><th style={{ minWidth: 180 }}>Product</th><th style={{ width: 100 }}>Category</th>
+                <th className="text-right" style={{ width: 75 }}>Opening</th><th className="text-right" style={{ width: 75 }}>Stock In</th><th className="text-right" style={{ width: 75 }}>Stock Out</th>
+                <th className="text-right" style={{ width: 80 }}>Sales Rt.</th><th className="text-right" style={{ width: 80 }}>Purchase Rt.</th>
+                <th className="text-right" style={{ width: 80 }}>Remaining</th><th className="text-right" style={{ width: 55 }}>Min</th>
+                <th className="text-right" style={{ width: 100 }}>Cost Price</th><th className="text-right" style={{ width: 100 }}>Sell Price</th>
+                <th style={{ width: 90 }}>Status</th><th></th>
               </tr>
             </thead>
             <tbody>

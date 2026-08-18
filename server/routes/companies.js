@@ -32,6 +32,9 @@ const router = express.Router();
 
 const { DEFAULT_MODULES } = Company;
 
+const MODULE_TO_GROUP = { pos: 'pos', sales: 'pos', emi: 'pos', purchase: 'inventory', accounts: 'accounts', reports: 'accounts', hr: 'hr' };
+const groupsForModules = (enabledModules) => [...new Set((enabledModules || []).map(m => MODULE_TO_GROUP[m]).filter(Boolean))];
+
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'erp_jwt_secret_key', { expiresIn: '30d' });
 };
@@ -111,7 +114,7 @@ router.post('/register', async (req, res) => {
       email,
       password,
       role: 'admin',
-      groups: ['pos', 'inventory', 'accounts', 'hr'],
+      groups: groupsForModules(DEFAULT_MODULES),
       company: company._id,
       isCompanySuperAdmin: true
     });
@@ -202,7 +205,7 @@ router.post('/', protect, superAdminOnly, async (req, res) => {
       email,
       password,
       role: 'admin',
-      groups: ['pos', 'inventory', 'accounts', 'hr'],
+      groups: groupsForModules(enabledModules && enabledModules.length ? enabledModules : DEFAULT_MODULES),
       company: company._id,
       isCompanySuperAdmin: true
     });
@@ -275,9 +278,11 @@ router.post('/:id/users', protect, superAdminOnly, async (req, res) => {
     if (await User.findOne({ email })) return res.status(400).json({ message: 'Email already exists' });
     const company = await Company.findById(req.params.id);
     if (!company) return res.status(404).json({ message: 'Company not found' });
+    const allowedGroups = groupsForModules(company.enabledModules);
+    const safeGroups = (groups || []).filter(g => allowedGroups.includes(g));
     const user = await User.create({
       name, email, password, role: role || 'user',
-      groups: groups || [], company: company._id,
+      groups: safeGroups, company: company._id,
     });
     res.status(201).json({ _id: user._id, name: user.name, email: user.email, role: user.role, groups: user.groups });
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -294,7 +299,11 @@ router.put('/:id/users/:userId', protect, superAdminOnly, async (req, res) => {
       user.email = email;
     }
     if (role) user.role = role;
-    if (groups) user.groups = groups;
+    if (groups) {
+      const company = await Company.findById(req.params.id);
+      const allowedGroups = company ? groupsForModules(company.enabledModules) : groups;
+      user.groups = groups.filter(g => allowedGroups.includes(g));
+    }
     if (isActive !== undefined) user.isActive = isActive;
     if (password && password.length >= 6) user.password = password;
     await user.save();

@@ -122,8 +122,10 @@ export default function Layout({ user, onLogout, children }) {
       'Sales': ['/pos', '/emi', '/sales', '/pos-summary', '/request-refund', '/admin/refund-approvals', '/refund'],
       'Courier': ['/tracking', '/courier-sales'],
       'Purchase': ['/purchases'],
-      'Store': ['/products', '/categories', '/suppliers', '/stock-reports', '/customers', '/damage'],
-      'Accounting': ['/accounts', '/vouchers', '/ledger', '/accounting/expenses', '/fixed-assets', '/reports/monthly-sales-register', '/expenses'],
+      'Inventory': ['/products', '/categories', '/suppliers', '/stock-reports', '/customers', '/damage'],
+      'Expense': ['/accounting/expenses', '/expenses'],
+      'Other Income': [],
+      'Manage Accounts': ['/accounts', '/vouchers', '/ledger', '/fixed-assets', '/reports/monthly-sales-register'],
       'VAT & TDS Reports': ['/reports/vat', '/reports/tds', '/reports/aging', '/reports/cash-flow'],
       'HR & Payroll': ['/hr'],
       'Super Admin': ['/admin'],
@@ -221,22 +223,13 @@ export default function Layout({ user, onLogout, children }) {
             {v.posAdmin && <NavLink to="/refund" className={linkClass} onClick={closeSidebar}><Icon name="refund" /><span className="nav-text">Direct Refund</span></NavLink>}
           </NavSection>}
 
-          {courierVisible && <NavSection title="Courier" paths={['/tracking', '/courier-sales', '/branch-deliveries']} activeSection={activeSection} onToggle={toggleSection}>
-            {isAdmin && <NavLink to="/courier-sales" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Courier Sales</span></NavLink>}
-            {isAdmin && <NavLink to="/courier-sales/history" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Sales History</span></NavLink>}
-            <NavLink to="/tracking" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Order Tracking</span></NavLink>
-            {isAdmin && <NavLink to="/branch-deliveries" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Deliveries</span></NavLink>}
-            {(user?.groups || []).includes('branch') && <NavLink to="/tracking/branch" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Orders</span></NavLink>}
-            {(user?.groups || []).includes('driver') && <NavLink to="/tracking/driver" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">My Deliveries</span></NavLink>}
-          </NavSection>}
-
           {purchaseVisible && <NavSection title="Purchase" paths={['/purchases', '/purchases/payment-out', '/purchases/returns']} activeSection={activeSection} onToggle={toggleSection}>
             <NavLink to="/purchases" className={linkClass} onClick={closeSidebar}><Icon name="purchase" /><span className="nav-text">Purchase</span></NavLink>
             <NavLink to="/purchases/payment-out" className={linkClass} onClick={closeSidebar}><Icon name="paymentout" /><span className="nav-text">Payment Out</span></NavLink>
             <NavLink to="/purchases/returns" className={linkClass} onClick={closeSidebar}><Icon name="purchasereturn" /><span className="nav-text">Purchase Return</span></NavLink>
           </NavSection>}
 
-          {storeVisible && <NavSection title="Store" paths={['/products', '/categories', '/suppliers', '/stock-reports', '/customers', '/damage']} activeSection={activeSection} onToggle={toggleSection}>
+          {storeVisible && <NavSection title="Inventory" paths={['/products', '/categories', '/suppliers', '/stock-reports', '/customers', '/damage']} activeSection={activeSection} onToggle={toggleSection}>
             <NavLink to="/products" className={linkClass} onClick={closeSidebar}><Icon name="product" /><span className="nav-text">Products</span></NavLink>
             <NavLink to="/categories" className={linkClass} onClick={closeSidebar}><Icon name="category" /><span className="nav-text">Categories</span></NavLink>
             <NavLink to="/suppliers" className={linkClass} onClick={closeSidebar}><Icon name="supplier" /><span className="nav-text">Suppliers</span></NavLink>
@@ -245,7 +238,16 @@ export default function Layout({ user, onLogout, children }) {
             <NavLink to="/damage" className={linkClass} onClick={closeSidebar}><Icon name="damage" /><span className="nav-text">Damage/Waste</span></NavLink>
           </NavSection>}
 
-          {accountingVisible && <NavSection title="Accounting" paths={['/accounts', '/vouchers', '/ledger', '/reports/cash-flow', '/reports/aging', '/expenses', '/accounting/expenses', '/fixed-assets', '/reports/monthly-sales-register']} activeSection={activeSection} onToggle={toggleSection}>
+          {accountingVisible && <NavSection title="Expense" paths={['/accounting/expenses', '/expenses']} activeSection={activeSection} onToggle={toggleSection}>
+            <NavLink to="/accounting/expenses" className={linkClass} onClick={closeSidebar}><Icon name="expense" /><span className="nav-text">Expenses</span></NavLink>
+            <NavLink to="/expenses" className={linkClass} onClick={closeSidebar}><Icon name="expense" /><span className="nav-text">Petty Expenses</span></NavLink>
+          </NavSection>}
+
+          {accountingVisible && <NavSection title="Other Income" paths={[]} activeSection={activeSection} onToggle={toggleSection}>
+            <span style={{ padding: '0.5rem 0.75rem', color: '#94a3b8', fontSize: '0.82rem' }}>Coming soon</span>
+          </NavSection>}
+
+          {accountingVisible && <NavSection title="Manage Accounts" paths={['/accounts', '/vouchers', '/ledger', '/fixed-assets', '/reports/monthly-sales-register']} activeSection={activeSection} onToggle={toggleSection}>
             <NavLink to="/accounts" className={linkClass} onClick={closeSidebar}><Icon name="accounts" /><span className="nav-text">Chart of Accounts</span></NavLink>
             <NavLink to="/accounts/banks" className={linkClass} onClick={closeSidebar}><Icon name="accounts" /><span className="nav-text">Banks</span></NavLink>
             <NavLink to="/vouchers" className={linkClass} onClick={closeSidebar}><Icon name="voucher" /><span className="nav-text">Vouchers</span></NavLink>
@@ -256,10 +258,17 @@ export default function Layout({ user, onLogout, children }) {
             <NavLink to="/accounts/income-statement" className={linkClass} onClick={closeSidebar}><Icon name="income" /><span className="nav-text">Income Statement</span></NavLink>
             <NavLink to="/accounts/balance-sheet" className={linkClass} onClick={closeSidebar}><Icon name="balance" /><span className="nav-text">Balance Sheet</span></NavLink>
             <NavLink to="/accounts/daybook" className={linkClass} onClick={closeSidebar}><Icon name="daybook" /><span className="nav-text">Daybook</span></NavLink>
-            <NavLink to="/accounting/expenses" className={linkClass} onClick={closeSidebar}><Icon name="expense" /><span className="nav-text">Expenses</span></NavLink>
             <NavLink to="/fixed-assets" className={linkClass} onClick={closeSidebar}><Icon name="accounts" /><span className="nav-text">Fixed Assets</span></NavLink>
             <NavLink to="/reports/monthly-sales-register" className={linkClass} onClick={closeSidebar}><Icon name="voucher" /><span className="nav-text">Monthly Sales Register</span></NavLink>
-            <NavLink to="/expenses" className={linkClass} onClick={closeSidebar}><Icon name="expense" /><span className="nav-text">Petty Expenses</span></NavLink>
+          </NavSection>}
+
+          {courierVisible && <NavSection title="Courier" paths={['/tracking', '/courier-sales', '/branch-deliveries']} activeSection={activeSection} onToggle={toggleSection}>
+            {isAdmin && <NavLink to="/courier-sales" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Courier Sales</span></NavLink>}
+            {isAdmin && <NavLink to="/courier-sales/history" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Sales History</span></NavLink>}
+            <NavLink to="/tracking" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Order Tracking</span></NavLink>
+            {isAdmin && <NavLink to="/branch-deliveries" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Deliveries</span></NavLink>}
+            {(user?.groups || []).includes('branch') && <NavLink to="/tracking/branch" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Orders</span></NavLink>}
+            {(user?.groups || []).includes('driver') && <NavLink to="/tracking/driver" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">My Deliveries</span></NavLink>}
           </NavSection>}
 
           {reportsVisible && <NavSection title={tax.label} paths={['/reports']} activeSection={activeSection} onToggle={toggleSection}>

@@ -146,6 +146,29 @@ export default function CreateSalesInvoice() {
     }, 0);
   };
 
+  const handleSplitAmountChange = (idx, value) => {
+    const amt = parseFloat(value) || 0;
+    let updated = splits.map((sp, i) => i === idx ? { ...sp, amount: amt } : sp);
+    updated = updated.filter(sp => sp.method !== 'credit');
+    const total = updated.reduce((s, sp) => s + (sp.amount || 0), 0);
+    const remaining = Math.max(0, Math.round((grandTotal - total) * 100) / 100);
+    if (remaining > 0.01) {
+      updated.push({ method: 'credit', amount: remaining, bank: '' });
+    }
+    setSplits(updated);
+  };
+
+  const handleSplitMethodChange = (idx, newMethod) => {
+    let updated = splits.map((sp, i) => i === idx ? { ...sp, method: newMethod, bank: '' } : sp);
+    updated = updated.filter(sp => sp.method !== 'credit');
+    const total = updated.reduce((s, sp) => s + (sp.amount || 0), 0);
+    const remaining = Math.max(0, Math.round((grandTotal - total) * 100) / 100);
+    if (remaining > 0.01) {
+      updated.push({ method: 'credit', amount: remaining, bank: '' });
+    }
+    setSplits(updated);
+  };
+
   const handleInclusiveVatToggle = (checked) => {
     setInclusiveVat(checked);
     setApplyVat(false);
@@ -550,7 +573,7 @@ export default function CreateSalesInvoice() {
               <div style={{ paddingTop: '1rem', borderTop: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Payment Mode</label>
-                  <select value={paymentMethod} onChange={e => { setPaymentMethod(e.target.value); if (e.target.value !== 'qr' && e.target.value !== 'bank') setBank(''); if (e.target.value === 'split') setSplits([{ method: 'cash', amount: 0, bank: '' }]); }} style={{ width: '100%', padding: '0.5rem 0.75rem', fontSize: '0.875rem', background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8 }}>
+                  <select value={paymentMethod} onChange={e => { const v = e.target.value; setPaymentMethod(v); if (v !== 'qr' && v !== 'bank') setBank(''); if (v === 'split') { setSplits([{ method: 'cash', amount: Math.round(grandTotal * 100) / 100, bank: '' }, { method: 'bank', amount: 0, bank: '' }]); } else { setSplits([{ method: 'cash', amount: 0, bank: '' }]); } }} style={{ width: '100%', padding: '0.5rem 0.75rem', fontSize: '0.875rem', background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8 }}>
                     <option value="cash">Cash</option>
                     <option value="qr">QR / Mobile Banking</option>
                     <option value="bank">Bank Transfer / Fonepay</option>
@@ -560,23 +583,33 @@ export default function CreateSalesInvoice() {
                 </div>
                 {paymentMethod === 'split' && (
                   <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: '0.75rem', background: '#f8fafc' }}>
-                    {splits.map((sp, idx) => (
-                      <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
-                        <select value={sp.method} onChange={e => { const next = [...splits]; next[idx] = { ...next[idx], method: e.target.value, bank: '' }; setSplits(next); }} style={{ flex: 1, padding: '0.375rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8rem' }}>
-                          <option value="cash">Cash</option><option value="qr">QR</option><option value="bank">Bank</option><option value="credit">Credit</option>
-                        </select>
-                        <input type="number" value={sp.amount || ''} onChange={e => { const next = [...splits]; next[idx] = { ...next[idx], amount: parseFloat(e.target.value) || 0 }; setSplits(next); }} placeholder="Amount" style={{ flex: 1, padding: '0.375rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8rem', textAlign: 'right' }} />
-                        {(sp.method === 'qr' || sp.method === 'bank') && (
-                          <select value={sp.bank} onChange={e => { const next = [...splits]; next[idx] = { ...next[idx], bank: e.target.value }; setSplits(next); }} style={{ flex: 1, padding: '0.375rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8rem' }}>
-                            <option value="">-- Bank --</option>{banks.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+                    {splits.map((sp, idx) => {
+                      const isCredit = sp.method === 'credit';
+                      return (
+                        <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem', padding: '0.375rem', borderRadius: 6, background: isCredit ? '#fffbeb' : 'transparent', border: isCredit ? '1px solid #fde68a' : '1px solid transparent' }}>
+                          <select value={sp.method} onChange={e => handleSplitMethodChange(idx, e.target.value)} style={{ width: 100, padding: '0.375rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8rem', background: isCredit ? '#fef3c7' : '#fff' }}>
+                            <option value="cash">Cash</option><option value="qr">QR</option><option value="bank">Bank</option>
+                            {isCredit && <option value="credit">Credit</option>}
                           </select>
-                        )}
-                        {splits.length > 1 && <button onClick={() => setSplits(splits.filter((_, i) => i !== idx))} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem' }}>×</button>}
-                      </div>
-                    ))}
+                          <input type="number" value={sp.amount || ''} onChange={e => handleSplitAmountChange(idx, e.target.value)} placeholder="0" style={{ flex: 1, padding: '0.375rem', borderRadius: 6, border: `1px solid ${isCredit ? '#f59e0b' : '#cbd5e1'}`, fontSize: '0.8rem', textAlign: 'right', background: isCredit ? '#fffbeb' : '#fff', fontWeight: isCredit ? 600 : 400, color: isCredit ? '#b45309' : '#0f172a' }} />
+                          {(sp.method === 'qr' || sp.method === 'bank') && (
+                            <select value={sp.bank} onChange={e => { const next = [...splits]; next[idx] = { ...next[idx], bank: e.target.value }; setSplits(next); }} style={{ flex: 1, padding: '0.375rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8rem' }}>
+                              <option value="">-- Bank --</option>{banks.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+                            </select>
+                          )}
+                          {isCredit && <span style={{ fontSize: '0.7rem', color: '#b45309', fontWeight: 500, whiteSpace: 'nowrap' }}>Due</span>}
+                          {splits.length > 2 && <button onClick={() => setSplits(splits.filter((_, i) => i !== idx))} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem' }}>×</button>}
+                        </div>
+                      );
+                    })}
                     <button onClick={() => setSplits([...splits, { method: 'cash', amount: 0, bank: '' }])} style={{ fontSize: '0.8rem', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Add Split</button>
-                    <div style={{ fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: 600, color: Math.abs(splits.reduce((s, sp) => s + (sp.amount || 0), 0) - grandTotal) < 0.01 ? '#16a34a' : '#dc2626' }}>
-                      Split Total: {formatMoney(splits.reduce((s, sp) => s + (sp.amount || 0), 0))} / {formatMoney(grandTotal)}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 600, color: Math.abs(splits.reduce((s, sp) => s + (sp.amount || 0), 0) - grandTotal) < 0.01 ? '#16a34a' : '#dc2626' }}>
+                        Total: {formatMoney(splits.reduce((s, sp) => s + (sp.amount || 0), 0))} / {formatMoney(grandTotal)}
+                      </div>
+                      {splits.some(sp => sp.method === 'credit') && (
+                        <span style={{ fontSize: '0.7rem', color: '#b45309', background: '#fef3c7', padding: '0.125rem 0.5rem', borderRadius: 4, fontWeight: 600 }}>Partial — credit due</span>
+                      )}
                     </div>
                   </div>
                 )}

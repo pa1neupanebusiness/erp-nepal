@@ -12,14 +12,23 @@ export default function UserManagement() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [detail, setDetail] = useState(null);
   const [branches, setBranches] = useState([]);
+  const [allowedGroups, setAllowedGroups] = useState([]);
   const addToast = useToast();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const isSuperAdmin = user.role === 'super_admin';
 
-  useEffect(() => { load(); loadBranches(); }, []);
+  useEffect(() => { load(); loadBranches(); loadAllowedGroups(); }, []);
 
   const load = () => api.get('/users').then(r => setUsers(r.data.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)))).catch(() => {});
   const loadBranches = () => api.get('/branches').then(r => setBranches(r.data)).catch(() => {});
+  const loadAllowedGroups = async () => {
+    try {
+      const { data } = await api.get('/company');
+      const MODULE_TO_GROUP = { pos: 'pos', sales: 'pos', emi: 'pos', purchase: 'inventory', accounts: 'accounts', reports: 'accounts', hr: 'hr' };
+      const groups = [...new Set((data.enabledModules || []).map(m => MODULE_TO_GROUP[m]).filter(Boolean))];
+      setAllowedGroups(groups);
+    } catch { setAllowedGroups(['pos', 'inventory', 'accounts']); }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -87,7 +96,7 @@ export default function UserManagement() {
           </div>
           <div className="form-group"><label>Access Groups</label>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-              {Object.entries(GROUP_LABELS).map(([key, label]) => (
+              {Object.entries(GROUP_LABELS).filter(([key]) => allowedGroups.includes(key)).map(([key, label]) => (
                 <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}>
                   <input type="checkbox" checked={form.groups.includes(key)} onChange={() => toggleGroup(key)} />
                   {label}

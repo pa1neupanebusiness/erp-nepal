@@ -352,144 +352,157 @@ export default function Purchases() {
       )}
 
       {showForm === true && (
-        <form onSubmit={handleSubmit} className="card form-card">
-          <h3>{editing ? 'Edit Purchase' : 'New Purchase'}</h3>
-          <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
-            <div className="form-group"><label>Date</label><NepaliDatePicker value={form.date} onChange={v => setForm({ ...form, date: v })} /></div>
-            <div className="form-group"><label>Type</label><select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
-              <option value="direct">Direct Purchase</option><option value="order">Purchase Order</option><option value="receipt">GRN Receipt</option>
-            </select></div>
-            <div className="form-group">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                <label style={{ margin: 0 }}>Supplier</label>
-                <button type="button" onClick={() => setForm({ ...form, supplier: '' })} style={{ fontSize: '0.7rem', fontWeight: 600, color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, padding: '0.2rem 0.5rem', cursor: 'pointer' }}>Cash Purchase</button>
+        <div style={{ minHeight: '100vh', background: '#f8fafc', paddingBottom: 80 }}>
+          <header style={{ position: 'sticky', top: 0, zIndex: 10, background: '#fff', borderBottom: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <button onClick={resetForm} style={{ padding: '0.375rem', color: '#64748b', background: 'none', border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex' }}><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
+              <h1 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#0f172a' }}>{editing ? 'Edit Purchase Bill' : 'Create Purchase Bill'}</h1>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button onClick={resetForm} style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: '#475569', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSubmit} disabled={saving} style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', fontWeight: 500, color: '#fff', background: '#2563eb', border: 'none', borderRadius: 8, cursor: 'pointer' }}>{editing ? 'Update' : 'Save'} Purchase</button>
+            </div>
+          </header>
+          <form onSubmit={handleSubmit}>
+          <main style={{ maxWidth: 1280, margin: '0 auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <section style={{ background: '#fff', padding: '1.5rem', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.75rem', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
+                <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#0f172a' }}>Purchase Details</h2>
+                <button type="button" onClick={() => setForm({ ...form, supplier: '' })} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.75rem', fontWeight: 600, color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, cursor: 'pointer' }}>Cash Purchase</button>
               </div>
-              <SearchableSelect
-                options={suppliers.map(s => ({ value: s._id, label: s.name }))}
-                value={form.supplier}
-                onChange={v => { setForm({ ...form, supplier: v }); loadSupplierFyTotal(v); }}
-                onAdd={(q) => { setNewSupplier({ name: '', phone: '', email: '', address: '', pan: '' }); setNewSupplier(prev => ({ ...prev, name: q })); setSupplierModal(true); }}
-                placeholder="Cash"
-              />
-              {!form.supplier && <div style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 500, marginTop: 2 }}>Cash Purchase (No Supplier)</div>}
-            </div>
-            <div className="form-group"><label>Supplier Invoice No. (optional)</label>
-              <input value={form.supplierInvoiceNo} onChange={e => setForm({ ...form, supplierInvoiceNo: e.target.value })} placeholder="Enter supplier invoice number" />
-            </div>
-          </div>
-          <table className="table">
-            <thead><tr><th>Product</th><th>Qty</th><th>Cost Price</th><th>Sell Price</th><th>Batch</th><th>Subtotal</th><th></th></tr></thead>
-            <tbody>
-              {form.items.map((item, i) => (
-                <tr key={i}>
-                  <td>
-                    <SearchableSelect
-                      options={products.map(p => ({ value: p._id, label: `${p.name} (${p.sku})` }))}
-                      value={item.product}
-                      onChange={v => updateItem(i, 'product', v)}
-                      onAdd={(q) => { setProductModalRow(i); setNewProduct(prev => ({ ...prev, name: q })); setProductModal(true); }}
-                      required
-                      placeholder="Search product or type to add..."
-                    />
-                  </td>
-                  <td><input type="number" value={item.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} min="1" /></td>
-                  <td><input type="number" step="0.01" value={item.costPrice} onChange={e => updateItem(i, 'costPrice', e.target.value)} /></td>
-                  <td><input type="number" step="0.01" value={item.sellingPrice} onChange={e => updateItem(i, 'sellingPrice', e.target.value)} /></td>
-                  <td><input value={item.batch} onChange={e => updateItem(i, 'batch', e.target.value)} placeholder="Batch#" /></td>
-                  <td>{formatNPR(item.subtotal)}</td>
-                  <td>{form.items.length > 1 && <button type="button" className="btn btn-sm btn-danger" onClick={() => removeItem(i)}>×</button>}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <button type="button" className="btn btn-sm btn-secondary" onClick={addItem}>+ Add Item</button>
-          <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', marginTop: '1rem' }}>
-            <div className="form-group"><label>Discount</label><input type="number" value={form.discount} onChange={e => setForm({ ...form, discount: parseFloat(e.target.value) || 0 })} /></div>
-            <div className="form-group"><label>VAT (%)</label><input type="number" step="0.01" min="0" value={form.vatPercent} onChange={e => setForm({ ...form, vatPercent: parseFloat(e.target.value) || 0 })} placeholder="13" /></div>
-            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingTop: '1.5rem' }}>
-              <input type="checkbox" id="applyVat" checked={form.applyVat} onChange={e => setForm({ ...form, applyVat: e.target.checked, inclusiveVat: e.target.checked ? false : form.inclusiveVat, vatPercent: form.vatPercent || 13 })} />
-              <label htmlFor="applyVat" style={{ margin: 0 }}>Add VAT</label>
-            </div>
-            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingTop: '1.5rem' }}>
-              <input type="checkbox" id="inclusiveVat" checked={form.inclusiveVat} onChange={e => setForm({ ...form, inclusiveVat: e.target.checked, applyVat: e.target.checked ? false : form.applyVat, vatPercent: form.vatPercent || 13 })} />
-              <label htmlFor="inclusiveVat" style={{ margin: 0 }}>Inclusive VAT</label>
-            </div>
-            <div className="form-group"><label>Paid Amount</label><input type="number" value={form.paidAmount} onChange={e => setForm({ ...form, paidAmount: e.target.value })} /></div>
-          </div>
-          <div className="form-group" style={{ marginTop: '0.75rem' }}>
-              <label>Payment Method</label>
-              <div className="pay-method-toggle" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <button type="button" className={`pay-method-option ${form.paymentMethod === 'cash' ? 'active' : ''}`} onClick={() => setForm({ ...form, paymentMethod: 'cash', bank: '', splits: undefined })}>
-                  <span className="pay-method-icon">💵</span>
-                  <span><strong>Cash (Nagad)</strong><small>Paid from Cash Account</small></span>
-                </button>
-                <button type="button" className={`pay-method-option ${form.paymentMethod === 'bank' ? 'active' : ''}`} data-bank={form.paymentMethod === 'bank'} onClick={() => setForm({ ...form, paymentMethod: 'bank', splits: undefined })}>
-                  <span className="pay-method-icon">🏦</span>
-                  <span><strong>Bank (Cheque)</strong><small>Paid from Bank Account</small></span>
-                </button>
-                <button type="button" className={`pay-method-option ${form.paymentMethod === 'split' ? 'active' : ''}`} onClick={() => setForm({ ...form, paymentMethod: 'split', bank: '', splits: [{ method: 'cash', amount: parseFloat(form.paidAmount) || 0, bank: '' }] })}>
-                  <span className="pay-method-icon">🔀</span>
-                  <span><strong>Split (Cash + Bank)</strong><small>Multiple payment methods</small></span>
-                </button>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Party / Supplier</label>
+                  <SearchableSelect options={suppliers.map(s => ({ value: s._id, label: s.name }))} value={form.supplier} onChange={v => { setForm({ ...form, supplier: v }); loadSupplierFyTotal(v); }} onAdd={(q) => { setNewSupplier({ name: '', phone: '', email: '', address: '', pan: '' }); setNewSupplier(prev => ({ ...prev, name: q })); setSupplierModal(true); }} placeholder="Cash" style={{ width: '100%' }} inputStyle={{ padding: '0.5rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.875rem', width: '100%' }} />
+                  {!form.supplier && <div style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 500, marginTop: 2 }}>Cash Purchase (No Supplier)</div>}
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Supplier Invoice No.</label>
+                  <input value={form.supplierInvoiceNo} onChange={e => setForm({ ...form, supplierInvoiceNo: e.target.value })} placeholder="Optional" style={{ width: '100%', padding: '0.5rem 0.75rem', fontSize: '0.875rem', background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8 }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Type</label>
+                  <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} style={{ width: '100%', padding: '0.5rem 0.75rem', fontSize: '0.875rem', background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8 }}>
+                    <option value="direct">Direct Purchase</option><option value="order">Purchase Order</option><option value="receipt">GRN Receipt</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Invoice Date (BS)</label>
+                  <NepaliDatePicker value={form.date} onChange={v => setForm({ ...form, date: v })} style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.875rem' }} />
+                </div>
               </div>
-              {form.paymentMethod === 'cash' && <div className="form-group" style={{ marginTop: '0.5rem' }}><label>Remarks</label><input value={form.paymentRemarks} onChange={e => setForm({ ...form, paymentRemarks: e.target.value })} placeholder="Payment remarks" /></div>}
-              {form.paymentMethod === 'bank' && <div className="form-group" style={{ marginTop: '0.5rem' }}><label>Bank *</label><select value={form.bank} onChange={e => setForm({ ...form, bank: e.target.value })} required><option value="">-- Select Bank --</option>{banks.map(b => <option key={b._id} value={b._id}>{b.name}{b.accountNumber ? ` (${b.accountNumber})` : ''}</option>)}</select></div>}
-              {form.paymentMethod === 'bank' && <div className="form-group" style={{ marginTop: '0.5rem' }}><label>Cheque Number *</label><input value={form.chequeNumber} onChange={e => setForm({ ...form, chequeNumber: e.target.value })} required placeholder="Enter cheque number" /></div>}
-              {form.paymentMethod === 'split' && (
-                <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: '0.75rem', marginTop: '0.5rem', background: '#f8fafc' }}>
-                  {(form.splits || []).map((sp, idx) => (
-                    <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
-                      <select value={sp.method} onChange={e => { const next = [...(form.splits || [])]; next[idx] = { ...next[idx], method: e.target.value, bank: '' }; setForm({ ...form, splits: next }); }} style={{ flex: 1, padding: '0.5rem', borderRadius: 6, border: '1px solid #cbd5e1' }}>
-                        <option value="cash">Cash</option>
-                        <option value="bank">Bank</option>
-                      </select>
-                      <input type="number" value={sp.amount || ''} onChange={e => { const next = [...(form.splits || [])]; next[idx] = { ...next[idx], amount: parseFloat(e.target.value) || 0 }; setForm({ ...form, splits: next }); }} placeholder="Amount" style={{ flex: 1, padding: '0.5rem', borderRadius: 6, border: '1px solid #cbd5e1', textAlign: 'right' }} />
-                      {sp.method === 'bank' && (
-                        <select value={sp.bank} onChange={e => { const next = [...(form.splits || [])]; next[idx] = { ...next[idx], bank: e.target.value }; setForm({ ...form, splits: next }); }} style={{ flex: 1, padding: '0.5rem', borderRadius: 6, border: '1px solid #cbd5e1' }}>
-                          <option value="">-- Bank --</option>
-                          {banks.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
-                        </select>
-                      )}
-                      {(form.splits || []).length > 1 && <button type="button" className="btn btn-sm btn-danger" onClick={() => setForm({ ...form, splits: (form.splits || []).filter((_, i) => i !== idx) })}>&times;</button>}
+            </section>
+
+            <section style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
+              <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafbfc' }}>
+                <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#0f172a' }}>Billing Items</h2>
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="invoice-items" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#fafbfc', fontSize: '0.6875rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      <th style={{ padding: '0.75rem 1rem', width: 48, textAlign: 'center' }}>S.N.</th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'left' }}>Product</th>
+                      <th style={{ padding: '0.75rem 1rem', width: 100, textAlign: 'center' }}>Qty</th>
+                      <th style={{ padding: '0.75rem 1rem', width: 140, textAlign: 'right' }}>Cost Price</th>
+                      <th style={{ padding: '0.75rem 1rem', width: 140, textAlign: 'right' }}>Sell Price</th>
+                      <th style={{ padding: '0.75rem 1rem', width: 110, textAlign: 'left' }}>Batch</th>
+                      <th style={{ padding: '0.75rem 1rem', width: 120, textAlign: 'right' }}>Amount</th>
+                      <th style={{ padding: '0.75rem 1rem', width: 48 }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {form.items.map((item, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '0.75rem 1rem', textAlign: 'center', color: '#94a3b8', fontWeight: 500 }}>{i + 1}</td>
+                        <td style={{ padding: '0.75rem 1rem' }}>
+                          <SearchableSelect options={products.map(p => ({ value: p._id, label: `${p.name} (${p.sku})` }))} value={item.product} onChange={v => updateItem(i, 'product', v)} onAdd={(q) => { setProductModalRow(i); setNewProduct(prev => ({ ...prev, name: q })); setProductModal(true); }} placeholder="Search product..." style={{ minWidth: 200 }} inputStyle={{ padding: '0.375rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.875rem', width: '100%' }} />
+                        </td>
+                        <td style={{ padding: '0.75rem 1rem' }}><input type="number" min="1" value={item.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} style={{ width: '100%', padding: '0.375rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.875rem', textAlign: 'center' }} /></td>
+                        <td style={{ padding: '0.75rem 1rem' }}><input type="number" step="0.01" min="0" value={item.costPrice} onChange={e => updateItem(i, 'costPrice', e.target.value)} style={{ width: '100%', padding: '0.375rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.875rem', textAlign: 'right' }} /></td>
+                        <td style={{ padding: '0.75rem 1rem' }}><input type="number" step="0.01" min="0" value={item.sellingPrice} onChange={e => updateItem(i, 'sellingPrice', e.target.value)} style={{ width: '100%', padding: '0.375rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.875rem', textAlign: 'right' }} /></td>
+                        <td style={{ padding: '0.75rem 1rem' }}><input value={item.batch} onChange={e => updateItem(i, 'batch', e.target.value)} placeholder="Batch#" style={{ width: '100%', padding: '0.375rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.875rem' }} /></td>
+                        <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>{formatNPR(item.subtotal)}</td>
+                        <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                          {form.items.length > 1 && <button type="button" onClick={() => removeItem(i)} style={{ color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 4 }}><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ padding: '0.75rem 1.5rem', borderTop: '1px solid #f1f5f9', background: '#fafbfc' }}>
+                <button type="button" onClick={addItem} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', padding: '0.375rem 0.75rem', borderRadius: 8 }}><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg><span>Add Billing Item</span></button>
+              </div>
+            </section>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '7fr 5fr', gap: '1.5rem', alignItems: 'start' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div style={{ background: '#fff', padding: '1.25rem', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Notes / Remarks</label>
+                  <input value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} placeholder="Purchase notes..." style={{ width: '100%', padding: '0.75rem', fontSize: '0.875rem', background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8 }} />
+                </div>
+              </div>
+
+              <div style={{ background: '#fff', padding: '1.5rem', borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <h3 style={{ margin: '0 0 1.25rem', fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', paddingBottom: '0.5rem', borderBottom: '1px solid #f1f5f9' }}>Summary & Payment</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.875rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748b' }}>Subtotal</span><span style={{ fontWeight: 600 }}>{formatNPR(subtotal)}</span></div>
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer' }}><input type="checkbox" checked={form.applyVat} onChange={e => setForm({ ...form, applyVat: e.target.checked, inclusiveVat: e.target.checked ? false : form.inclusiveVat, vatPercent: form.vatPercent || 13 })} style={{ width: 16, height: 16, accentColor: '#2563eb' }} /><span style={{ fontWeight: 500 }}>Add VAT ({form.vatPercent || 13}%)</span></label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer', marginTop: '0.5rem' }}><input type="checkbox" checked={form.inclusiveVat} onChange={e => setForm({ ...form, inclusiveVat: e.target.checked, applyVat: e.target.checked ? false : form.applyVat, vatPercent: form.vatPercent || 13 })} style={{ width: 16, height: 16, accentColor: '#2563eb' }} /><span style={{ fontSize: '0.75rem', color: '#64748b' }}>Inclusive VAT</span></label>
+                  </div>
+                  <div><label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Discount (Rs.)</label><input type="number" min="0" value={form.discount} onChange={e => setForm({ ...form, discount: parseFloat(e.target.value) || 0 })} style={{ width: '100%', padding: '0.5rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.875rem', textAlign: 'right' }} /></div>
+                  {vatEnabled && vatPct > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9' }}><span style={{ color: '#64748b' }}>VAT ({vatPct}%)</span><span style={{ fontWeight: 600, color: '#dc2626' }}>{formatNPR(vatAmount)}</span></div>}
+                  <div style={{ paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer' }}><input type="checkbox" checked={!!form.applyTds} onChange={e => setForm({ ...form, applyTds: e.target.checked })} style={{ width: 16, height: 16, accentColor: '#2563eb' }} /><span style={{ fontWeight: 500 }}>Apply TDS 1.5%</span></label>
+                    {tdsApplies && <div style={{ fontSize: '0.8rem', color: '#dc2626', marginTop: 4 }}>TDS: {formatNPR(tds)}</div>}
+                  </div>
+                  <div style={{ paddingTop: '0.75rem', borderTop: '2px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>Grand Total</span>
+                    <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#2563eb' }}>{formatNPR(grandTotal)}</span>
+                  </div>
+                  {tdsApplies && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748b' }}>Net Payable</span><span style={{ fontWeight: 700, color: '#16a34a' }}>{formatNPR(netPayable)}</span></div>}
+                  <div style={{ paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Payment Mode</label>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      {[['cash','💵','Cash'],['bank','🏦','Bank'],['split','🔀','Split']].map(([m, icon, label]) => (
+                        <button key={m} type="button" onClick={() => setForm({ ...form, paymentMethod: m, bank: m === 'split' ? '' : form.bank, splits: m === 'split' ? [{ method: 'cash', amount: parseFloat(form.paidAmount) || 0, bank: '' }] : undefined })} style={{ flex: 1, minWidth: 80, padding: '0.5rem', borderRadius: 8, border: `2px solid ${form.paymentMethod === m ? '#2563eb' : '#e2e8f0'}`, background: form.paymentMethod === m ? '#eff6ff' : '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, fontSize: '0.75rem', fontWeight: form.paymentMethod === m ? 600 : 400, color: form.paymentMethod === m ? '#2563eb' : '#475569' }}><span style={{ fontSize: '1.25rem' }}>{icon}</span>{label}</button>
+                      ))}
                     </div>
-                  ))}
-                  <button type="button" className="btn btn-sm btn-secondary" onClick={() => setForm({ ...form, splits: [...(form.splits || []), { method: 'cash', amount: 0, bank: '' }] })}>+ Add Split</button>
-                  <div style={{ fontSize: '0.85rem', marginTop: '0.5rem', fontWeight: 600, color: Math.abs((form.splits || []).reduce((s, sp) => s + (sp.amount || 0), 0) - parseFloat(form.paidAmount || 0)) < 0.01 ? '#16a34a' : '#dc2626' }}>
-                    Split Total: {formatNPR((form.splits || []).reduce((s, sp) => s + (sp.amount || 0), 0))} / {formatNPR(parseFloat(form.paidAmount || 0))}
+                    <div style={{ marginTop: '0.75rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Amount Paid</label>
+                      <input type="number" value={form.paidAmount} onChange={e => setForm({ ...form, paidAmount: e.target.value })} placeholder={formatNPR(grandTotal)} style={{ width: '100%', padding: '0.5rem 0.75rem', fontSize: '0.875rem', fontWeight: 600, background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8 }} />
+                    </div>
+                    {form.paymentMethod === 'bank' && <div style={{ marginTop: '0.5rem' }}><label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Bank *</label><select value={form.bank} onChange={e => setForm({ ...form, bank: e.target.value })} required style={{ width: '100%', padding: '0.5rem 0.75rem', fontSize: '0.875rem', background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8 }}><option value="">-- Select Bank --</option>{banks.map(b => <option key={b._id} value={b._id}>{b.name}{b.accountNumber ? ` (${b.accountNumber})` : ''}</option>)}</select></div>}
+                    {form.paymentMethod === 'bank' && <div style={{ marginTop: '0.5rem' }}><label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Cheque Number *</label><input value={form.chequeNumber} onChange={e => setForm({ ...form, chequeNumber: e.target.value })} required placeholder="Cheque #" style={{ width: '100%', padding: '0.5rem 0.75rem', fontSize: '0.875rem', border: '1px solid #cbd5e1', borderRadius: 8 }} /></div>}
+                    {form.paymentMethod === 'split' && (
+                      <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: '0.75rem', marginTop: '0.5rem', background: '#f8fafc' }}>
+                        {(form.splits || []).map((sp, idx) => (
+                          <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+                            <select value={sp.method} onChange={e => { const next = [...(form.splits || [])]; next[idx] = { ...next[idx], method: e.target.value, bank: '' }; setForm({ ...form, splits: next }); }} style={{ flex: 1, padding: '0.375rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8rem' }}><option value="cash">Cash</option><option value="bank">Bank</option></select>
+                            <input type="number" value={sp.amount || ''} onChange={e => { const next = [...(form.splits || [])]; next[idx] = { ...next[idx], amount: parseFloat(e.target.value) || 0 }; setForm({ ...form, splits: next }); }} placeholder="Amount" style={{ flex: 1, padding: '0.375rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8rem', textAlign: 'right' }} />
+                            {sp.method === 'bank' && <select value={sp.bank} onChange={e => { const next = [...(form.splits || [])]; next[idx] = { ...next[idx], bank: e.target.value }; setForm({ ...form, splits: next }); }} style={{ flex: 1, padding: '0.375rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8rem' }}><option value="">-- Bank --</option>{banks.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}</select>}
+                            {(form.splits || []).length > 1 && <button type="button" onClick={() => setForm({ ...form, splits: (form.splits || []).filter((_, i) => i !== idx) })} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem' }}>&times;</button>}
+                          </div>
+                        ))}
+                        <button type="button" onClick={() => setForm({ ...form, splits: [...(form.splits || []), { method: 'cash', amount: 0, bank: '' }] })} style={{ fontSize: '0.8rem', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Add Split</button>
+                        <div style={{ fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: 600, color: Math.abs((form.splits || []).reduce((s, sp) => s + (sp.amount || 0), 0) - parseFloat(form.paidAmount || 0)) < 0.01 ? '#16a34a' : '#dc2626' }}>Split Total: {formatNPR((form.splits || []).reduce((s, sp) => s + (sp.amount || 0), 0))} / {formatNPR(parseFloat(form.paidAmount || 0))}</div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
-            </div>
-          {vatPct > 0 && vatEnabled && (
-            <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr', marginTop: '0.5rem' }}>
-              <div className="form-group"><label>{form.inclusiveVat ? 'VAT (included in prices)' : 'VAT Amount (Rs.)'}</label><div style={{ padding: '0.5rem 0', fontWeight: 600, color: '#dc2626' }}>{formatNPR(vatAmount)}</div></div>
-              <div className="form-group">
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={!!form.applyTds} onChange={e => setForm({ ...form, applyTds: e.target.checked })} />
-                  Apply TDS 1.5%
-                </label>
-                <div style={{ padding: '0.5rem 0', fontWeight: 600, color: tds > 0 ? '#dc2626' : '#64748b' }}>{formatNPR(tds)}</div>
-                <small className="text-muted">{tdsApplies ? 'TDS will be deducted and shown in the TDS report' : 'TDS not applied (excluded from TDS report)'}</small>
               </div>
-              <div className="form-group"><label>Net Payable (Rs.)</label><div style={{ padding: '0.5rem 0', fontWeight: 600, color: '#16a34a' }}>{formatNPR(netPayable)}</div></div>
-              <div className="form-group"><label>Grand Total</label><div style={{ padding: '0.5rem 0', fontWeight: 700, fontSize: '1.1rem' }}>{formatNPR(grandTotal)}</div></div>
             </div>
-          )}
-          {vatPct > 0 && vatEnabled && form.supplier && (
-            <p className="text-muted" style={{ fontSize: '0.78rem', marginTop: '0.4rem' }}>
-              {form.inclusiveVat
-                ? 'VAT is already included in the item prices above. The VAT amount shown is extracted from the total, not added on top.'
-                : 'VAT is added on top of the item prices. The VAT amount is additional to the subtotal.'}
-            </p>
-          )}
-          {vatPct === 0 && (
-            <div className="form-group" style={{ marginTop: '0.5rem' }}>
-              <label>Grand Total</label><div style={{ padding: '0.5rem 0', fontWeight: 700, fontSize: '1.1rem' }}>{formatNPR(grandTotal)}</div>
+          </main>
+          <footer style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff', borderTop: '1px solid #e2e8f0', boxShadow: '0 -2px 8px rgba(0,0,0,0.06)', padding: '0.75rem 1.5rem', zIndex: 20 }}>
+            <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: '0.875rem', color: '#64748b' }}>Status: <span style={{ fontWeight: 500, color: '#d97706', background: '#fffbeb', padding: '0.125rem 0.5rem', borderRadius: 4, border: '1px solid #fde68a' }}>Draft</span></div>
+              <button type="submit" disabled={saving} style={{ padding: '0.5rem 1.5rem', fontSize: '0.875rem', fontWeight: 600, color: '#fff', background: '#2563eb', border: 'none', borderRadius: 8, cursor: 'pointer' }}>{saving ? 'Saving...' : editing ? 'Update Purchase' : 'Create Purchase'}</button>
             </div>
-          )}
-          <div className="form-group"><label>Note</label><input value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} /></div>
-          <button type="submit" className="btn btn-primary">{editing ? 'Update Purchase' : 'Create Purchase'}</button>
-        </form>
+          </footer>
+          </form>
+        </div>
       )}
 
       <div className="card">

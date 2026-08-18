@@ -1,8 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { printEntry } from './printEntry';
 
 export default function EntryDetailsModal({ title, subtitle, meta = [], columns = [], rows = [], footer = [], actions, onClose, onRowClick, onPrint }) {
   const displayRows = rows;
+
+  useEffect(() => {
+    const handleEsc = (e) => { if (e.key === 'Escape') onClose && onClose(); };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
   const doPrint = () => {
     if (onPrint) { onPrint(); return; }
     printEntry({ title, subtitle, meta, columns, rows, footer });

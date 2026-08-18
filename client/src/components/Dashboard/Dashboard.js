@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api';
 import { useFiscalYear } from '../../context/FiscalYearContext';
@@ -16,6 +16,8 @@ export default function Dashboard() {
   const [detail, setDetail] = useState(null);
   const [showBanks, setShowBanks] = useState(false);
   const [company, setCompany] = useState(null);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef(null);
   const navigate = useNavigate();
   const { selectedYear } = useFiscalYear();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -48,6 +50,14 @@ export default function Dashboard() {
       api.get('/tracking/branch-stats').then(r => setBranchStats(r.data)).catch(() => {});
     }
   }, [hasCourier]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (moreRef.current && !moreRef.current.contains(e.target)) setMoreOpen(false);
+    };
+    if (moreOpen) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [moreOpen]);
 
   const today = new Date();
   const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
@@ -132,10 +142,99 @@ export default function Dashboard() {
           <h1>{timeGreeting}, {user.name || 'User'} 👋</h1>
           <p className="dashboard-date">{dayName}, {dateStr}</p>
         </div>
-        <div className="dashboard-header-right">
-          <div className="fiscal-info">
+        <div className="dashboard-header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div className="fiscal-info" style={{ marginRight: '0.5rem' }}>
             <span className="fiscal-badge">F.Y. {selectedYear?.name || 'N/A'}</span>
-            <span className="dashboard-company">ERP Nepal - Accounting & Store</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button
+              onClick={() => navigate(hasCourier ? '/courier-sales' : '/pos')}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                padding: '0.5rem 1rem', borderRadius: '8px', border: 'none',
+                background: 'linear-gradient(135deg, #059669, #10b981)', color: '#fff',
+                fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(5,150,105,0.25)', transition: 'all 0.2s',
+              }}
+              onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(5,150,105,0.35)'; }}
+              onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(5,150,105,0.25)'; }}
+            >
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14" /></svg>
+              Add Sales
+            </button>
+            <button
+              onClick={() => navigate('/purchases')}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                padding: '0.5rem 1rem', borderRadius: '8px', border: 'none',
+                background: 'linear-gradient(135deg, #2563eb, #3b82f6)', color: '#fff',
+                fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(37,99,235,0.25)', transition: 'all 0.2s',
+              }}
+              onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(37,99,235,0.35)'; }}
+              onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(37,99,235,0.25)'; }}
+            >
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14" /></svg>
+              Add Purchase
+            </button>
+            <div ref={moreRef} style={{ position: 'relative' }}>
+              <button
+                onClick={() => setMoreOpen(prev => !prev)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                  padding: '0.5rem 0.85rem', borderRadius: '8px',
+                  border: '1.5px solid #e2e8f0', background: '#fff', color: '#374151',
+                  fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.06)', transition: 'all 0.15s',
+                }}
+                onMouseOver={e => { e.currentTarget.style.borderColor = '#94a3b8'; e.currentTarget.style.background = '#f8fafc'; }}
+                onMouseOut={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = '#fff'; }}
+              >
+                Add More
+                <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24" style={{ transform: moreOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+              {moreOpen && (
+                <div style={{
+                  position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 100,
+                  minWidth: '200px', background: '#fff', border: '1px solid #e2e8f0',
+                  borderRadius: '10px', boxShadow: '0 10px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
+                  padding: '0.35rem 0', overflow: 'hidden',
+                }}>
+                  {[
+                    { label: 'Payment In', path: '/sales/payment-in', icon: '↗', color: '#059669' },
+                    { label: 'Payment Out', path: '/purchases/payment-out', icon: '↙', color: '#dc2626' },
+                    { label: 'Sales Return', path: '/sales/returns', icon: '↩', color: '#d97706' },
+                    { label: 'Purchase Return', path: '/purchases/returns', icon: '↪', color: '#7c3aed' },
+                    { label: 'Expense', path: '/accounting/expenses', icon: '📤', color: '#f97316' },
+                    { label: 'Income', path: '/vouchers', icon: '📥', color: '#16a34a' },
+                  ].map((item, i) => (
+                    <button
+                      key={i}
+                      onClick={() => { navigate(item.path); setMoreOpen(false); }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '0.6rem',
+                        width: '100%', padding: '0.55rem 0.85rem', border: 'none',
+                        background: 'transparent', color: '#374151', fontSize: '0.82rem',
+                        fontWeight: 500, cursor: 'pointer', textAlign: 'left',
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseOver={e => e.currentTarget.style.background = '#f1f5f9'}
+                      onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        width: '26px', height: '26px', borderRadius: '6px',
+                        background: item.color + '12', color: item.color,
+                        fontSize: '0.85rem', fontWeight: 700, flexShrink: 0,
+                      }}>{item.icon}</span>
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
