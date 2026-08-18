@@ -37,17 +37,17 @@ export default function Dashboard() {
     api.get('/company').then(r => setCompany(r.data)).catch(() => {});
   }, [selectedYear]);
 
-  useEffect(() => {
-    if (hasCourier) {
-      api.get('/tracking/branch-stats').then(r => setBranchStats(r.data)).catch(() => {});
-    }
-  }, [hasCourier]);
-
   const formatNPR = (n) => 'Rs. ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
 
   const enabled = company?.enabledModules || [];
   const mod = (m) => isSuperAdmin || enabled.includes(m);
   const hasCourier = mod('tracking');
+
+  useEffect(() => {
+    if (hasCourier) {
+      api.get('/tracking/branch-stats').then(r => setBranchStats(r.data)).catch(() => {});
+    }
+  }, [hasCourier]);
 
   const today = new Date();
   const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
