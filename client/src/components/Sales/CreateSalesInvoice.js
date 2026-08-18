@@ -515,7 +515,6 @@ export default function CreateSalesInvoice() {
                         <SearchableSelect options={productOptions} value={r.product} onChange={v => pickProduct(idx, v)} onAdd={(name) => openProductModal(idx, name)} placeholder="Search item name..." style={{ minWidth: 180 }} inputStyle={{ padding: '0.375rem 0.625rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8125rem', width: '100%' }} />
                         {r.product && (
                           <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            {r.name && <span style={{ fontSize: '0.6875rem', color: '#475569', fontWeight: 500 }}>{r.name}{r.sku ? ` (${r.sku})` : ''}</span>}
                             {(() => { const prod = products.find(p => p._id === r.product); return prod ? (
                               <span style={{ fontSize: '0.625rem', fontWeight: 600, color: prod.stock > 0 ? '#16a34a' : '#dc2626', background: prod.stock > 0 ? '#f0fdf4' : '#fef2f2', padding: '0.125rem 0.375rem', borderRadius: 4, border: `1px solid ${prod.stock > 0 ? '#bbf7d0' : '#fecaca'}`, whiteSpace: 'nowrap' }}>In Stock: {prod.stock}</span>
                             ) : null; })()}
