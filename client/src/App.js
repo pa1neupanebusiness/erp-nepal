@@ -41,6 +41,7 @@ import PurchaseReturn from './components/Purchases/PurchaseReturn';
 import PaymentIn from './components/Sales/PaymentIn';
 import SalesReturn from './components/Sales/SalesReturn';
 import PettyExpenses from './components/Expenses/PettyExpenses';
+import OtherIncome from './components/Income/OtherIncome';
 import AccountingExpenses from './components/Accounting/AccountingExpenses';
 import FixedAssets from './components/Accounting/FixedAssets';
 import DamageTracking from './components/Damage/DamageTracking';
@@ -63,6 +64,7 @@ import POSDashboard from './components/POS/POSDashboard';
 import InventoryDashboard from './components/Inventory/InventoryDashboard';
 import AccountsDashboard from './components/Accounts/AccountsDashboard';
 import AdminDashboard from './components/Admin/AdminDashboard';
+import PartiesPage from './components/Parties/PartiesPage';
 import './styles/App.css';
 import './styles/Setup.css';
 import './styles/App-additions.css';
@@ -189,6 +191,7 @@ function AppContent() {
           <Route path="/stock-reports" element={<StockReports />} />
           <Route path="/suppliers" element={<SupplierList />} />
           <Route path="/customers" element={<CustomerList />} />
+          <Route path="/parties" element={<PartiesPage />} />
           <Route path="/sales" element={<SalesList />} />
           <Route path="/sales/new" element={<CreateSalesInvoice />} />
           <Route path="/sales/edit/:id" element={<SalesEdit />} />
@@ -213,6 +216,7 @@ function AppContent() {
           <Route path="/purchases/payment-out" element={<PaymentOut />} />
           <Route path="/purchases/returns" element={<PurchaseReturn />} />
           <Route path="/expenses" element={<PettyExpenses />} />
+          <Route path="/other-income" element={<OtherIncome />} />
           <Route path="/accounting/expenses" element={<AccountingExpenses />} />
           <Route path="/fixed-assets" element={<FixedAssets />} />
           <Route path="/damage" element={<DamageTracking />} />

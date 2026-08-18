@@ -84,6 +84,7 @@ app.use('/api/purchases', require('./routes/purchases'));
 app.use('/api/payment-out', require('./routes/paymentOut'));
 app.use('/api/payment-in', require('./routes/paymentIn'));
 app.use('/api/expenses', require('./routes/expenses'));
+app.use('/api/other-incomes', require('./routes/otherIncomes'));
 app.use('/api/fixed-assets', require('./routes/fixedAssets'));
 app.use('/api/damage', require('./routes/damage'));
 app.use('/api/heldbills', require('./routes/heldbills'));

@@ -148,38 +148,50 @@ export default function AccountingExpenses() {
       )}
 
       {selectedAccount && showForm && (
-        <form onSubmit={handleSubmit} className="card form-card" style={{ maxWidth: 600, borderLeft: '4px solid #16a34a' }}>
-          <h3>Record Expense - {selectedAcc?.name}</h3>
-          <div className="form-grid">
-            <div className="form-group"><label>Date</label><NepaliDatePicker value={form.date} onChange={v => setForm({ ...form, date: v })} /></div>
-            <div className="form-group">
-              <label>Account</label>
-              <div style={{ padding: '0.5rem', background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0', fontWeight: 600, fontSize: '0.85rem' }}>
-                {selectedAcc?.code} - {selectedAcc?.name}
-              </div>
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
+            <div className="modal-header">
+              <h3>Record Expense - {selectedAcc?.name}</h3>
+              <button className="modal-close-x" onClick={() => setShowForm(false)}>&times;</button>
             </div>
-            <div className="form-group"><label>Amount (Rs.) *</label><input type="number" step="0.01" min="0.01" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} required /></div>
-            <div className="form-group">
-              <label>Payment Method</label>
-              <select value={form.paymentMethod} onChange={e => setForm({ ...form, paymentMethod: e.target.value, bank: '' })}>
-                <option value="cash">Cash</option>
-                <option value="bank">Bank</option>
-              </select>
-            </div>
-            {form.paymentMethod === 'bank' && banks.length > 0 && (
-              <div className="form-group">
-                <label>Bank Account</label>
-                <select value={form.bank} onChange={e => setForm({ ...form, bank: e.target.value })}>
-                  <option value="">Select bank...</option>
-                  {banks.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
-                </select>
+            <form onSubmit={handleSubmit}>
+              <div className="modal-body">
+                <div className="form-grid">
+                  <div className="form-group"><label>Date</label><NepaliDatePicker value={form.date} onChange={v => setForm({ ...form, date: v })} /></div>
+                  <div className="form-group">
+                    <label>Account</label>
+                    <div style={{ padding: '0.5rem', background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0', fontWeight: 600, fontSize: '0.85rem' }}>
+                      {selectedAcc?.code} - {selectedAcc?.name}
+                    </div>
+                  </div>
+                  <div className="form-group"><label>Amount (Rs.) *</label><input type="number" step="0.01" min="0.01" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} required /></div>
+                  <div className="form-group">
+                    <label>Payment Method</label>
+                    <select value={form.paymentMethod} onChange={e => setForm({ ...form, paymentMethod: e.target.value, bank: '' })}>
+                      <option value="cash">Cash</option>
+                      <option value="bank">Bank</option>
+                    </select>
+                  </div>
+                  {form.paymentMethod === 'bank' && banks.length > 0 && (
+                    <div className="form-group">
+                      <label>Bank Account</label>
+                      <select value={form.bank} onChange={e => setForm({ ...form, bank: e.target.value })}>
+                        <option value="">Select bank...</option>
+                        {banks.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  <div className="form-group"><label>Receipt #</label><input value={form.receiptNumber} onChange={e => setForm({ ...form, receiptNumber: e.target.value })} placeholder="Optional" /></div>
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Description *</label><input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required placeholder="What was this expense for?" /></div>
+                </div>
               </div>
-            )}
-            <div className="form-group"><label>Receipt #</label><input value={form.receiptNumber} onChange={e => setForm({ ...form, receiptNumber: e.target.value })} placeholder="Optional" /></div>
-            <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Description *</label><input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required placeholder="What was this expense for?" /></div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Save Expense</button>
+              </div>
+            </form>
           </div>
-          <button type="submit" className="btn btn-primary">Save Expense</button>
-        </form>
+        </div>
       )}
 
       {selectedAccount && (

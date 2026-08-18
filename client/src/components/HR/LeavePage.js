@@ -73,38 +73,50 @@ export default function LeavePage() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="card form-card" style={{ marginBottom: '1rem', maxWidth: 500 }}>
-          <h3 style={{ marginBottom: '12px' }}>Apply Leave</h3>
-          <div className="form-group"><label>Employee *</label>
-            <SearchableSelect
-              options={employees.map(e => ({ value: e._id, label: `${e.firstName} ${e.lastName}` }))}
-              value={form.employee}
-              onChange={v => setForm({ ...form, employee: v })}
-              required
-              placeholder="Search employee..."
-            />
-          </div>
-          <div className="form-row">
-            <div className="form-group"><label>Leave Type *</label>
-              <select name="leaveType" value={form.leaveType} onChange={handleChange}>
-                <option value="annual">Annual Leave</option>
-                <option value="sick">Sick Leave</option>
-                <option value="personal">Personal Leave</option>
-                <option value="maternity">Maternity Leave</option>
-                <option value="paternity">Paternity Leave</option>
-                <option value="unpaid">Unpaid Leave</option>
-                <option value="casual">Casual Leave</option>
-                <option value="compensatory">Compensatory Off</option>
-              </select>
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+            <div className="modal-header">
+              <h3>Apply Leave</h3>
+              <button className="modal-close-x" onClick={() => setShowForm(false)}>&times;</button>
             </div>
+            <form onSubmit={handleSubmit}>
+              <div className="modal-body">
+                <div className="form-group"><label>Employee *</label>
+                  <SearchableSelect
+                    options={employees.map(e => ({ value: e._id, label: `${e.firstName} ${e.lastName}` }))}
+                    value={form.employee}
+                    onChange={v => setForm({ ...form, employee: v })}
+                    required
+                    placeholder="Search employee..."
+                  />
+                </div>
+                <div className="form-row">
+                  <div className="form-group"><label>Leave Type *</label>
+                    <select name="leaveType" value={form.leaveType} onChange={handleChange}>
+                      <option value="annual">Annual Leave</option>
+                      <option value="sick">Sick Leave</option>
+                      <option value="personal">Personal Leave</option>
+                      <option value="maternity">Maternity Leave</option>
+                      <option value="paternity">Paternity Leave</option>
+                      <option value="unpaid">Unpaid Leave</option>
+                      <option value="casual">Casual Leave</option>
+                      <option value="compensatory">Compensatory Off</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group"><label>Start Date *</label><NepaliDatePicker name="startDate" value={form.startDate} onChange={v => setForm({ ...form, startDate: v })} required /></div>
+                  <div className="form-group"><label>End Date *</label><NepaliDatePicker name="endDate" value={form.endDate} onChange={v => setForm({ ...form, endDate: v })} required /></div>
+                </div>
+                <div className="form-group"><label>Reason</label><textarea name="reason" value={form.reason} onChange={handleChange} rows={3} /></div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Apply Leave</button>
+              </div>
+            </form>
           </div>
-          <div className="form-row">
-            <div className="form-group"><label>Start Date *</label><NepaliDatePicker name="startDate" value={form.startDate} onChange={v => setForm({ ...form, startDate: v })} required /></div>
-            <div className="form-group"><label>End Date *</label><NepaliDatePicker name="endDate" value={form.endDate} onChange={v => setForm({ ...form, endDate: v })} required /></div>
-          </div>
-          <div className="form-group"><label>Reason</label><textarea name="reason" value={form.reason} onChange={handleChange} rows={3} /></div>
-          <button type="submit" className="btn btn-primary">Apply Leave</button>
-        </form>
+        </div>
       )}
 
       <div className="table-responsive">

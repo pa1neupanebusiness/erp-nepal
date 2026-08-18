@@ -124,8 +124,14 @@ export default function PaymentOut() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="card form-card">
-          <h3>New Supplier Payment</h3>
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 780, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="modal-header">
+              <h3>New Supplier Payment</h3>
+              <button className="modal-close-x" onClick={() => setShowForm(false)}>&times;</button>
+            </div>
+            <form onSubmit={handleSubmit}>
+              <div className="modal-body">
           <div className="form-grid">
             <div className="form-group"><label>Date</label><NepaliDatePicker value={form.date} onChange={v => setForm({ ...form, date: v })} /></div>
             <div className="form-group"><label>Supplier *</label>
@@ -171,8 +177,14 @@ export default function PaymentOut() {
           {amount > 0 && outstanding.totalDue > 0 && amount <= outstanding.totalDue && (
             <div className="text-muted" style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>Oldest invoices are settled first ({allocationPreview.filter(a => a.apply > 0).length} invoice(s)).</div>
           )}
-          <button type="submit" className="btn btn-primary" disabled={!canSubmit || submitting}>{submitting ? 'Saving...' : 'Record Payment'}</button>
-        </form>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={!canSubmit || submitting}>{submitting ? 'Saving...' : 'Record Payment'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       <div className="card">

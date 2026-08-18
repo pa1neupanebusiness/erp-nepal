@@ -177,9 +177,15 @@ export default function PaymentIn() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="card form-card">
-          <h3>New Customer Receipt</h3>
-          <div className="form-grid">
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 780, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="modal-header">
+              <h3>New Customer Receipt</h3>
+              <button className="modal-close-x" onClick={() => setShowForm(false)}>&times;</button>
+            </div>
+            <form onSubmit={handleSubmit}>
+              <div className="modal-body">
+                <div className="form-grid">
             <div className="form-group"><label>Date</label><NepaliDatePicker value={form.date} onChange={v => setForm({ ...form, date: v })} /></div>
             <div className="form-group"><label>Customer *</label>
               <SearchableSelect options={customers.map(c => ({ value: c._id, label: c.name }))} value={form.customer} onChange={v => setForm({ ...form, customer: v })} placeholder="Search customer..." required />
@@ -238,9 +244,14 @@ export default function PaymentIn() {
               Oldest invoices settled first ({allocationPreview.filter(a => a.apply > 0).length} invoice(s)); excess is kept on account.
             </div>
           )}
-
-          <button type="submit" className="btn btn-primary" disabled={!canSubmit || submitting}>{submitting ? 'Saving...' : 'Record Receipt'}</button>
-        </form>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={!canSubmit || submitting}>{submitting ? 'Saving...' : 'Record Receipt'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       <div className="card">

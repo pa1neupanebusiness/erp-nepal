@@ -107,74 +107,86 @@ export default function Vouchers() {
       )}
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="card form-card" style={{ maxWidth: 600 }}>
-          <h3>New {tab === 'receipt' ? 'Receipt' : 'Payment'} Voucher</h3>
-          <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-            <div className="form-group"><label>Date</label><NepaliDatePicker value={form.date} onChange={v => setForm({ ...form, date: v })} required /></div>
-            <div className="form-group"><label>Payment Methods</label>
-              <div className="voucher-methods">
-                {methodOptions.map(m => {
-                  const selected = payments.some(p => p.method === m.value);
-                  return (
-                    <label key={m.value} className={`voucher-method-chip ${selected ? 'selected' : ''}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', border: selected ? '1.5px solid #2563eb' : '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer', background: selected ? '#eff6ff' : '#fff', fontSize: '0.85rem' }}>
-                      <input type="checkbox" checked={selected} onChange={() => toggleMethod(m.value)} style={{ width: '16px', height: '16px' }} />
-                      {m.label}
-                    </label>
-                  );
-                })}
-              </div>
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 680, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="modal-header">
+              <h3>New {tab === 'receipt' ? 'Receipt' : 'Payment'} Voucher</h3>
+              <button className="modal-close-x" onClick={() => setShowForm(false)}>&times;</button>
             </div>
-            <div className="form-group"><label>Account</label><SearchableSelect
-              options={accounts.filter(a => ['asset', 'liability', 'equity', 'revenue'].includes(a.type)).map(a => ({ value: a._id, label: `${a.code} - ${a.name}` }))}
-              value={form.account}
-              onChange={v => setForm({ ...form, account: v })}
-              required
-              placeholder="Search account..."
-            /></div>
-            {form.pendingDue > 0 && (
-              <div className="form-group" style={{ marginTop: '0.5rem' }}>
-                <label style={{ fontWeight: 600, color: '#2563eb' }}>
-                  {form.pendingType === 'customer' ? 'Customer Outstanding' : 'Supplier Outstanding'}
-                </label>
-                <span style={{ fontSize: '0.85rem', color: '#64748b', marginLeft: '0.5rem' }}>
-                  {formatNPR(form.pendingDue)} {form.pendingName}
-                </span>
-              </div>
-            )}
-            <div className="form-group"><label>Reference</label><input value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })} /></div>
-            <div className="form-group"><label>Description *</label><input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required /></div>
-          </div>
-
-          <div className="voucher-split" style={{ marginTop: '0.75rem' }}>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label>Amount by Method</label>
-              {payments.length === 0 && <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Select at least one payment method</p>}
-              <div className="voucher-split-grid" style={{ display: 'grid', gap: '0.5rem' }}>
-                {payments.map(p => {
-                  const meta = methodOptions.find(m => m.value === p.method);
-                  return (
-                    <div key={p.method} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <span style={{ width: 170, fontSize: '0.85rem', fontWeight: 600 }}>{meta?.label}</span>
-                      <input
-                        type="number" step="0.01" min="0"
-                        placeholder="0.00"
-                        value={p.amount}
-                        onChange={e => setMethodAmount(p.method, e.target.value)}
-                        style={{ flex: 1, padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.9rem' }}
-                      />
-                      <button type="button" onClick={() => toggleMethod(p.method)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '1rem' }} title="Remove">✕</button>
+            <form onSubmit={handleSubmit}>
+              <div className="modal-body">
+                <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                  <div className="form-group"><label>Date</label><NepaliDatePicker value={form.date} onChange={v => setForm({ ...form, date: v })} required /></div>
+                  <div className="form-group"><label>Payment Methods</label>
+                    <div className="voucher-methods">
+                      {methodOptions.map(m => {
+                        const selected = payments.some(p => p.method === m.value);
+                        return (
+                          <label key={m.value} className={`voucher-method-chip ${selected ? 'selected' : ''}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', border: selected ? '1.5px solid #2563eb' : '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer', background: selected ? '#eff6ff' : '#fff', fontSize: '0.85rem' }}>
+                            <input type="checkbox" checked={selected} onChange={() => toggleMethod(m.value)} style={{ width: '16px', height: '16px' }} />
+                            {m.label}
+                          </label>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  </div>
+                  <div className="form-group"><label>Account</label><SearchableSelect
+                    options={accounts.filter(a => ['asset', 'liability', 'equity', 'revenue'].includes(a.type)).map(a => ({ value: a._id, label: `${a.code} - ${a.name}` }))}
+                    value={form.account}
+                    onChange={v => setForm({ ...form, account: v })}
+                    required
+                    placeholder="Search account..."
+                  /></div>
+                  {form.pendingDue > 0 && (
+                    <div className="form-group" style={{ marginTop: '0.5rem' }}>
+                      <label style={{ fontWeight: 600, color: '#2563eb' }}>
+                        {form.pendingType === 'customer' ? 'Customer Outstanding' : 'Supplier Outstanding'}
+                      </label>
+                      <span style={{ fontSize: '0.85rem', color: '#64748b', marginLeft: '0.5rem' }}>
+                        {formatNPR(form.pendingDue)} {form.pendingName}
+                      </span>
+                    </div>
+                  )}
+                  <div className="form-group"><label>Reference</label><input value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })} /></div>
+                  <div className="form-group"><label>Description *</label><input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required /></div>
+                </div>
+
+                <div className="voucher-split" style={{ marginTop: '0.75rem' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Amount by Method</label>
+                    {payments.length === 0 && <p style={{ fontSize: '0.85rem', color: '#64748b' }}>Select at least one payment method</p>}
+                    <div className="voucher-split-grid" style={{ display: 'grid', gap: '0.5rem' }}>
+                      {payments.map(p => {
+                        const meta = methodOptions.find(m => m.value === p.method);
+                        return (
+                          <div key={p.method} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <span style={{ width: 170, fontSize: '0.85rem', fontWeight: 600 }}>{meta?.label}</span>
+                            <input
+                              type="number" step="0.01" min="0"
+                              placeholder="0.00"
+                              value={p.amount}
+                              onChange={e => setMethodAmount(p.method, e.target.value)}
+                              style={{ flex: 1, padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.9rem' }}
+                            />
+                            <button type="button" onClick={() => toggleMethod(p.method)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '1rem' }} title="Remove">✕</button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                      <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Total</span>
+                      <strong style={{ fontSize: '1rem' }}>{formatNPR(totalAmount)}</strong>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
-                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Total</span>
-                <strong style={{ fontSize: '1rem' }}>{formatNPR(totalAmount)}</strong>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={totalAmount <= 0}>Create Voucher</button>
               </div>
-            </div>
+            </form>
           </div>
-          <button type="submit" className="btn btn-primary" disabled={totalAmount <= 0}>Create Voucher</button>
-        </form>
+        </div>
       )}
 
       <div className="card">

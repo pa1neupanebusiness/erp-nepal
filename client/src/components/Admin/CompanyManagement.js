@@ -32,6 +32,8 @@ export default function CompanyManagement() {
   const [chatbotEnabled, setChatbotEnabled] = useState(false);
   const [editFields, setEditFields] = useState(null);
   const [activeTab, setActiveTab] = useState('details');
+  const [backups, setBackups] = useState([]);
+  const [backupLoading, setBackupLoading] = useState(false);
 
   useEffect(() => { load(); }, []);
 
@@ -132,6 +134,64 @@ export default function CompanyManagement() {
     setModules(prev => prev.includes(key) ? prev.filter(x => x !== key) : [...prev, key]);
   };
 
+  const fetchBackups = async (companyId) => {
+    setBackupLoading(true);
+    try {
+      const { data } = await api.get(`/backup/company/${companyId}`);
+      setBackups(data);
+    } catch (err) {
+      addToast('Failed to load backups', 'error');
+    } finally {
+      setBackupLoading(false);
+    }
+  };
+
+  const handleTabChange = (key) => {
+    setActiveTab(key);
+    if (key === 'backups' && modal) {
+      fetchBackups(modal._id);
+    }
+  };
+
+  const handleDownloadBackup = async (backup) => {
+    try {
+      const response = await api.get(`/backup/company/${modal._id}/download`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${backup.name}.json`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      addToast('Backup downloaded', 'success');
+    } catch (err) {
+      addToast('Failed to download backup', 'error');
+    }
+  };
+
+  const handleRestoreBackup = async (backup) => {
+    if (!window.confirm(`Are you sure you want to restore from "${backup.name}"? This will OVERWRITE all current data for this company.`)) {
+      return;
+    }
+    try {
+      const response = await api.get(`/backup/company/${modal._id}/download`, { responseType: 'json' });
+      const backupData = response.data;
+      await api.post(`/backup/company/${modal._id}/restore`, { backupData });
+      addToast('Backup restored successfully', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Failed to restore backup', 'error');
+    }
+  };
+
+  const formatSize = (bytes) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   return (
     <div>
       <div className="page-header">
@@ -197,8 +257,8 @@ export default function CompanyManagement() {
             </div>
             <div className="modal-body">
               <div style={{ display: 'flex', gap: '0.25rem', borderBottom: '2px solid var(--border)', marginBottom: '1rem' }}>
-                {[['details', 'Company Details'], ['modules', 'Modules & Features'], ['users', `Users (${users.length})`]].map(([key, label]) => (
-                  <button key={key} onClick={() => setActiveTab(key)}
+                {[['details', 'Company Details'], ['modules', 'Modules & Features'], ['users', `Users (${users.length})`], ['backups', 'Backups']].map(([key, label]) => (
+                  <button key={key} onClick={() => handleTabChange(key)}
                     style={{ padding: '0.5rem 1rem', border: 'none', background: 'none', cursor: 'pointer', fontWeight: activeTab === key ? 700 : 400, color: activeTab === key ? '#667eea' : '#64748b', borderBottom: activeTab === key ? '2px solid #667eea' : '2px solid transparent', marginBottom: '-2px', fontSize: '0.9rem' }}>
                     {label}
                   </button>
@@ -278,6 +338,36 @@ export default function CompanyManagement() {
                       </tbody>
                     </table>
                   </div>
+                </div>
+              )}
+
+              {activeTab === 'backups' && (
+                <div>
+                  {backupLoading ? (
+                    <p className="text-center" style={{ padding: '2rem' }}>Loading backups...</p>
+                  ) : (
+                    <div className="table-responsive">
+                      <table className="table">
+                        <thead>
+                          <tr><th>Backup Name</th><th>Size</th><th>Date</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody>
+                          {backups.map((b, i) => (
+                            <tr key={i}>
+                              <td><strong>{b.name}</strong></td>
+                              <td>{formatSize(b.size)}</td>
+                              <td>{b.name.split('-').slice(0, 3).join('/')}</td>
+                              <td className="action-cell">
+                                <button className="btn btn-sm" onClick={() => handleDownloadBackup(b)}>Download</button>
+                                <button className="btn btn-sm btn-danger" onClick={() => handleRestoreBackup(b)}>Restore</button>
+                              </td>
+                            </tr>
+                          ))}
+                          {backups.length === 0 && <tr><td colSpan="4" className="text-center">No backups found</td></tr>}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

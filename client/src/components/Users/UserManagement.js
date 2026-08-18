@@ -78,34 +78,46 @@ export default function UserManagement() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="card form-card">
-          <h3>{editing ? 'Edit User' : 'New User'}</h3>
-          <div className="form-grid">
-            <div className="form-group"><label>Name *</label><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required /></div>
-            <div className="form-group"><label>Email *</label><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required /></div>
-            <div className="form-group"><label>Password {editing && '(leave blank to keep same)'}</label><input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required={!editing} /></div>
-            <div className="form-group"><label>Role</label><select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}>
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-              {isSuperAdmin && <option value="super_admin">Super Admin</option>}
-            </select></div>
-            <div className="form-group"><label>Branch</label><select value={form.branch} onChange={e => setForm({ ...form, branch: e.target.value })}>
-              <option value="">None</option>
-              {branches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
-            </select></div>
-          </div>
-          <div className="form-group"><label>Access Groups</label>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-              {Object.entries(GROUP_LABELS).filter(([key]) => allowedGroups.includes(key)).map(([key, label]) => (
-                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}>
-                  <input type="checkbox" checked={form.groups.includes(key)} onChange={() => toggleGroup(key)} />
-                  {label}
-                </label>
-              ))}
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 680, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="modal-header">
+              <h3>{editing ? 'Edit User' : 'New User'}</h3>
+              <button className="modal-close-x" onClick={() => setShowForm(false)}>&times;</button>
             </div>
+            <form onSubmit={handleSubmit}>
+              <div className="modal-body">
+                <div className="form-grid">
+                  <div className="form-group"><label>Name *</label><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required /></div>
+                  <div className="form-group"><label>Email *</label><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required /></div>
+                  <div className="form-group"><label>Password {editing && '(leave blank to keep same)'}</label><input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} required={!editing} /></div>
+                  <div className="form-group"><label>Role</label><select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                    {isSuperAdmin && <option value="super_admin">Super Admin</option>}
+                  </select></div>
+                  <div className="form-group"><label>Branch</label><select value={form.branch} onChange={e => setForm({ ...form, branch: e.target.value })}>
+                    <option value="">None</option>
+                    {branches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+                  </select></div>
+                </div>
+                <div className="form-group"><label>Access Groups</label>
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                    {Object.entries(GROUP_LABELS).filter(([key]) => allowedGroups.includes(key)).map(([key, label]) => (
+                      <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+                        <input type="checkbox" checked={form.groups.includes(key)} onChange={() => toggleGroup(key)} />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">{editing ? 'Update' : 'Create'}</button>
+              </div>
+            </form>
           </div>
-          <button type="submit" className="btn btn-primary">{editing ? 'Update' : 'Create'}</button>
-        </form>
+        </div>
       )}
 
       <div className="card">

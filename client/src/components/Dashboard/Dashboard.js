@@ -148,7 +148,7 @@ export default function Dashboard() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button
-              onClick={() => navigate(hasCourier ? '/courier-sales' : '/pos')}
+              onClick={() => navigate(hasCourier ? '/courier-sales' : '/sales/new')}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
                 padding: '0.5rem 1rem', borderRadius: '8px', border: 'none',
@@ -163,7 +163,7 @@ export default function Dashboard() {
               Add Sales
             </button>
             <button
-              onClick={() => navigate('/purchases')}
+              onClick={() => navigate('/purchases?new=1')}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
                 padding: '0.5rem 1rem', borderRadius: '8px', border: 'none',

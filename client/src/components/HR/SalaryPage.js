@@ -180,8 +180,14 @@ export default function SalaryPage() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="card form-card" style={{ marginBottom: '1rem', maxWidth: 700 }}>
-          <h3 style={{ marginBottom: '12px' }}>Process Payroll</h3>
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 760, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="modal-header">
+              <h3>Process Payroll</h3>
+              <button className="modal-close-x" onClick={() => setShowForm(false)}>&times;</button>
+            </div>
+            <form onSubmit={handleSubmit}>
+              <div className="modal-body">
 
           <div className="form-group" style={{ marginBottom: '12px' }}>
             <label>Payroll Type</label>
@@ -278,9 +284,14 @@ export default function SalaryPage() {
               </div>
             </div>
           )}
-
-          <button type="submit" className="btn btn-success" style={{ marginTop: '12px' }}>Process Payroll</button>
-        </form>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+                <button type="submit" className="btn btn-success">Process Payroll</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       <div className="table-responsive">

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useToast } from '../UI/Toast';
 import SearchableSelect from '../UI/SearchableSelect';
 import { formatNPR as printNPR } from '../UI/printEntry';
@@ -36,6 +37,7 @@ export default function Purchases() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [savingSupplier, setSavingSupplier] = useState(false);
   const [savingProduct, setSavingProduct] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [addExtraCharge, setAddExtraCharge] = useState(false);
   const [extraChargeRemarks, setExtraChargeRemarks] = useState('');
   const [extraChargeAmount, setExtraChargeAmount] = useState('');
@@ -43,13 +45,27 @@ export default function Purchases() {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const isSuperAdmin = user.role === 'super_admin';
   const addToast = useToast();
+  const location = useLocation();
+  const [supplierDue, setSupplierDue] = useState(null);
 
   const loadSupplierFyTotal = (supplierId) => {
     if (!supplierId) { setSupplierFyTotal(0); return; }
     api.get(`/suppliers/${supplierId}/fy-total`).then(r => setSupplierFyTotal(r.data?.total || 0)).catch(() => setSupplierFyTotal(0));
   };
 
-  useEffect(() => { load(); api.get('/products').then(r => setProducts(r.data.filter(p => p.isActive))); api.get('/suppliers').then(r => setSuppliers(r.data)); api.get('/categories').then(r => setCategories(r.data)); api.get('/banks').then(r => setBanks(r.data)).catch(() => {}); }, []);
+  const loadSupplierDue = async (supplierId) => {
+    if (!supplierId) { setSupplierDue(null); return; }
+    try {
+      const { data } = await api.get(`/suppliers/${supplierId}/outstanding`);
+      setSupplierDue(data.totalDue || 0);
+    } catch { setSupplierDue(null); }
+  };
+
+  useEffect(() => {
+    load(); api.get('/products').then(r => setProducts(r.data.filter(p => p.isActive))); api.get('/suppliers').then(r => setSuppliers(r.data)); api.get('/categories').then(r => setCategories(r.data)); api.get('/banks').then(r => setBanks(r.data)).catch(() => {});
+    const params = new URLSearchParams(location.search);
+    if (params.get('new') === '1') { resetForm(); setShowForm(true); }
+  }, [location.search]);
 
   const load = () => api.get('/purchases').then(r => setItems(sortByDate(r.data)));
 

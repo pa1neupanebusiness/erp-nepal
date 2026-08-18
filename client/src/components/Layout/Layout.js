@@ -122,9 +122,9 @@ export default function Layout({ user, onLogout, children }) {
       'Sales': ['/pos', '/emi', '/sales', '/pos-summary', '/request-refund', '/admin/refund-approvals', '/refund'],
       'Courier': ['/tracking', '/courier-sales'],
       'Purchase': ['/purchases'],
-      'Inventory': ['/products', '/categories', '/suppliers', '/stock-reports', '/customers', '/damage'],
+      'Inventory': ['/products', '/categories', '/parties', '/suppliers', '/stock-reports', '/customers', '/damage'],
       'Expense': ['/accounting/expenses', '/expenses'],
-      'Other Income': [],
+      'Other Income': ['/other-income'],
       'Manage Accounts': ['/accounts', '/vouchers', '/ledger', '/fixed-assets', '/reports/monthly-sales-register'],
       'VAT & TDS Reports': ['/reports/vat', '/reports/tds', '/reports/aging', '/reports/cash-flow'],
       'HR & Payroll': ['/hr'],
@@ -229,12 +229,11 @@ export default function Layout({ user, onLogout, children }) {
             <NavLink to="/purchases/returns" className={linkClass} onClick={closeSidebar}><Icon name="purchasereturn" /><span className="nav-text">Purchase Return</span></NavLink>
           </NavSection>}
 
-          {storeVisible && <NavSection title="Inventory" paths={['/products', '/categories', '/suppliers', '/stock-reports', '/customers', '/damage']} activeSection={activeSection} onToggle={toggleSection}>
+          {storeVisible && <NavSection title="Inventory" paths={['/products', '/categories', '/parties', '/suppliers', '/stock-reports', '/customers', '/damage']} activeSection={activeSection} onToggle={toggleSection}>
             <NavLink to="/products" className={linkClass} onClick={closeSidebar}><Icon name="product" /><span className="nav-text">Products</span></NavLink>
             <NavLink to="/categories" className={linkClass} onClick={closeSidebar}><Icon name="category" /><span className="nav-text">Categories</span></NavLink>
-            <NavLink to="/suppliers" className={linkClass} onClick={closeSidebar}><Icon name="supplier" /><span className="nav-text">Suppliers</span></NavLink>
+            <NavLink to="/parties" className={linkClass} onClick={closeSidebar}><Icon name="customer" /><span className="nav-text">Parties</span></NavLink>
             <NavLink to="/stock-reports" className={linkClass} onClick={closeSidebar}><Icon name="stock" /><span className="nav-text">Stock Reports</span></NavLink>
-            <NavLink to="/customers" className={linkClass} onClick={closeSidebar}><Icon name="customer" /><span className="nav-text">Customers</span></NavLink>
             <NavLink to="/damage" className={linkClass} onClick={closeSidebar}><Icon name="damage" /><span className="nav-text">Damage/Waste</span></NavLink>
           </NavSection>}
 
@@ -243,9 +242,7 @@ export default function Layout({ user, onLogout, children }) {
             <NavLink to="/expenses" className={linkClass} onClick={closeSidebar}><Icon name="expense" /><span className="nav-text">Petty Expenses</span></NavLink>
           </NavSection>}
 
-          {accountingVisible && <NavSection title="Other Income" paths={[]} activeSection={activeSection} onToggle={toggleSection}>
-            <span style={{ padding: '0.5rem 0.75rem', color: '#94a3b8', fontSize: '0.82rem' }}>Coming soon</span>
-          </NavSection>}
+          {accountingVisible && <NavLink to="/other-income" className={linkClass} onClick={closeSidebar}><Icon name="income" /><span className="nav-text">Other Income</span></NavLink>}
 
           {accountingVisible && <NavSection title="Manage Accounts" paths={['/accounts', '/vouchers', '/ledger', '/fixed-assets', '/reports/monthly-sales-register']} activeSection={activeSection} onToggle={toggleSection}>
             <NavLink to="/accounts" className={linkClass} onClick={closeSidebar}><Icon name="accounts" /><span className="nav-text">Chart of Accounts</span></NavLink>

@@ -67,32 +67,44 @@ export default function DamageTracking() {
       )}
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="card form-card" style={{ maxWidth: 500 }}>
-          <h3>Record Damage/Waste</h3>
-          <div className="form-grid">
-            <div className="form-group"><label>Date</label><NepaliDatePicker value={form.date} onChange={v => setForm({ ...form, date: v })} /></div>
-            <div className="form-group"><label>Type</label><select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
-              <option value="damage">Damage</option><option value="expired">Expired</option><option value="theft">Theft</option><option value="other">Other</option>
-            </select></div>
-            <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Product</label><SearchableSelect
-              options={products.map(p => ({ value: p._id, label: `${p.name} (Stock: ${p.stock})` }))}
-              value={form.product}
-              onChange={v => {
-                const p = products.find(pr => pr._id === v);
-                setForm({ ...form, product: v, costPrice: p?.costPrice || 0 });
-              }}
-              required
-              placeholder="Search product..."
-            /></div>
-            <div className="form-group"><label>Quantity</label><input type="number" min="1" value={form.quantity} onChange={e => setForm({ ...form, quantity: parseInt(e.target.value) || 1 })} /></div>
-            <div className="form-group"><label>Unit Cost (Rs.)</label><input type="number" step="0.01" value={form.costPrice} onChange={e => setForm({ ...form, costPrice: parseFloat(e.target.value) || 0 })} /></div>
-            <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Description</label><input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+            <div className="modal-header">
+              <h3>Record Damage/Waste</h3>
+              <button className="modal-close-x" onClick={() => setShowForm(false)}>&times;</button>
+            </div>
+            <form onSubmit={handleSubmit}>
+              <div className="modal-body">
+                <div className="form-grid">
+                  <div className="form-group"><label>Date</label><NepaliDatePicker value={form.date} onChange={v => setForm({ ...form, date: v })} /></div>
+                  <div className="form-group"><label>Type</label><select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
+                    <option value="damage">Damage</option><option value="expired">Expired</option><option value="theft">Theft</option><option value="other">Other</option>
+                  </select></div>
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Product</label><SearchableSelect
+                    options={products.map(p => ({ value: p._id, label: `${p.name} (Stock: ${p.stock})` }))}
+                    value={form.product}
+                    onChange={v => {
+                      const p = products.find(pr => pr._id === v);
+                      setForm({ ...form, product: v, costPrice: p?.costPrice || 0 });
+                    }}
+                    required
+                    placeholder="Search product..."
+                  /></div>
+                  <div className="form-group"><label>Quantity</label><input type="number" min="1" value={form.quantity} onChange={e => setForm({ ...form, quantity: parseInt(e.target.value) || 1 })} /></div>
+                  <div className="form-group"><label>Unit Cost (Rs.)</label><input type="number" step="0.01" value={form.costPrice} onChange={e => setForm({ ...form, costPrice: parseFloat(e.target.value) || 0 })} /></div>
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Description</label><input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+                </div>
+                <div style={{ fontWeight: 700, color: '#dc2626', marginTop: '0.5rem' }}>
+                  Estimated Loss: {formatNPR(form.quantity * form.costPrice)}
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Record</button>
+              </div>
+            </form>
           </div>
-          <div style={{ fontWeight: 700, color: '#dc2626', marginBottom: '0.5rem' }}>
-            Estimated Loss: {formatNPR(form.quantity * form.costPrice)}
-          </div>
-          <button type="submit" className="btn btn-primary">Record</button>
-        </form>
+        </div>
       )}
 
       <div className="card">

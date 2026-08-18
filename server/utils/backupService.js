@@ -166,4 +166,55 @@ async function backupAllCompanies() {
   return results;
 }
 
-module.exports = { backupCompany, listBackups, backupAllCompanies };
+async function restoreFromBackup(companyId, backupData) {
+  if (!backupData || !backupData.meta) {
+    throw new Error('Invalid backup data: missing meta information');
+  }
+
+  const models = [
+    { model: Product, data: backupData.products },
+    { model: Category, data: backupData.categories },
+    { model: Supplier, data: backupData.suppliers },
+    { model: Customer, data: backupData.customers },
+    { model: Account, data: backupData.accounts },
+    { model: Sale, data: backupData.sales },
+    { model: Purchase, data: backupData.purchases },
+    { model: JournalEntry, data: backupData.journalEntries },
+    { model: Voucher, data: backupData.vouchers },
+    { model: Emi, data: backupData.emis },
+    { model: Bank, data: backupData.banks },
+    { model: PaymentIn, data: backupData.paymentIns },
+    { model: PaymentOut, data: backupData.paymentOuts },
+    { model: PettyExpense, data: backupData.pettyExpenses },
+    { model: Damage, data: backupData.damages },
+    { model: HeldBill, data: backupData.heldBills },
+    { model: Employee, data: backupData.employees },
+    { model: Attendance, data: backupData.attendances },
+    { model: Salary, data: backupData.salaries },
+    { model: Leave, data: backupData.leaves },
+    { model: FixedAsset, data: backupData.fixedAssets },
+    { model: InventoryMovement, data: backupData.inventoryMovements },
+    { model: DayBookEntry, data: backupData.dayBookEntries },
+    { model: User, data: backupData.users },
+    { model: FiscalYear, data: backupData.fiscalYears },
+    { model: Notification, data: backupData.notifications },
+    { model: RefundRequest, data: backupData.refundRequests },
+  ];
+
+  for (const { model, data } of models) {
+    if (Array.isArray(data)) {
+      await model.deleteMany({ company: companyId });
+      if (data.length > 0) {
+        const cleaned = data.map(doc => {
+          const { _id, __v, ...rest } = doc;
+          return rest;
+        });
+        await model.insertMany(cleaned);
+      }
+    }
+  }
+
+  return { message: 'Backup restored successfully', backupDate: backupData.meta.backupDate };
+}
+
+module.exports = { backupCompany, listBackups, backupAllCompanies, restoreFromBackup };

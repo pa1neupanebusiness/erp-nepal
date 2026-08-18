@@ -71,33 +71,45 @@ export default function PettyExpenses() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="card form-card" style={{ maxWidth: 500 }}>
-          <h3>New Petty Expense</h3>
-          <div className="form-grid">
-            <div className="form-group"><label>Date</label><NepaliDatePicker value={form.date} onChange={v => setForm({ ...form, date: v })} /></div>
-            <div className="form-group"><label>Expense Account</label>
-              <SearchableSelect
-                options={expenseAccounts.map(a => ({ value: a._id, label: `${a.code} - ${a.name}` }))}
-                value={form.account}
-                onChange={v => setForm({ ...form, account: v })}
-                required
-                placeholder="Select expense account..."
-              />
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+            <div className="modal-header">
+              <h3>New Petty Expense</h3>
+              <button className="modal-close-x" onClick={() => setShowForm(false)}>&times;</button>
             </div>
-            <div className="form-group"><label>Category</label>
-              <SearchableSelect
-                options={categories.map(c => ({ value: c, label: c }))}
-                value={form.category}
-                onChange={v => setForm({ ...form, category: v })}
-                placeholder="Select category..."
-              />
-            </div>
-            <div className="form-group"><label>Amount (Rs.)</label><input type="number" step="0.01" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} required /></div>
-            <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Description</label><input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required /></div>
-            <div className="form-group"><label>Receipt #</label><input value={form.receiptNumber} onChange={e => setForm({ ...form, receiptNumber: e.target.value })} /></div>
+            <form onSubmit={handleSubmit}>
+              <div className="modal-body">
+                <div className="form-grid">
+                  <div className="form-group"><label>Date</label><NepaliDatePicker value={form.date} onChange={v => setForm({ ...form, date: v })} /></div>
+                  <div className="form-group"><label>Expense Account *</label>
+                    <SearchableSelect
+                      options={expenseAccounts.map(a => ({ value: a._id, label: `${a.code} - ${a.name}` }))}
+                      value={form.account}
+                      onChange={v => setForm({ ...form, account: v })}
+                      required
+                      placeholder="Select expense account..."
+                    />
+                  </div>
+                  <div className="form-group"><label>Category</label>
+                    <SearchableSelect
+                      options={categories.map(c => ({ value: c, label: c }))}
+                      value={form.category}
+                      onChange={v => setForm({ ...form, category: v })}
+                      placeholder="Select category..."
+                    />
+                  </div>
+                  <div className="form-group"><label>Amount (Rs.) *</label><input type="number" step="0.01" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} required /></div>
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}><label>Description *</label><input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} required placeholder="What was this expense for?" /></div>
+                  <div className="form-group"><label>Receipt #</label><input value={form.receiptNumber} onChange={e => setForm({ ...form, receiptNumber: e.target.value })} placeholder="Optional" /></div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Save Expense</button>
+              </div>
+            </form>
           </div>
-          <button type="submit" className="btn btn-primary">Save Expense</button>
-        </form>
+        </div>
       )}
 
       <div className="card">

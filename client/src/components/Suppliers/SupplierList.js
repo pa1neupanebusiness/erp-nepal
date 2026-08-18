@@ -54,18 +54,30 @@ export default function SupplierList() {
         </div>
       </div>
       {showForm && (
-        <form onSubmit={handleSubmit} className="card form-card" style={{ maxWidth: 600 }}>
-          <h3>{editing ? 'Edit Supplier' : 'New Supplier'}</h3>
-          <div className="form-grid">
-            <div className="form-group"><label>Name *</label><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required /></div>
-            <div className="form-group"><label>Contact Person</label><input value={form.contactPerson} onChange={e => setForm({ ...form, contactPerson: e.target.value })} /></div>
-            <div className="form-group"><label>Email</label><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
-            <div className="form-group"><label>Phone</label><input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
-            <div className="form-group"><label>Address</label><input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
-            <div className="form-group"><label>PAN No.</label><input value={form.pan || ''} onChange={e => setForm({ ...form, pan: e.target.value })} placeholder="Optional" /></div>
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
+            <div className="modal-header">
+              <h3>{editing ? 'Edit Supplier' : 'New Supplier'}</h3>
+              <button className="modal-close-x" onClick={() => setShowForm(false)}>&times;</button>
+            </div>
+            <form onSubmit={handleSubmit}>
+              <div className="modal-body">
+                <div className="form-grid">
+                  <div className="form-group"><label>Name *</label><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required /></div>
+                  <div className="form-group"><label>Contact Person</label><input value={form.contactPerson} onChange={e => setForm({ ...form, contactPerson: e.target.value })} /></div>
+                  <div className="form-group"><label>Email</label><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
+                  <div className="form-group"><label>Phone</label><input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
+                  <div className="form-group"><label>Address</label><input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
+                  <div className="form-group"><label>PAN No.</label><input value={form.pan || ''} onChange={e => setForm({ ...form, pan: e.target.value })} placeholder="Optional" /></div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">{editing ? 'Update' : 'Create'}</button>
+              </div>
+            </form>
           </div>
-          <button type="submit" className="btn btn-primary">{editing ? 'Update' : 'Create'}</button>
-        </form>
+        </div>
       )}
       <div className="card">
         <table className="table">

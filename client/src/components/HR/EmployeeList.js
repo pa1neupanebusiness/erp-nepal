@@ -50,62 +50,74 @@ export default function EmployeeList() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="card form-card" style={{ marginBottom: '1rem' }}>
-          <h3 style={{ marginBottom: '12px' }}>Add New Employee</h3>
-          <div className="form-row">
-            <div className="form-group"><label>First Name *</label><input name="firstName" value={form.firstName} onChange={handleChange} required /></div>
-            <div className="form-group"><label>Last Name *</label><input name="lastName" value={form.lastName} onChange={handleChange} required /></div>
-          </div>
-          <div className="form-row">
-            <div className="form-group"><label>Email *</label><input type="email" name="email" value={form.email} onChange={handleChange} required /></div>
-            <div className="form-group"><label>Phone</label><input name="phone" value={form.phone} onChange={handleChange} /></div>
-          </div>
-          <div className="form-row">
-            <div className="form-group"><label>Date of Birth</label><NepaliDatePicker name="dateOfBirth" value={form.dateOfBirth} onChange={v => setForm({ ...form, dateOfBirth: v })} /></div>
-            <div className="form-group"><label>Gender</label>
-              <select name="gender" value={form.gender} onChange={handleChange}>
-                <option value="">Select</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 760, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="modal-header">
+              <h3>Add New Employee</h3>
+              <button className="modal-close-x" onClick={() => setShowForm(false)}>&times;</button>
             </div>
+            <form onSubmit={handleSubmit}>
+              <div className="modal-body">
+                <div className="form-row">
+                  <div className="form-group"><label>First Name *</label><input name="firstName" value={form.firstName} onChange={handleChange} required /></div>
+                  <div className="form-group"><label>Last Name *</label><input name="lastName" value={form.lastName} onChange={handleChange} required /></div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group"><label>Email *</label><input type="email" name="email" value={form.email} onChange={handleChange} required /></div>
+                  <div className="form-group"><label>Phone</label><input name="phone" value={form.phone} onChange={handleChange} /></div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group"><label>Date of Birth</label><NepaliDatePicker name="dateOfBirth" value={form.dateOfBirth} onChange={v => setForm({ ...form, dateOfBirth: v })} /></div>
+                  <div className="form-group"><label>Gender</label>
+                    <select name="gender" value={form.gender} onChange={handleChange}>
+                      <option value="">Select</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="form-group"><label>Address</label><input name="address" value={form.address} onChange={handleChange} /></div>
+                <div className="form-row">
+                  <div className="form-group"><label>City</label><input name="city" value={form.city} onChange={handleChange} /></div>
+                  <div className="form-group"><label>National ID</label><input name="nationalId" value={form.nationalId} onChange={handleChange} /></div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group"><label>Department</label><input name="department" value={form.department} onChange={handleChange} /></div>
+                  <div className="form-group"><label>Position</label><input name="designation" value={form.designation} onChange={handleChange} /></div>
+                </div>
+                  <div className="form-group"><label>Employment Type</label>
+                    <select name="employmentType" value={form.employmentType} onChange={handleChange}>
+                      <option value="full-time">Full Time</option>
+                      <option value="part-time">Part Time</option>
+                      <option value="contract">Contract</option>
+                      <option value="temporary">Temporary</option>
+                      <option value="intern">Intern</option>
+                    </select>
+                  </div>
+                <div className="form-row">
+                  <div className="form-group"><label>Hire Date *</label><NepaliDatePicker name="hireDate" value={form.hireDate} onChange={v => setForm({ ...form, hireDate: v })} required /></div>
+                  <div className="form-group"><label>Status</label>
+                    <select name="status" value={form.status} onChange={handleChange}>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="terminated">Terminated</option>
+                      <option value="resigned">Resigned</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group"><label>Bank Name</label><input name="bankName" value={form.bankName} onChange={handleChange} /></div>
+                  <div className="form-group"><label>Bank Account</label><input name="bankAccountNumber" value={form.bankAccountNumber} onChange={handleChange} /></div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Add Employee</button>
+              </div>
+            </form>
           </div>
-          <div className="form-group"><label>Address</label><input name="address" value={form.address} onChange={handleChange} /></div>
-          <div className="form-row">
-            <div className="form-group"><label>City</label><input name="city" value={form.city} onChange={handleChange} /></div>
-            <div className="form-group"><label>National ID</label><input name="nationalId" value={form.nationalId} onChange={handleChange} /></div>
-          </div>
-          <div className="form-row">
-            <div className="form-group"><label>Department</label><input name="department" value={form.department} onChange={handleChange} /></div>
-            <div className="form-group"><label>Position</label><input name="designation" value={form.designation} onChange={handleChange} /></div>
-          </div>
-            <div className="form-group"><label>Employment Type</label>
-              <select name="employmentType" value={form.employmentType} onChange={handleChange}>
-                <option value="full-time">Full Time</option>
-                <option value="part-time">Part Time</option>
-                <option value="contract">Contract</option>
-                <option value="temporary">Temporary</option>
-                <option value="intern">Intern</option>
-              </select>
-            </div>
-          <div className="form-row">
-            <div className="form-group"><label>Hire Date *</label><NepaliDatePicker name="hireDate" value={form.hireDate} onChange={v => setForm({ ...form, hireDate: v })} required /></div>
-            <div className="form-group"><label>Status</label>
-              <select name="status" value={form.status} onChange={handleChange}>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="terminated">Terminated</option>
-                <option value="resigned">Resigned</option>
-              </select>
-            </div>
-          </div>
-          <div className="form-row">
-            <div className="form-group"><label>Bank Name</label><input name="bankName" value={form.bankName} onChange={handleChange} /></div>
-            <div className="form-group"><label>Bank Account</label><input name="bankAccountNumber" value={form.bankAccountNumber} onChange={handleChange} /></div>
-          </div>
-          <button type="submit" className="btn btn-primary">Add Employee</button>
-        </form>
+        </div>
       )}
 
       <div className="table-responsive">

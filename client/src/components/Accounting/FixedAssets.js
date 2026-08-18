@@ -200,8 +200,14 @@ export default function FixedAssets() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="card form-card" style={{ borderLeft: editing ? '4px solid #2563eb' : '4px solid #16a34a' }}>
-          <h3>{editing ? `Edit: ${editing.name}` : 'Add Fixed Asset'}</h3>
+        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 780, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="modal-header">
+              <h3>{editing ? `Edit: ${editing.name}` : 'Add Fixed Asset'}</h3>
+              <button className="modal-close-x" onClick={() => setShowForm(false)}>&times;</button>
+            </div>
+            <form onSubmit={handleSubmit}>
+              <div className="modal-body">
 
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
             <button type="button" className={`btn btn-sm ${form.source === 'new' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setForm(f => ({ ...f, source: 'new', sourceProduct: '', purchaseCost: '' }))}>New Purchase</button>
@@ -267,10 +273,16 @@ export default function FixedAssets() {
             </div>
             <div className="form-group"><label>Location</label><input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="e.g. Office 2nd Floor" /></div>
             <div className="form-group"><label>Serial Number</label><input value={form.serialNumber} onChange={e => setForm({ ...form, serialNumber: e.target.value })} /></div>
-            <div className="form-group"><label>Description</label><input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+              <div className="form-group"><label>Description</label><input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
           </div>
-          <button type="submit" className="btn btn-primary">{editing ? 'Update Asset' : 'Add Asset'}</button>
-        </form>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">{editing ? 'Update Asset' : 'Add Asset'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       <div className="card">
