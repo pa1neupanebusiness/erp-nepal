@@ -314,7 +314,6 @@ export default function ProductList() {
             title={p.name}
             subtitle={`SKU: ${p.sku} | Category: ${p.category?.name || '-'} | Supplier: ${p.supplier?.name || '-'}`}
             meta={[
-              { label: 'Stock', value: String(p.stock) },
               { label: 'Cost Price', value: formatNPR(p.costPrice) },
               { label: 'Selling Price', value: formatNPR(p.sellingPrice) },
               { label: 'Min Stock', value: String(p.minStock) },
