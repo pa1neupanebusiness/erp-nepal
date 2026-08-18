@@ -35,9 +35,8 @@ router.delete('/:id', protect, async (req, res) => {
 });
 
 router.get('/:id/outstanding', protect, async (req, res) => {
-  const purchases = await Purchase.find({ supplier: req.params.id, dueAmount: { $gt: 0 }, ...req.companyFilter })
-    .select('purchaseNumber date grandTotal paidAmount dueAmount')
-    .sort({ date: 1 });
+  const purchases = await Purchase.find({ supplier: req.params.id, ...req.companyFilter })
+    .sort({ date: -1 });
   const totalDue = purchases.reduce((s, p) => s + p.dueAmount, 0);
   const invoices = purchases.map(p => ({
     _id: p._id,

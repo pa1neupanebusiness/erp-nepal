@@ -9,7 +9,7 @@ const BS_MONTHS = ['Bai', 'Jes', 'Asa', 'Shr', 'Bha', 'Ash', 'Kar', 'Man', 'Pou'
 
 const UNIT_OPTIONS = ['Pcs', 'Kg', 'Box', 'Mtr', 'Set', 'Roll', 'Ltr', 'Ft', 'Bag', 'Pair', 'Dozen'];
 
-const emptyRow = () => ({ product: '', name: '', sku: '', qty: 1, rate: '', taxRate: 0, priceIncludesTax: false, unit: 'Pcs', lineDiscount: 0, lineDiscountMode: 'percent', taxOverride: '' });
+const emptyRow = () => ({ product: '', name: '', sku: '', qty: 1, rate: '', unit: 'Pcs', lineDiscount: 0, costPrice: 0 });
 
 const Icons = {
   back: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>,
@@ -41,6 +41,7 @@ export default function CreateSalesInvoice() {
   const [discountMode, setDiscountMode] = useState('amount');
   const [applyVat, setApplyVat] = useState(false);
   const [inclusiveVat, setInclusiveVat] = useState(false);
+  const [vatRate, setVatRate] = useState(13);
   const [notes, setNotes] = useState('');
   const [images, setImages] = useState([]);
   const [dragOver, setDragOver] = useState(false);
@@ -67,7 +68,7 @@ export default function CreateSalesInvoice() {
   const [terms, setTerms] = useState('');
   const [roundOff, setRoundOff] = useState(false);
   const [customerDue, setCustomerDue] = useState(0);
-  const [manualInvoiceNo, setManualInvoiceNo] = useState(false);
+  const [invoiceNoTouched, setInvoiceNoTouched] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -101,9 +102,11 @@ export default function CreateSalesInvoice() {
     } catch { return ''; }
   }, [invoiceDate]);
 
-  const adDateStr = useMemo(() => {
-    try { return bsToADStr(invoiceDate); } catch { return ''; }
-  }, [invoiceDate]);
+  const customerName = useMemo(() => {
+    if (!customer) return 'Cash Customer';
+    const c = customers.find(x => x._id === customer);
+    return c?.name || 'Cash Customer';
+  }, [customer, customers]);
 
   const productOptions = useMemo(() => products.map(p => ({
     value: p._id,
@@ -125,9 +128,6 @@ export default function CreateSalesInvoice() {
       name: p?.name || '',
       sku: p?.sku || '',
       rate: p?.sellingPrice !== undefined ? p.sellingPrice : r.rate,
-      taxRate: p?.taxRate || 0,
-      priceIncludesTax: p?.priceIncludesTax || false,
-      vatEnabled: p?.vatEnabled !== undefined ? p.vatEnabled : (p?.taxRate || 0) > 0,
       costPrice: p?.costPrice || 0,
       unit: p?.unit || 'Pcs',
     } : r));
@@ -197,36 +197,27 @@ export default function CreateSalesInvoice() {
   const lineRate = (r) => {
     const raw = parseFloat(r.rate) || 0;
     if (inclusiveVat) {
-      const taxRate = r.taxRate || 13;
-      return Math.round((raw / (1 + taxRate / 100)) * 100) / 100;
+      return Math.round((raw / (1 + vatRate / 100)) * 100) / 100;
     }
     return raw;
   };
   const lineBase = (r) => Math.round(lineRate(r) * (parseInt(r.qty) || 0) * 100) / 100;
   const lineTax = (r, base) => {
-    const taxRate = r.taxRate || 13;
-    return Math.round((base * taxRate / 100) * 100) / 100;
+    return Math.round((base * vatRate / 100) * 100) / 100;
   };
 
   const lineDiscountAmount = (r) => {
     const base = lineBase(r);
     const disc = parseFloat(r.lineDiscount) || 0;
-    if (r.lineDiscountMode === 'percent') {
-      return Math.round(base * disc / 100 * 100) / 100;
-    }
-    return Math.round(disc * 100) / 100;
+    return Math.round(base * disc / 100 * 100) / 100;
   };
 
   const computeRowTax = (r) => {
     const base = lineBase(r);
     const disc = lineDiscountAmount(r);
     const net = Math.max(0, base - disc);
-    if (r.taxOverride !== null && r.taxOverride !== undefined && r.taxOverride !== '') {
-      if (r.taxOverride === 'exempt') return 0;
-      return Math.round(net * Number(r.taxOverride) / 100 * 100) / 100;
-    }
     if (applyVat || inclusiveVat) {
-      return Math.round(net * (r.taxRate || 13) / 100 * 100) / 100;
+      return Math.round(net * vatRate / 100 * 100) / 100;
     }
     return 0;
   };
@@ -247,8 +238,7 @@ export default function CreateSalesInvoice() {
   const effectiveTotalDiscount = discount + totalLineDiscounts;
 
   const vatEnabled = applyVat || inclusiveVat;
-  const hasPerRowTax = rows.some(r => r.taxOverride !== null && r.taxOverride !== undefined && r.taxOverride !== '');
-  const shouldComputeTax = vatEnabled || hasPerRowTax;
+  const shouldComputeTax = vatEnabled;
 
   let grandTotal, taxTotal, netAfterDiscount;
   netAfterDiscount = Math.max(0, totalBeforeDiscount - effectiveTotalDiscount);
@@ -269,6 +259,7 @@ export default function CreateSalesInvoice() {
   const paid = parseFloat(amountPaid) || grandTotal;
   const change = Math.max(0, paid - grandTotal);
   const dueBalance = Math.max(0, grandTotal - (paymentMethod === 'split' ? splits.reduce((s, sp) => s + (sp.amount || 0), 0) : paid));
+
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files || []);
     addImages(files);
@@ -367,7 +358,7 @@ export default function CreateSalesInvoice() {
       }
     }
     const totalPaid = paymentMethod === 'split'
-      ? splits.reduce((s, sp) => s + (sp.amount || 0), 0)
+      ? splits.filter(sp => sp.method !== 'credit').reduce((s, sp) => s + (sp.amount || 0), 0)
       : Math.round(paid * 100) / 100;
     const dueAmount = Math.max(0, grandTotal - totalPaid);
     if (!customer && dueAmount > 0) {
@@ -389,7 +380,8 @@ export default function CreateSalesInvoice() {
           quantity: parseInt(r.qty) || 1,
           price: parseFloat(r.rate) || 0,
           costPrice: r.costPrice || 0,
-          tax: lineTax(r, lineBase(r)),
+          tax: computeRowTax(r),
+          discount: lineDiscountAmount(r),
           subtotal: Math.round(lineBase(r) * 100) / 100,
         })),
         subtotal: Math.round(totalBeforeDiscount * 100) / 100,
@@ -399,15 +391,17 @@ export default function CreateSalesInvoice() {
         amountPaid: totalPaid,
         change: Math.max(0, totalPaid - grandTotal),
         paymentMethod,
-         paymentSplits: paymentMethod === 'split' ? splits.filter(sp => sp.amount > 0).map(sp => ({ method: sp.method, amount: Math.round((sp.amount || 0) * 100) / 100, bank: (sp.method === 'qr' || sp.method === 'bank') ? (sp.bank || null) : null })) : undefined,
+        paymentSplits: paymentMethod === 'split' ? splits.filter(sp => sp.amount > 0).map(sp => ({ method: sp.method, amount: Math.round((sp.amount || 0) * 100) / 100, bank: (sp.method === 'qr' || sp.method === 'bank') ? (sp.bank || null) : null })) : undefined,
         bank: (paymentMethod === 'qr' || paymentMethod === 'bank') ? bank : null,
         customer: customer || null,
+        customerName: customerName,
         invoiceNumber: invoiceNo.trim() || undefined,
         date: bsToADStr(invoiceDate),
         notes,
         images,
         source: 'invoice',
         inclusiveVat,
+        vatRate,
         extraCharge: addExtraCharge ? { remarks: extraChargeRemarks, amount: extraCharge } : undefined,
       };
       const { data } = await api.post('/sales', payload);
@@ -416,6 +410,7 @@ export default function CreateSalesInvoice() {
       setImages([]);
       setNotes('');
       setInvoiceNo('');
+      setInvoiceNoTouched(false);
       setDiscountValue(0);
       setApplyVat(false);
       setInclusiveVat(false);
@@ -454,7 +449,7 @@ export default function CreateSalesInvoice() {
               <h2 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 700, color: '#0f172a' }}>Invoice Details</h2>
               <button onClick={() => { setCustomer(''); setCashSale(true); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', fontSize: '0.75rem', fontWeight: 600, color: '#2563eb', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, cursor: 'pointer' }}>{Icons.zap}<span>Cash Sale</span></button>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.25rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.25rem', alignItems: 'start' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Party / Customer</label>
                 <div style={{ position: 'relative' }}>
@@ -471,19 +466,26 @@ export default function CreateSalesInvoice() {
               <div>
                 <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Invoice No.</label>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <input type="text" value={invoiceNo} onChange={e => setInvoiceNo(e.target.value)} disabled={!manualInvoiceNo} placeholder={manualInvoiceNo ? 'Enter number' : 'Auto-generated'} style={{ flex: 1, padding: '0.5rem 0.75rem', fontSize: '0.875rem', background: manualInvoiceNo ? '#fff' : '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, opacity: manualInvoiceNo ? 1 : 0.7 }} />
-                  <button onClick={() => { setManualInvoiceNo(!manualInvoiceNo); if (manualInvoiceNo) setInvoiceNo(''); }} style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', fontWeight: 600, color: '#fff', background: manualInvoiceNo ? '#16a34a' : '#64748b', border: 'none', borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {manualInvoiceNo ? Icons.check : Icons.zap}
-                    {manualInvoiceNo ? 'Manual' : 'Auto'}
-                  </button>
+                  <input
+                    type="text"
+                    value={invoiceNo}
+                    onChange={e => { setInvoiceNo(e.target.value); setInvoiceNoTouched(true); }}
+                    placeholder="Auto-generated"
+                    style={{ flex: 1, padding: '0.5rem 0.75rem', fontSize: '0.875rem', background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8 }}
+                  />
+                  {invoiceNoTouched && invoiceNo && (
+                    <button onClick={() => { setInvoiceNo(''); setInvoiceNoTouched(false); }} style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', fontWeight: 600, color: '#fff', background: '#64748b', border: 'none', borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }} title="Restore auto-generated number">
+                      Auto
+                    </button>
+                  )}
                 </div>
               </div>
-            </div>
-            <div style={{ marginTop: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Invoice Date</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <NepaliDatePicker value={invoiceDate} onChange={setInvoiceDate} style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.875rem' }} />
-                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.5rem 0.75rem', fontSize: '0.75rem', fontWeight: 500, color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, whiteSpace: 'nowrap' }}>{bsDate} BS</span>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Invoice Date</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <NepaliDatePicker value={invoiceDate} onChange={setInvoiceDate} style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.875rem' }} />
+                  <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0.5rem 0.75rem', fontSize: '0.75rem', fontWeight: 500, color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, whiteSpace: 'nowrap' }}>{bsDate} BS</span>
+                </div>
               </div>
             </div>
           </section>
@@ -501,8 +503,7 @@ export default function CreateSalesInvoice() {
                     <th style={{ padding: '0.625rem 0.5rem', width: 96, textAlign: 'center' }}>Unit</th>
                     <th style={{ padding: '0.625rem 0.5rem', width: 80, textAlign: 'center' }}>Qty</th>
                     <th style={{ padding: '0.625rem 0.5rem', width: 120, textAlign: 'right' }}>Rate</th>
-                    <th style={{ padding: '0.625rem 0.5rem', width: 130, textAlign: 'right' }}>Discount</th>
-                    <th style={{ padding: '0.625rem 0.5rem', width: 100, textAlign: 'center' }}>Tax/VAT</th>
+                    <th style={{ padding: '0.625rem 0.5rem', width: 100, textAlign: 'right' }}>Disc %</th>
                     <th style={{ padding: '0.625rem 0.5rem', width: 120, textAlign: 'right' }}>Amount</th>
                     <th style={{ padding: '0.625rem 0.5rem', width: 40 }}></th>
                   </tr>
@@ -513,13 +514,6 @@ export default function CreateSalesInvoice() {
                       <td style={{ padding: '0.625rem 0.5rem', textAlign: 'center', color: '#94a3b8', fontWeight: 500, fontSize: '0.75rem' }}>{idx + 1}</td>
                       <td style={{ padding: '0.625rem 0.5rem' }}>
                         <SearchableSelect options={productOptions} value={r.product} onChange={v => pickProduct(idx, v)} onAdd={(name) => openProductModal(idx, name)} placeholder="Search item name..." style={{ minWidth: 180 }} inputStyle={{ padding: '0.375rem 0.625rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8125rem', width: '100%' }} />
-                        {r.product && (
-                          <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            {(() => { const prod = products.find(p => p._id === r.product); return prod ? (
-                              <span style={{ fontSize: '0.625rem', fontWeight: 600, color: prod.stock > 0 ? '#16a34a' : '#dc2626', background: prod.stock > 0 ? '#f0fdf4' : '#fef2f2', padding: '0.125rem 0.375rem', borderRadius: 4, border: `1px solid ${prod.stock > 0 ? '#bbf7d0' : '#fecaca'}`, whiteSpace: 'nowrap' }}>In Stock: {prod.stock}</span>
-                            ) : null; })()}
-                          </div>
-                        )}
                       </td>
                       <td style={{ padding: '0.625rem 0.5rem' }}>
                         <select value={r.unit} onChange={e => updateRow(idx, 'unit', e.target.value)} style={{ width: '100%', padding: '0.375rem 0.25rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8125rem', background: '#fff', textAlign: 'center' }}>
@@ -532,24 +526,14 @@ export default function CreateSalesInvoice() {
                       <td style={{ padding: '0.625rem 0.5rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                           <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginRight: 2 }}>Rs.</span>
-                          <input type="number" min="0" step="0.01" value={inclusiveVat ? lineRate(r) : r.rate} onChange={e => updateRow(idx, 'rate', inclusiveVat ? (Math.round((parseFloat(e.target.value) || 0) * (1 + (r.taxRate || 13) / 100) * 100) / 100) : e.target.value)} onKeyDown={tabAddRow(idx)} style={{ width: '100%', padding: '0.375rem 0.5rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8125rem', textAlign: 'right' }} />
+                          <input type="number" min="0" step="0.01" value={inclusiveVat ? lineRate(r) : r.rate} onChange={e => updateRow(idx, 'rate', inclusiveVat ? (Math.round((parseFloat(e.target.value) || 0) * (1 + vatRate / 100) * 100) / 100) : e.target.value)} onKeyDown={tabAddRow(idx)} style={{ width: '100%', padding: '0.375rem 0.5rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8125rem', textAlign: 'right' }} />
                         </div>
                       </td>
                       <td style={{ padding: '0.625rem 0.5rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <div style={{ display: 'flex', background: '#f1f5f9', padding: 1, borderRadius: 4, border: '1px solid #e2e8f0', flexShrink: 0 }}>
-                            <button onClick={() => updateRow(idx, 'lineDiscountMode', 'percent')} style={{ padding: '0.125rem 0.375rem', fontSize: '0.6875rem', fontWeight: 600, background: r.lineDiscountMode === 'percent' ? '#fff' : 'transparent', color: r.lineDiscountMode === 'percent' ? '#0f172a' : '#94a3b8', border: 'none', borderRadius: 3, cursor: 'pointer' }}>%</button>
-                            <button onClick={() => updateRow(idx, 'lineDiscountMode', 'amount')} style={{ padding: '0.125rem 0.375rem', fontSize: '0.6875rem', fontWeight: 600, background: r.lineDiscountMode === 'amount' ? '#fff' : 'transparent', color: r.lineDiscountMode === 'amount' ? '#0f172a' : '#94a3b8', border: 'none', borderRadius: 3, cursor: 'pointer' }}>Rs</button>
-                          </div>
-                          <input type="number" min="0" step="0.01" value={r.lineDiscount || ''} onChange={e => updateRow(idx, 'lineDiscount', e.target.value)} placeholder="0" style={{ width: '100%', padding: '0.375rem 0.5rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8125rem', textAlign: 'right' }} />
+                          <input type="number" min="0" max="100" step="0.01" value={r.lineDiscount || ''} onChange={e => updateRow(idx, 'lineDiscount', e.target.value)} placeholder="0" style={{ width: '100%', padding: '0.375rem 0.5rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8125rem', textAlign: 'right' }} />
+                          <span style={{ fontSize: '0.75rem', color: '#94a3b8', flexShrink: 0 }}>%</span>
                         </div>
-                      </td>
-                      <td style={{ padding: '0.625rem 0.5rem' }}>
-                        <select value={r.taxOverride} onChange={e => updateRow(idx, 'taxOverride', e.target.value)} style={{ width: '100%', padding: '0.375rem 0.25rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8125rem', background: '#fff', textAlign: 'center' }}>
-                          <option value="">Default</option>
-                          <option value="0">0% (Exempt)</option>
-                          <option value="13">13% VAT</option>
-                        </select>
                       </td>
                       <td style={{ padding: '0.625rem 0.5rem', textAlign: 'right', fontWeight: 600, color: '#0f172a', fontSize: '0.8125rem' }}>{formatMoney(lineAmount(r))}</td>
                       <td style={{ padding: '0.625rem 0.5rem', textAlign: 'center' }}>
@@ -639,16 +623,22 @@ export default function CreateSalesInvoice() {
                 <div style={{ paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer' }}>
                     <input type="checkbox" checked={applyVat} onChange={e => handleApplyVatToggle(e.target.checked)} style={{ width: 16, height: 16, accentColor: '#2563eb' }} />
-                    <span style={{ fontSize: '0.8125rem', fontWeight: 500, color: '#334155' }}>Add VAT (13%)</span>
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 500, color: '#334155' }}>Add VAT</span>
+                    {applyVat && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <input type="number" min="0" max="100" step="0.01" value={vatRate} onChange={e => setVatRate(parseFloat(e.target.value) || 0)} style={{ width: 60, padding: '0.2rem 0.4rem', textAlign: 'right', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: '0.8125rem' }} />
+                        <span style={{ fontSize: '0.8125rem', color: '#64748b' }}>%</span>
+                      </div>
+                    )}
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer', marginTop: '0.375rem' }}>
                     <input type="checkbox" checked={inclusiveVat} onChange={e => handleInclusiveVatToggle(e.target.checked)} style={{ width: 16, height: 16, accentColor: '#2563eb' }} />
-                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Inclusive VAT (prices include 13%)</span>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Inclusive VAT (prices include {vatRate}%)</span>
                   </label>
                 </div>
                 {taxTotal > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#64748b' }}>VAT Total</span>
+                    <span style={{ color: '#64748b' }}>VAT Total ({vatRate}%)</span>
                     <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatMoney(taxTotal)}</span>
                   </div>
                 )}
@@ -687,7 +677,7 @@ export default function CreateSalesInvoice() {
                 <div style={{ paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Payment Mode</label>
-                    <select value={paymentMethod} onChange={e => { const v = e.target.value; setPaymentMethod(v); if (v !== 'qr' && v !== 'bank') setBank(''); if (v === 'split') { setSplits([{ method: 'cash', amount: Math.round(grandTotal * 100) / 100, bank: '' }, { method: 'bank', amount: 0, bank: '' }]); } else { setSplits([{ method: 'cash', amount: 0, bank: '' }]); } }} style={{ width: '100%', padding: '0.5rem 0.75rem', fontSize: '0.8125rem', background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8 }}>
+                    <select value={paymentMethod} onChange={e => { const v = e.target.value; setPaymentMethod(v); if (v !== 'qr' && v !== 'bank') setBank(''); if (v === 'split') { setSplits([{ method: 'cash', amount: Math.round(grandTotal * 100) / 100, bank: '' }]); } else { setSplits([{ method: 'cash', amount: 0, bank: '' }]); } }} style={{ width: '100%', padding: '0.5rem 0.75rem', fontSize: '0.8125rem', background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8 }}>
                       <option value="cash">Cash</option>
                       <option value="qr">QR / Mobile Banking</option>
                       <option value="bank">Bank Transfer / Fonepay</option>
@@ -712,11 +702,11 @@ export default function CreateSalesInvoice() {
                               </select>
                             )}
                             {isCredit && <span style={{ fontSize: '0.7rem', color: '#b45309', fontWeight: 500, whiteSpace: 'nowrap' }}>Due</span>}
-                            {splits.length > 2 && <button onClick={() => setSplits(splits.filter((_, i) => i !== idx))} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem' }}>x</button>}
+                            {splits.length > 2 && !isCredit && <button onClick={() => setSplits(splits.filter((_, i) => i !== idx))} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem' }}>x</button>}
                           </div>
                         );
                       })}
-                      <button onClick={() => setSplits([...splits, { method: 'cash', amount: 0, bank: '' }])} style={{ fontSize: '0.8rem', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Add Split</button>
+                      <button onClick={() => { const totalPaid = splits.filter(sp => sp.method !== 'credit').reduce((s, sp) => s + (sp.amount || 0), 0); const remaining = Math.max(0, Math.round((grandTotal - totalPaid) * 100) / 100); setSplits([...splits, { method: 'cash', amount: remaining, bank: '' }]); }} style={{ fontSize: '0.8rem', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Add Split</button>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
                         <div style={{ fontSize: '0.8rem', fontWeight: 600, color: Math.abs(splits.reduce((s, sp) => s + (sp.amount || 0), 0) - grandTotal) < 0.01 ? '#16a34a' : '#dc2626' }}>
                           Total: {formatMoney(splits.reduce((s, sp) => s + (sp.amount || 0), 0))} / {formatMoney(grandTotal)}
@@ -797,10 +787,6 @@ export default function CreateSalesInvoice() {
                 <div className="form-group"><label>Opening Stock</label><input type="number" value={newProduct.stock} onChange={e => setNewProduct({ ...newProduct, stock: e.target.value })} style={{ width: '100%' }} /></div>
                 <div className="form-group"><label>Unit</label><input type="text" value={newProduct.unit} onChange={e => setNewProduct({ ...newProduct, unit: e.target.value })} style={{ width: '100%' }} /></div>
               </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, marginTop: '0.375rem' }}>
-                <input type="checkbox" checked={newProduct.vatEnabled} onChange={e => setNewProduct({ ...newProduct, vatEnabled: e.target.checked, taxRate: e.target.checked ? (newProduct.taxRate || 13) : 0 })} />
-                Apply VAT (13%) to this product
-              </label>
             </div>
             <div className="modal-footer"><button className="btn btn-secondary" onClick={() => setProductModalRow(null)}>Cancel</button><button className="btn btn-primary" onClick={saveProduct}>Add Product</button></div>
           </div>

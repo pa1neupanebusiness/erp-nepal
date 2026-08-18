@@ -52,11 +52,12 @@ export async function getSystemTime() {
   }
 }
 
-// Stable newest-first comparison: orders by date, then by _id (insertion order)
-// so same-dated transactions stay deterministic (most-recent at top).
+// Stable newest-first comparison: always uses createdAt (system time) first,
+// then _id (insertion order) as tiebreaker. Never uses 'date' (BS business date)
+// because it has no time component and causes misordering.
 export function compareByDate(a, b, newestFirst = true) {
-  const ta = new Date(a?.date || a?.createdAt || a?._id || 0).getTime();
-  const tb = new Date(b?.date || b?.createdAt || b?._id || 0).getTime();
+  const ta = new Date(a?.createdAt || a?._id || 0).getTime();
+  const tb = new Date(b?.createdAt || b?._id || 0).getTime();
   if (ta !== tb) return newestFirst ? tb - ta : ta - tb;
   const aid = a?._id || '';
   const bid = b?._id || '';

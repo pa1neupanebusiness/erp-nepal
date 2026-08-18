@@ -14,7 +14,6 @@ export default function OtherIncome() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState('');
-  const [manualNo, setManualNo] = useState(false);
   const addToast = useToast();
 
   const emptyItem = { category: '', amount: '' };
@@ -42,7 +41,7 @@ export default function OtherIncome() {
 
   const loadNextNo = () =>
     api.get('/other-incomes/next-no')
-      .then(r => { if (!manualNo) setForm(f => ({ ...f, incomeNo: r.data.nextNo })); })
+      .then(r => { setForm(f => ({ ...f, incomeNo: r.data.nextNo })); })
       .catch(() => {});
 
   const resetForm = () => {
@@ -56,7 +55,6 @@ export default function OtherIncome() {
       attachments: [],
     });
     setEditingId(null);
-    setManualNo(false);
     loadNextNo();
   };
 
@@ -92,7 +90,6 @@ export default function OtherIncome() {
       bank: (form.paymentMethod === 'bank' || form.paymentMethod === 'cheque') ? form.bank : undefined,
       remarks: form.remarks,
       attachments: form.attachments,
-      manualNo: manualNo ? form.incomeNo : undefined,
     };
 
     try {
@@ -124,7 +121,6 @@ export default function OtherIncome() {
       remarks: item.remarks || '',
       attachments: item.attachments || [],
     });
-    setManualNo(true);
     setShowForm(true);
   };
 
@@ -191,148 +187,139 @@ export default function OtherIncome() {
           <span className="fiscal-badge">Total: {formatNPR(total)}</span>
           <button
             className="btn btn-primary"
-            onClick={() => { resetForm(); setShowForm(!showForm); }}
+            onClick={() => { resetForm(); setShowForm(true); }}
           >
-            {showForm ? 'Cancel' : '+ Add Income'}
+            + Add Income
           </button>
         </div>
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="card form-card" style={{ maxWidth: 700 }}>
-          <h3>{editingId ? 'Edit Income' : 'New Other Income'}</h3>
-          <div className="form-grid">
-            <div className="form-group">
-              <label>Income No</label>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <input
-                  value={form.incomeNo}
-                  onChange={e => setForm({ ...form, incomeNo: e.target.value })}
-                  disabled={!manualNo}
-                  style={{ flex: 1 }}
-                />
-                <label style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+        <div className="modal-overlay" onClick={() => { setShowForm(false); resetForm(); }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 600, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="modal-header">
+              <h3 style={{ margin: 0 }}>{editingId ? 'Edit Income' : 'New Other Income'}</h3>
+              <button className="btn btn-sm modal-close-x" onClick={() => { setShowForm(false); resetForm(); }}>&times;</button>
+            </div>
+            <form onSubmit={handleSubmit} className="modal-body">
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Income No</label>
                   <input
-                    type="checkbox"
-                    checked={manualNo}
-                    onChange={e => {
-                      setManualNo(e.target.checked);
-                      if (!e.target.checked) loadNextNo();
-                    }}
-                    style={{ marginRight: 4 }}
+                    value={form.incomeNo}
+                    disabled
+                    style={{ background: '#f8fafc' }}
                   />
-                  Manual
-                </label>
+                </div>
+                <div className="form-group">
+                  <label>Date</label>
+                  <NepaliDatePicker value={form.date} onChange={v => setForm({ ...form, date: v })} />
+                </div>
               </div>
-            </div>
 
-            <div className="form-group">
-              <label>Date</label>
-              <NepaliDatePicker value={form.date} onChange={v => setForm({ ...form, date: v })} />
-            </div>
-          </div>
-
-          <div style={{ marginTop: '0.75rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Income Items</label>
-              <button type="button" className="btn btn-secondary" onClick={addItemRow} style={{ fontSize: '0.8rem', padding: '0.25rem 0.75rem' }}>
-                + Add Income Item
-              </button>
-            </div>
-
-            {form.items.map((item, idx) => (
-              <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
-                <div style={{ flex: 2 }}>
-                  <SearchableSelect
-                    options={INCOME_CATEGORIES.map(c => ({ value: c, label: c }))}
-                    value={item.category}
-                    onChange={v => handleItemChange(idx, 'category', v)}
-                    placeholder="Select category..."
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Amount"
-                    value={item.amount}
-                    onChange={e => handleItemChange(idx, 'amount', e.target.value)}
-                    style={{ width: '100%', padding: '0.5rem 0.75rem', fontSize: '0.875rem', border: '1px solid #cbd5e1', borderRadius: 8 }}
-                  />
-                </div>
-                {form.items.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeItemRow(idx)}
-                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.1rem', padding: '0 0.25rem' }}
-                    title="Remove"
-                  >
-                    ✕
+              <div style={{ marginTop: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <label style={{ fontWeight: 600, fontSize: '0.875rem' }}>Income Items</label>
+                  <button type="button" className="btn btn-secondary" onClick={addItemRow} style={{ fontSize: '0.8rem', padding: '0.25rem 0.75rem' }}>
+                    + Add Income Item
                   </button>
+                </div>
+
+                {form.items.map((item, idx) => (
+                  <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+                    <div style={{ flex: 2 }}>
+                      <SearchableSelect
+                        options={INCOME_CATEGORIES.map(c => ({ value: c, label: c }))}
+                        value={item.category}
+                        onChange={v => handleItemChange(idx, 'category', v)}
+                        placeholder="Select category..."
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="Amount"
+                        value={item.amount}
+                        onChange={e => handleItemChange(idx, 'amount', e.target.value)}
+                        style={{ width: '100%', padding: '0.5rem 0.75rem', fontSize: '0.875rem', border: '1px solid #cbd5e1', borderRadius: 8 }}
+                      />
+                    </div>
+                    {form.items.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeItemRow(idx)}
+                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.1rem', padding: '0 0.25rem' }}
+                        title="Remove"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+
+                <div style={{ textAlign: 'right', fontWeight: 600, fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                  Total: {formatNPR(form.items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0))}
+                </div>
+              </div>
+
+              <div className="form-grid" style={{ marginTop: '0.75rem' }}>
+                <div className="form-group">
+                  <label>Payment Method</label>
+                  <select
+                    className="form-control"
+                    value={form.paymentMethod}
+                    onChange={e => setForm({ ...form, paymentMethod: e.target.value, bank: '' })}
+                  >
+                    <option value="cash">Cash</option>
+                    <option value="bank">Bank</option>
+                    <option value="cheque">Cheque</option>
+                    <option value="digital">Digital</option>
+                  </select>
+                </div>
+
+                {(form.paymentMethod === 'bank' || form.paymentMethod === 'cheque') && (
+                  <div className="form-group">
+                    <label>Bank</label>
+                    <SearchableSelect
+                      options={banks.map(b => ({
+                        value: b._id,
+                        label: b.accountNumber ? `${b.name} (${b.accountNumber})` : b.name,
+                      }))}
+                      value={form.bank}
+                      onChange={v => setForm({ ...form, bank: v })}
+                      placeholder="Select bank..."
+                    />
+                  </div>
                 )}
+
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label>Remarks</label>
+                  <textarea
+                    className="form-control"
+                    rows={2}
+                    value={form.remarks}
+                    onChange={e => setForm({ ...form, remarks: e.target.value })}
+                    placeholder="Optional remarks..."
+                  />
+                </div>
               </div>
-            ))}
 
-            <div style={{ textAlign: 'right', fontWeight: 600, fontSize: '0.9rem', marginTop: '0.5rem' }}>
-              Total: {formatNPR(form.items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0))}
-            </div>
-          </div>
-
-          <div className="form-grid" style={{ marginTop: '0.75rem' }}>
-            <div className="form-group">
-              <label>Payment Method</label>
-              <select
-                className="form-control"
-                value={form.paymentMethod}
-                onChange={e => setForm({ ...form, paymentMethod: e.target.value, bank: '' })}
-              >
-                <option value="cash">Cash</option>
-                <option value="bank">Bank</option>
-                <option value="cheque">Cheque</option>
-                <option value="digital">Digital</option>
-              </select>
-            </div>
-
-            {(form.paymentMethod === 'bank' || form.paymentMethod === 'cheque') && (
-              <div className="form-group">
-                <label>Bank</label>
-                <SearchableSelect
-                  options={banks.map(b => ({
-                    value: b._id,
-                    label: b.accountNumber ? `${b.name} (${b.accountNumber})` : b.name,
-                  }))}
-                  value={form.bank}
-                  onChange={v => setForm({ ...form, bank: v })}
-                  placeholder="Select bank..."
-                />
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowForm(false); resetForm(); }}>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn"
+                  style={{ background: '#10b981', color: '#fff', border: 'none' }}
+                >
+                  {editingId ? 'Update Income' : 'Save Income'}
+                </button>
               </div>
-            )}
-
-            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-              <label>Remarks</label>
-              <textarea
-                className="form-control"
-                rows={2}
-                value={form.remarks}
-                onChange={e => setForm({ ...form, remarks: e.target.value })}
-                placeholder="Optional remarks..."
-              />
-            </div>
+            </form>
           </div>
-
-          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-            <button type="button" className="btn btn-secondary" onClick={() => { setShowForm(false); resetForm(); }}>
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn"
-              style={{ background: '#10b981', color: '#fff', border: 'none' }}
-            >
-              {editingId ? 'Update Income' : 'Save Income'}
-            </button>
-          </div>
-        </form>
+        </div>
       )}
 
       <div className="card" style={{ marginTop: '1rem' }}>

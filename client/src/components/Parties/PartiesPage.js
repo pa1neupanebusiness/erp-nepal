@@ -24,6 +24,8 @@ export default function PartiesPage() {
   const [detailsType, setDetailsType] = useState(null);
   const [txData, setTxData] = useState(null);
   const [detailData, setDetailData] = useState(null);
+  const [txDetail, setTxDetail] = useState(null);
+  const [txDetailType, setTxDetailType] = useState(null);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -102,23 +104,77 @@ export default function PartiesPage() {
     setDetailsType(party._partyType);
     setTxData(null);
     setDetailData(null);
+    setTxDetail(null);
     try {
       if (party._partyType === 'customer') {
         const { data } = await api.get(`/customers/${party._id}/transactions`);
         setTxData({
-          sales: (data.sales || []).map(s => ({ type: 'Sale', date: s.invoiceDate || s.date || s.createdAt, ref: s.invoiceNumber || '-', amount: s.total || 0, balance: s.dueAmount || 0 })),
-          emis: (data.emis || []).map(e => ({ type: 'EMI', date: e.createdAt || e.date, ref: e.emiNumber || '-', amount: e.netAmount || e.totalPrice || 0, balance: e.remainingAmount || 0 })),
-          totalDue: data.totalDue || 0,
+          rawSales: data.sales || [],
+          rawEmis: data.emis || [],
+          sales: (data.sales || []).map(s => ({
+            type: 'Sale',
+            date: s.invoiceDate || s.date || s.createdAt,
+            ref: s.invoiceNumber || '-',
+            amount: Number(s.grandTotal) || 0,
+            balance: Number(s.dueAmount) || 0,
+            _id: s._id,
+          })),
+          emis: (data.emis || []).map(e => ({
+            type: 'EMI',
+            date: e.createdAt || e.date,
+            ref: e.emiNumber || '-',
+            amount: Number(e.netAmount || e.totalPrice) || 0,
+            balance: Number(e.remainingAmount) || 0,
+            _id: e._id,
+          })),
+          totalDue: Number(data.totalDue) || 0,
         });
       } else {
         const { data } = await api.get(`/suppliers/${party._id}/outstanding`);
         setDetailData({
-          purchases: (data.purchases || []).map(p => ({ type: 'Purchase', date: p.date, ref: p.purchaseNumber || '-', total: p.grandTotal || 0, paid: p.paidAmount || 0, due: p.dueAmount || 0 })),
-          totalDue: data.totalDue || 0,
-          balance: data.balance || 0,
+          rawPurchases: data.purchases || [],
+          purchases: (data.purchases || []).map(p => ({
+            type: 'Purchase',
+            date: p.date,
+            ref: p.purchaseNumber || '-',
+            total: Number(p.grandTotal) || 0,
+            paid: Number(p.paidAmount) || 0,
+            due: Number(p.dueAmount) || 0,
+            _id: p._id,
+          })),
+          totalDue: Number(data.totalDue) || 0,
+          balance: Number(data.balance) || 0,
         });
       }
     } catch (err) { /* ignore */ }
+  };
+
+  const openTxDetail = async (row) => {
+    if (row.type === 'Sale') {
+      try {
+        const { data } = await api.get(`/sales/${row._id}`);
+        setTxDetail(data);
+        setTxDetailType('sale');
+      } catch (err) { /* ignore */ }
+    } else if (row.type === 'EMI') {
+      const raw = (txData?.rawEmis || []).find(e => e._id === row._id);
+      if (raw) {
+        setTxDetail(raw);
+        setTxDetailType('emi');
+      }
+    } else if (row.type === 'Purchase') {
+      const raw = (detailData?.rawPurchases || []).find(p => p._id === row._id);
+      if (raw && raw.items && raw.items.length > 0) {
+        setTxDetail(raw);
+        setTxDetailType('purchase');
+      } else {
+        try {
+          const { data } = await api.get(`/purchases/${row._id}`);
+          setTxDetail(data);
+          setTxDetailType('purchase');
+        } catch (err) { /* ignore */ }
+      }
+    }
   };
 
   const handlePrint = () => {
@@ -278,7 +334,7 @@ export default function PartiesPage() {
         </div>
       </div>
 
-      {detailsId && detailsType === 'customer' && (() => {
+      {detailsId && detailsType === 'customer' && !txDetail && (() => {
         const c = customers.find(x => x._id === detailsId);
         if (!c) return null;
         const allTx = [
@@ -312,12 +368,13 @@ export default function PartiesPage() {
             actions={
               <button className="btn btn-sm" style={{ marginLeft: '0.25rem' }} onClick={() => { setDetailsId(null); openEdit(c); }}>Edit</button>
             }
-            onClose={() => { setDetailsId(null); setTxData(null); }}
+            onRowClick={(row) => openTxDetail(row)}
+            onClose={() => { setDetailsId(null); setTxData(null); setTxDetail(null); }}
           />
         );
       })()}
 
-      {detailsId && detailsType === 'supplier' && detailData && (() => {
+      {detailsId && detailsType === 'supplier' && detailData && !txDetail && (() => {
         const s = suppliers.find(x => x._id === detailsId);
         if (!s) return null;
         return (
@@ -347,10 +404,97 @@ export default function PartiesPage() {
             actions={
               <button className="btn btn-sm" style={{ marginLeft: '0.25rem' }} onClick={() => { setDetailsId(null); openEdit(s); }}>Edit</button>
             }
-            onClose={() => { setDetailsId(null); setDetailData(null); }}
+            onRowClick={(row) => openTxDetail(row)}
+            onClose={() => { setDetailsId(null); setDetailData(null); setTxDetail(null); }}
           />
         );
       })()}
+
+      {txDetail && txDetailType === 'sale' && (
+        <EntryDetailsModal
+          title={`Sale ${txDetail.invoiceNumber || ''}`}
+          subtitle={`${fmtDate(txDetail.createdAt)} | ${txDetail.customer?.name || 'Walk-in'} | ${txDetail.paymentMethod || ''}`}
+          meta={[
+            { label: 'Customer', value: txDetail.customer?.name || 'Walk-in' },
+            { label: 'Payment', value: txDetail.paymentMethod === 'split' ? (txDetail.paymentSplits || []).map(s => `${s.method}: ${fmtNPR(s.amount)}`).join(' + ') : txDetail.paymentMethod || '-' },
+            { label: 'Status', value: txDetail.status || '-' },
+            { label: 'Grand Total', value: fmtNPR(txDetail.grandTotal) },
+            { label: 'Paid', value: fmtNPR(txDetail.amountPaid) },
+            { label: 'Due', value: fmtNPR(txDetail.dueAmount) },
+          ]}
+          columns={[
+            { key: 'product', label: 'Item', wide: true, render: (v) => v?.name || v || 'Unknown' },
+            { key: 'price', label: 'Rate', align: 'right', render: (v, r) => fmtNPR(r.quantity > 0 ? (Number(r.subtotal) / Number(r.quantity)) : v) },
+            { key: 'quantity', label: 'Qty', align: 'right' },
+            { key: 'subtotal', label: 'Amount', align: 'right', render: (v) => fmtNPR(v) },
+          ]}
+          rows={txDetail.items || []}
+          footer={[
+            { label: 'Subtotal', value: fmtNPR(txDetail.subtotal || 0) },
+            ...(txDetail.discount > 0 ? [{ label: 'Discount', value: `(-${fmtNPR(txDetail.discount)})` }] : []),
+            ...(txDetail.taxTotal > 0 ? [{ label: 'VAT', value: fmtNPR(txDetail.taxTotal) }] : []),
+            { label: 'Grand Total', value: fmtNPR(txDetail.grandTotal) },
+            { label: 'Paid', value: fmtNPR(txDetail.amountPaid) },
+          ]}
+          onClose={() => setTxDetail(null)}
+          actions={
+            <button className="btn btn-sm btn-secondary" style={{ marginLeft: '0.25rem' }} onClick={() => setTxDetail(null)}>Back</button>
+          }
+        />
+      )}
+
+      {txDetail && txDetailType === 'emi' && (
+        <EntryDetailsModal
+          title={`EMI ${txDetail.emiNumber || ''}`}
+          subtitle={`${fmtDate(txDetail.createdAt)} | ${txDetail.customer?.name || ''}`}
+          meta={[
+            { label: 'Customer', value: txDetail.customer?.name || '-' },
+            { label: 'Product', value: txDetail.product?.name || '-' },
+            { label: 'Net Amount', value: fmtNPR(txDetail.netAmount) },
+            { label: 'Down Payment', value: fmtNPR(txDetail.downPayment) },
+            { label: 'Remaining', value: fmtNPR(txDetail.remainingAmount) },
+            { label: 'Status', value: txDetail.paidStatus || '-' },
+          ]}
+          columns={[]}
+          rows={[]}
+          onClose={() => setTxDetail(null)}
+          actions={
+            <button className="btn btn-sm btn-secondary" style={{ marginLeft: '0.25rem' }} onClick={() => setTxDetail(null)}>Back</button>
+          }
+        />
+      )}
+
+      {txDetail && txDetailType === 'purchase' && (
+        <EntryDetailsModal
+          title={`Purchase ${txDetail.purchaseNumber || ''}`}
+          subtitle={`${fmtDate(txDetail.date)} | ${txDetail.supplier?.name || ''} | ${txDetail.paymentMethod || ''}`}
+          meta={[
+            { label: 'Supplier', value: txDetail.supplier?.name || '-' },
+            { label: 'Payment', value: txDetail.paymentMethod || '-' },
+            { label: 'Status', value: txDetail.status || '-' },
+            { label: 'Grand Total', value: fmtNPR(txDetail.grandTotal) },
+            { label: 'Paid', value: fmtNPR(txDetail.paidAmount) },
+            { label: 'Due', value: fmtNPR(txDetail.dueAmount) },
+          ]}
+          columns={[
+            { key: 'product', label: 'Item', wide: true, render: (v) => v?.name || v || 'Unknown' },
+            { key: 'costPrice', label: 'Rate', align: 'right', render: (v) => fmtNPR(v) },
+            { key: 'quantity', label: 'Qty', align: 'right' },
+            { key: 'subtotal', label: 'Amount', align: 'right', render: (v) => fmtNPR(v) },
+          ]}
+          rows={(txDetail.items || [])}
+          footer={[
+            { label: 'Subtotal', value: fmtNPR(txDetail.subtotal || 0) },
+            ...(txDetail.discount > 0 ? [{ label: 'Discount', value: `(-${fmtNPR(txDetail.discount)})` }] : []),
+            { label: 'Grand Total', value: fmtNPR(txDetail.grandTotal) },
+            { label: 'Paid', value: fmtNPR(txDetail.paidAmount) },
+          ]}
+          onClose={() => setTxDetail(null)}
+          actions={
+            <button className="btn btn-sm btn-secondary" style={{ marginLeft: '0.25rem' }} onClick={() => setTxDetail(null)}>Back</button>
+          }
+        />
+      )}
 
       <ConfirmModal
         open={!!confirmDelete}

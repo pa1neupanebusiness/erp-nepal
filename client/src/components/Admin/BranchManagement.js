@@ -119,19 +119,29 @@ export default function BranchManagement() {
     <div>
       <div className="page-header">
         <h1>Branch Management <span className="badge badge-info">{branches.length}</span></h1>
-        {isAdmin && <button className="btn btn-primary" onClick={showForm ? () => { setShowForm(false); setEditBranch(null); } : startCreate}>{showForm ? 'Cancel' : 'Add Branch'}</button>}
+        {isAdmin && <button className="btn btn-primary" onClick={startCreate}>+ Add Branch</button>}
       </div>
 
       {isAdmin && showForm && (
-        <div className="card" style={{ marginBottom: '1rem' }}>
-          <h3>{editBranch ? 'Edit Branch' : 'New Branch'}</h3>
-          <div className="form-grid">
-            <div className="form-group"><label>Name *</label><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-            <div className="form-group"><label>Address</label><input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
-            <div className="form-group"><label>Phone</label><input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
-            <div className="form-group"><label>Email</label><input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
+        <div className="modal-overlay" onClick={() => { setShowForm(false); setEditBranch(null); }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 500, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="modal-header">
+              <h3 style={{ margin: 0 }}>{editBranch ? 'Edit Branch' : 'New Branch'}</h3>
+              <button className="btn btn-sm modal-close-x" onClick={() => { setShowForm(false); setEditBranch(null); }}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-grid">
+                <div className="form-group"><label>Name *</label><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
+                <div className="form-group"><label>Address</label><input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
+                <div className="form-group"><label>Phone</label><input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
+                <div className="form-group"><label>Email</label><input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <button className="btn btn-secondary" onClick={() => { setShowForm(false); setEditBranch(null); }}>Cancel</button>
+                <button className="btn btn-primary" onClick={handleSubmit} disabled={saving}>{saving ? 'Saving...' : (editBranch ? 'Update Branch' : 'Create Branch')}</button>
+              </div>
+            </div>
           </div>
-          <button className="btn btn-primary" style={{ marginTop: '0.75rem' }} onClick={handleSubmit} disabled={saving}>{saving ? 'Saving...' : (editBranch ? 'Update Branch' : 'Create Branch')}</button>
         </div>
       )}
 
