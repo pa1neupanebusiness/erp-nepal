@@ -6,6 +6,7 @@ import DownloadBtn from '../DownloadBtn';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
 import SearchableSelect from '../UI/SearchableSelect';
 import Banks from './Banks';
+import ChartOfAccountsTree from './ChartOfAccountsTree';
 import { formatDate as fmtDate } from '../UI/printEntry';
 import { showConfirm } from '../UI/ConfirmDialog';
 import { printHtmlDocument } from '../UI/printCommon';
@@ -1270,7 +1271,7 @@ export default function AccountsPage() {
       </div>
       <div style={{ padding: '1rem 0' }}>
         <Routes>
-          <Route index element={<ChartOfAccounts />} />
+          <Route index element={<ChartOfAccountsTree />} />
           <Route path="banks" element={<Banks />} />
           <Route path="journal-entries" element={<JournalEntryList />} />
           <Route path="purchases" element={<PurchasesView />} />

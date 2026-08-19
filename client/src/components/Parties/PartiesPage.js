@@ -26,6 +26,8 @@ export default function PartiesPage() {
   const [detailsType, setDetailsType] = useState(null);
   const [txData, setTxData] = useState(null);
   const [detailData, setDetailData] = useState(null);
+  const [txDetail, setTxDetail] = useState(null);
+  const [txDetailType, setTxDetailType] = useState(null);
   const [viewSaleId, setViewSaleId] = useState(null);
   const [viewPurchaseId, setViewPurchaseId] = useState(null);
 
