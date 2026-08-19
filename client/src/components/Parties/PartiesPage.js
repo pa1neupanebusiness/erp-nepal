@@ -324,7 +324,7 @@ export default function PartiesPage() {
         </div>
       </div>
 
-      {detailsId && detailsType === 'customer' && !txDetail && (() => {
+      {detailsId && detailsType === 'customer' && (() => {
         const c = customers.find(x => x._id === detailsId);
         if (!c) return null;
         const allTx = [
@@ -364,7 +364,7 @@ export default function PartiesPage() {
         );
       })()}
 
-      {detailsId && detailsType === 'supplier' && detailData && !txDetail && (() => {
+      {detailsId && detailsType === 'supplier' && detailData && (() => {
         const s = suppliers.find(x => x._id === detailsId);
         if (!s) return null;
         return (

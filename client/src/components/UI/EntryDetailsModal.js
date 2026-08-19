@@ -1,11 +1,19 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { printEntry } from './printEntry';
 
 export default function EntryDetailsModal({ title, subtitle, meta = [], columns = [], rows = [], footer = [], actions, onClose, onRowClick, onPrint }) {
   const displayRows = rows;
+  const overlayRef = useRef(null);
 
   useEffect(() => {
-    const handleEsc = (e) => { if (e.key === 'Escape') onClose && onClose(); };
+    const handleEsc = (e) => {
+      if (e.key !== 'Escape') return;
+      const overlays = document.querySelectorAll('.modal-overlay');
+      const topmost = overlays[overlays.length - 1];
+      if (overlayRef.current && overlayRef.current === topmost) {
+        onClose && onClose();
+      }
+    };
     document.addEventListener('keydown', handleEsc);
     return () => document.removeEventListener('keydown', handleEsc);
   }, [onClose]);
@@ -15,7 +23,7 @@ export default function EntryDetailsModal({ title, subtitle, meta = [], columns 
   };
 
   return (
-    <div className="modal-overlay">
+    <div className="modal-overlay" ref={overlayRef}>
       <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 780 }}>
         <div className="modal-header">
           <h3>{title}</h3>

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../api';
 import { useFiscalYear } from '../../context/FiscalYearContext';
 
 export default function AccountsDashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({ totalVouchers: 0, totalSales: 0, totalPurchases: 0, cashBalance: 0, bankBalance: 0, outstandingReceivable: 0, outstandingPayable: 0 });
   const [loading, setLoading] = useState(true);
   const { selectedYear } = useFiscalYear();
@@ -54,7 +56,7 @@ export default function AccountsDashboard() {
       </div>
       <div className="kpi-grid">
         {kpiCards.map((kpi, i) => (
-          <div key={i} className="kpi-card" style={{ borderLeft: `4px solid ${kpi.color}`, cursor: 'pointer' }} onClick={() => window.location.href = kpi.path}>
+          <div key={i} className="kpi-card" style={{ borderLeft: `4px solid ${kpi.color}`, cursor: 'pointer' }} onClick={() => navigate(kpi.path)}>
             <div className="kpi-top">
               <span className="kpi-icon">{kpi.icon}</span>
             </div>

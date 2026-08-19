@@ -4,6 +4,7 @@ import { FiscalYearProvider, useFiscalYear } from './context/FiscalYearContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { DateFormatProvider } from './context/DateFormatContext';
 import { ToastProvider, ToastContainer, useToast } from './components/UI/Toast';
+import ErrorBoundary from './components/UI/ErrorBoundary';
 import api from './api';
 import NepaliDatePicker, { bsToADStr, getBSTodayStr } from './components/UI/NepaliDatePicker';
 import TopBar from './components/UI/TopBar';
@@ -178,6 +179,7 @@ function AppContent() {
       <TopBar />
       <Layout user={user} onLogout={handleLogout}>
         {user?.company?.chatbotEnabled && <ChatWidget />}
+        <ErrorBoundary>
         <Routes>
           <Route path="/" element={user.role === 'super_admin' && !localStorage.getItem('selectedCompany') ? <AdminDashboard /> : <Dashboard />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
@@ -237,6 +239,7 @@ function AppContent() {
           <Route path="/hr/leave" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('hr') && (user?.groups || []).includes('hr'))) ? <LeavePage /> : <Navigate to="/" />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
+        </ErrorBoundary>
       </Layout>
       </Router>
     </ThemeProvider>
