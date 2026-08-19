@@ -359,7 +359,7 @@ export default function PartiesPage() {
               <button className="btn btn-sm" style={{ marginLeft: '0.25rem' }} onClick={() => { setDetailsId(null); openEdit(c); }}>Edit</button>
             }
             onRowClick={(row) => openTxDetail(row)}
-            onClose={() => { setDetailsId(null); setTxData(null); setViewSaleId(null); setViewPurchaseId(null); }}
+            onClose={() => { setDetailsId(null); setTxData(null); setViewSaleId(null); setViewPurchaseId(null); setTxDetail(null); setTxDetailType(null); }}
           />
         );
       })()}
@@ -395,13 +395,58 @@ export default function PartiesPage() {
               <button className="btn btn-sm" style={{ marginLeft: '0.25rem' }} onClick={() => { setDetailsId(null); openEdit(s); }}>Edit</button>
             }
             onRowClick={(row) => openTxDetail(row)}
-            onClose={() => { setDetailsId(null); setDetailData(null); setViewSaleId(null); setViewPurchaseId(null); }}
+            onClose={() => { setDetailsId(null); setDetailData(null); setViewSaleId(null); setViewPurchaseId(null); setTxDetail(null); setTxDetailType(null); }}
           />
         );
       })()}
 
       {viewSaleId && <SaleDetailModal saleId={viewSaleId} onClose={() => setViewSaleId(null)} />}
       {viewPurchaseId && <PurchaseDetailModal purchaseId={viewPurchaseId} onClose={() => setViewPurchaseId(null)} />}
+
+      {txDetail && txDetailType === 'emi' && (() => {
+        const e = txDetail;
+        const product = e.product;
+        return (
+          <EntryDetailsModal
+            title={`EMI ${e.emiNumber || ''}`}
+            subtitle={`${fmtDate(e.createdAt)} | ${e.customer?.name || '-'} | ${e.bankName || '-'}`}
+            meta={[
+              { label: 'Product', value: product?.name || product || '-' },
+              { label: 'Serial No', value: e.serialNumber || '-' },
+              { label: 'Status', value: e.paidStatus || '-' },
+              { label: 'Product Total', value: fmtNPR(e.productTotal) },
+              { label: 'Down Payment', value: fmtNPR(e.downPayment) },
+              { label: 'Net Amount', value: fmtNPR(e.netAmount) },
+              { label: 'Remaining', value: fmtNPR(e.remainingAmount) },
+              { label: 'Total Paid', value: fmtNPR(e.totalPaid) },
+              { label: 'Tenure', value: e.tenure ? `${e.tenure} months` : '-' },
+              { label: 'Monthly EMI', value: e.monthlyEMI ? fmtNPR(e.monthlyEMI) : '-' },
+              { label: 'Interest Rate', value: e.interestRate ? `${e.interestRate}%` : '0%' },
+              { label: 'Bank', value: e.bankName || '-' },
+              ...(e.remarks ? [{ label: 'Remarks', value: e.remarks }] : []),
+            ]}
+            columns={[
+              { key: 'date', label: 'Date', render: (v) => fmtDate(v) },
+              { key: 'amount', label: 'Amount', align: 'right', render: (v) => fmtNPR(v) },
+              { key: 'principal', label: 'Principal', align: 'right', render: (v) => fmtNPR(v) },
+              { key: 'interest', label: 'Interest', align: 'right', render: (v) => fmtNPR(v) },
+              { key: 'method', label: 'Method' },
+            ]}
+            rows={(e.payments || []).map((p, i) => ({
+              date: p.date,
+              amount: p.amount,
+              principal: p.principal,
+              interest: p.interest,
+              method: p.method || '-',
+            }))}
+            footer={[
+              { label: 'Total Paid', value: fmtNPR(e.totalPaid || 0) },
+              { label: 'Remaining', value: fmtNPR(e.remainingAmount || 0) },
+            ]}
+            onClose={() => { setTxDetail(null); setTxDetailType(null); }}
+          />
+        );
+      })()}
 
       <ConfirmModal
         open={!!confirmDelete}
