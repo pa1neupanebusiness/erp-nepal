@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ConfirmModal from '../UI/ConfirmModal';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
+import SaleDetailModal from '../UI/SaleDetailModal';
 import api from '../../api';
 import { printEntry } from '../UI/printEntry';
 
@@ -13,6 +14,7 @@ export default function CustomerList() {
   const [detailsId, setDetailsId] = useState(null);
   const [txMap, setTxMap] = useState({});
   const [search, setSearch] = useState('');
+  const [viewSaleId, setViewSaleId] = useState(null);
 
   useEffect(() => { load(); }, []);
   const load = () => api.get('/customers').then(r => setItems(r.data.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))));
@@ -91,24 +93,17 @@ export default function CustomerList() {
         <table className="table">
           <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>PAN</th><th>Address</th><th>Loyalty Points</th><th>Actions</th></tr></thead>
           <tbody>
-            {filtered.map(c => {
-              const tx = txMap[c._id];
-              const allTx = tx ? [
-                ...(tx.sales || []).map(s => ({ type: 'Sale', date: s.invoiceDate || s.date || s.createdAt, ref: s.invoiceNumber || s._id, amount: s.total, balance: s.dueAmount || 0 })),
-                ...(tx.emis || []).map(e => ({ type: 'EMI', date: e.createdAt || e.date, ref: e.emiNumber || e._id, amount: e.netAmount || e.totalPrice || 0, balance: e.remainingAmount || 0 })),
-              ] : [];
-              return (
-                <tr key={c._id} onClick={() => handleRowClick(c)} style={{ cursor: 'pointer' }}>
-                  <td>{c.name}</td><td>{c.email || '-'}</td><td>{c.phone || '-'}</td>
-                  <td>{c.pan || '-'}</td><td>{c.address || '-'}</td><td>{c.loyaltyPoints || 0}</td>
-                  <td className="action-cell" onClick={e => e.stopPropagation()}>
-                    <button className="btn btn-sm" onClick={() => handleRowClick(c)}>View</button>
-                    <button className="btn btn-sm" style={{ marginLeft: '0.25rem' }} onClick={() => edit(c)}>Edit</button>
-                    <button className="btn btn-sm btn-danger" style={{ marginLeft: '0.25rem' }} onClick={() => remove(c._id)}>Delete</button>
-                  </td>
-                </tr>
-              );
-            })}
+            {filtered.map(c => (
+              <tr key={c._id} onClick={() => handleRowClick(c)} style={{ cursor: 'pointer' }}>
+                <td>{c.name}</td><td>{c.email || '-'}</td><td>{c.phone || '-'}</td>
+                <td>{c.pan || '-'}</td><td>{c.address || '-'}</td><td>{c.loyaltyPoints || 0}</td>
+                <td className="action-cell" onClick={e => e.stopPropagation()}>
+                  <button className="btn btn-sm" onClick={() => handleRowClick(c)}>View</button>
+                  <button className="btn btn-sm" style={{ marginLeft: '0.25rem' }} onClick={() => edit(c)}>Edit</button>
+                  <button className="btn btn-sm btn-danger" style={{ marginLeft: '0.25rem' }} onClick={() => remove(c._id)}>Delete</button>
+                </td>
+              </tr>
+            ))}
             {filtered.length === 0 && <tr><td colSpan="7" className="text-center">No customers</td></tr>}
           </tbody>
         </table>
@@ -118,19 +113,20 @@ export default function CustomerList() {
         if (!c) return null;
         const tx = txMap[c._id] || { sales: [], emis: [] };
         const allTx = [
-          ...(tx.sales || []).map(s => ({ type: 'Sale', date: s.invoiceDate || s.date || s.createdAt, ref: s.invoiceNumber || s._id, amount: s.total || 0, balance: s.dueAmount || 0 })),
-          ...(tx.emis || []).map(e => ({ type: 'EMI', date: e.createdAt || e.date, ref: e.emiNumber || e._id, amount: e.netAmount || e.totalPrice || 0, balance: e.remainingAmount || 0 })),
+          ...(tx.sales || []).map(s => ({ type: 'Sale', date: s.invoiceDate || s.date || s.createdAt, ref: s.invoiceNumber || s._id, amount: s.grandTotal || s.total || 0, balance: s.dueAmount || 0, _id: s._id })),
+          ...(tx.emis || []).map(e => ({ type: 'EMI', date: e.createdAt || e.date, ref: e.emiNumber || e._id, amount: e.netAmount || e.totalPrice || 0, balance: e.remainingAmount || 0, _id: e._id })),
         ].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
         return (
           <EntryDetailsModal
             title={c.name}
-            subtitle="Customer Transactions"
+            subtitle="Customer Details & Transactions"
             meta={[
-              { label: 'Email', value: c.email || '-' },
               { label: 'Phone', value: c.phone || '-' },
+              { label: 'Email', value: c.email || '-' },
               { label: 'PAN', value: c.pan || '-' },
               { label: 'Address', value: c.address || '-' },
               { label: 'Loyalty Points', value: String(c.loyaltyPoints || 0) },
+              { label: 'Total Due', value: formatNPR(tx.totalDue || 0) },
             ]}
             columns={[
               { key: 'type', label: 'Type' },
@@ -144,10 +140,12 @@ export default function CustomerList() {
               { label: 'Total Amount', value: formatNPR(allTx.reduce((s, t) => s + (t.amount || 0), 0)) },
               { label: 'Total Balance', value: formatNPR(allTx.reduce((s, t) => s + (t.balance || 0), 0)) },
             ]}
-            onClose={() => setDetailsId(null)}
+            onRowClick={(row) => { if (row.type === 'Sale' && row._id) setViewSaleId(row._id); }}
+            onClose={() => { setDetailsId(null); setViewSaleId(null); }}
           />
         );
       })()}
+      {viewSaleId && <SaleDetailModal saleId={viewSaleId} onClose={() => setViewSaleId(null)} />}
       <ConfirmModal open={!!confirmDelete} title="Confirm Delete" message={confirmDelete?.message} onConfirm={async () => { if (confirmDelete) { await api.delete(`/customers/${confirmDelete.id}`); load(); } setConfirmDelete(null); }} onCancel={() => setConfirmDelete(null)} />
     </div>
   );

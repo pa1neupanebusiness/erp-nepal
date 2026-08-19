@@ -229,12 +229,12 @@ function AppContent() {
           <Route path="/reports/monthly-sales-register" element={<MonthlySalesRegister />} />
           <Route path="/users" element={<UserManagement />} />
           <Route path="/company-settings" element={<CompanySettings />} />
-          <Route path="/hr/dashboard" element={<HrDashboard />} />
-          <Route path="/hr" element={<HrDashboard />} />
-          <Route path="/hr/employees" element={<EmployeeList />} />
-          <Route path="/hr/attendance" element={<AttendancePage />} />
-          <Route path="/hr/salary" element={<SalaryPage />} />
-          <Route path="/hr/leave" element={<LeavePage />} />
+          <Route path="/hr/dashboard" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('hr') && (user?.groups || []).includes('hr'))) ? <HrDashboard /> : <Navigate to="/" />} />
+          <Route path="/hr" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('hr') && (user?.groups || []).includes('hr'))) ? <HrDashboard /> : <Navigate to="/" />} />
+          <Route path="/hr/employees" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('hr') && (user?.groups || []).includes('hr'))) ? <EmployeeList /> : <Navigate to="/" />} />
+          <Route path="/hr/attendance" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('hr') && (user?.groups || []).includes('hr'))) ? <AttendancePage /> : <Navigate to="/" />} />
+          <Route path="/hr/salary" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('hr') && (user?.groups || []).includes('hr'))) ? <SalaryPage /> : <Navigate to="/" />} />
+          <Route path="/hr/leave" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('hr') && (user?.groups || []).includes('hr'))) ? <LeavePage /> : <Navigate to="/" />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Layout>

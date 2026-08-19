@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ConfirmModal from '../UI/ConfirmModal';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
+import PurchaseDetailModal from '../UI/PurchaseDetailModal';
 import api from '../../api';
 import { printEntry } from '../UI/printEntry';
 
@@ -14,6 +15,7 @@ export default function SupplierList() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [detailsId, setDetailsId] = useState(null);
   const [detailData, setDetailData] = useState(null);
+  const [viewPurchaseId, setViewPurchaseId] = useState(null);
 
   useEffect(() => { load(); }, []);
   const load = () => api.get('/suppliers').then(r => setItems(r.data.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))));
@@ -117,9 +119,11 @@ export default function SupplierList() {
           ]}
           rows={detailData.purchases}
           footer={[{ label: 'Total Due', value: detailData.totalDue, render: (v) => fmtNPR(v) }]}
-          onClose={() => setDetailsId(null)}
+          onRowClick={(row) => { if (row._id) setViewPurchaseId(row._id); }}
+          onClose={() => { setDetailsId(null); setViewPurchaseId(null); }}
         />
       )}
+      {viewPurchaseId && <PurchaseDetailModal purchaseId={viewPurchaseId} onClose={() => setViewPurchaseId(null)} />}
       <ConfirmModal open={!!confirmDelete} title="Confirm Delete" message={confirmDelete?.message} onConfirm={async () => { if (confirmDelete) { await api.delete(`/suppliers/${confirmDelete.id}`); load(); } setConfirmDelete(null); }} onCancel={() => setConfirmDelete(null)} />
     </div>
   );

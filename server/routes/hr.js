@@ -4,8 +4,9 @@ const Attendance = require('../models/Attendance');
 const Salary = require('../models/Salary');
 const Leave = require('../models/Leave');
 const User = require('../models/User');
-const { protect, hrAccess, hasHrAccess } = require('../middleware/auth');
+const { protect, hrAccess, hasHrAccess, requireHrModule } = require('../middleware/auth');
 const router = express.Router();
+router.use(protect, requireHrModule);
 
 router.get('/employees', protect, hrAccess, async (req, res) => {
   try {
