@@ -65,7 +65,6 @@ export default function BranchDeliveryDetails() {
 
   useEffect(() => {
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preset, customFrom, customTo]);
 
   const loadData = async () => {
