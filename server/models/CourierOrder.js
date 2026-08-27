@@ -18,6 +18,7 @@ const courierOrderSchema = new mongoose.Schema({
   instructions: { type: String, default: '' },
   deliveryLocation: { type: String, default: '' },
   deliveryType: { type: String, enum: ['national', 'international'], default: 'national' },
+  sourceBranch: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', default: null },
   destinationBranch: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', default: null },
   estimatedDelivery: { type: Date },
   weight: { type: Number, default: 0 },

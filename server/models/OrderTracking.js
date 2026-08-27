@@ -24,6 +24,7 @@ const orderTrackingSchema = new mongoose.Schema({
   trackingNumber: { type: String, default: '' },
   estimatedDelivery: { type: Date },
   branch: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', default: null },
+  sourceBranch: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', default: null },
   driver: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   currentLocation: { type: String, default: '' },
   events: [trackingEventSchema],
@@ -35,5 +36,6 @@ orderTrackingSchema.index({ company: 1, status: 1 });
 orderTrackingSchema.index({ company: 1, trackingNumber: 1 });
 orderTrackingSchema.index({ company: 1, driver: 1 });
 orderTrackingSchema.index({ company: 1, branch: 1 });
+orderTrackingSchema.index({ company: 1, sourceBranch: 1 });
 
 module.exports = mongoose.model('OrderTracking', orderTrackingSchema);

@@ -137,6 +137,7 @@ export default function Layout({ user, onLogout, children }) {
   }, [location.pathname]);
   const isSuperAdmin = user?.role === 'super_admin';
   const isAdmin = isSuperAdmin || user?.role === 'admin';
+  const isBranchStaff = (user?.groups || []).includes('branch');
   const groups = user?.groups || [];
   const hasGroup = (g) => isAdmin || groups.includes(g);
   const enabled = user?.company?.enabledModules || ['sales', 'emi', 'purchase', 'accounts', 'reports', 'settings'];
@@ -167,7 +168,7 @@ export default function Layout({ user, onLogout, children }) {
     reports: mod('reports') && hasGroup('accounts'),
     hr: mod('hr') && hasGroup('hr'),
     settings: mod('settings') && isAdmin,
-    tracking: mod('tracking') && hasGroup('pos'),
+    tracking: mod('tracking') && (hasGroup('pos') || (user?.groups || []).includes('branch') || (user?.groups || []).includes('driver')),
   };
   const salesVisible = !isSuperAdmin && (v.pos || v.sales || v.emi || v.posAdmin);
   const courierVisible = !isSuperAdmin && v.tracking;
@@ -264,7 +265,7 @@ export default function Layout({ user, onLogout, children }) {
             {isAdmin && <NavLink to="/courier-sales" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Courier Sales</span></NavLink>}
             {isAdmin && <NavLink to="/courier-sales/history" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Sales History</span></NavLink>}
             <NavLink to="/tracking" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Order Tracking</span></NavLink>
-            {isAdmin && <NavLink to="/branch-deliveries" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Deliveries</span></NavLink>}
+            {(isAdmin || isBranchStaff) && <NavLink to="/branch-deliveries" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Deliveries</span></NavLink>}
             {(user?.groups || []).includes('branch') && <NavLink to="/tracking/branch" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Orders</span></NavLink>}
             {(user?.groups || []).includes('driver') && <NavLink to="/tracking/driver" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">My Deliveries</span></NavLink>}
           </NavSection>}

@@ -145,6 +145,8 @@ router.post('/', adminOnly, async (req, res) => {
     carrier: 'custom',
     trackingNumber,
     estimatedDelivery: estimatedDelivery || undefined,
+    branch: destinationBranch || undefined,
+    sourceBranch: req.user.branch || undefined,
     company: req.companyId,
     events: [{ status: 'pending', note: 'Courier order created', updatedBy: req.user._id, updatedByRole: req.user.role }],
   });
@@ -158,6 +160,7 @@ router.post('/', adminOnly, async (req, res) => {
     instructions: instructions || '',
     deliveryLocation: deliveryLocation || '',
     deliveryType: deliveryType || 'national',
+    sourceBranch: req.user.branch || null,
     destinationBranch: destinationBranch || null,
     estimatedDelivery: estimatedDelivery || undefined,
     weight: wt,

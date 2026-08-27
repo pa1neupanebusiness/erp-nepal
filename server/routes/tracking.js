@@ -68,44 +68,101 @@ router.get('/driver-orders', protect, requireTrackingModule, async (req, res) =>
 });
 
 router.get('/branch-orders', protect, requireTrackingModule, async (req, res) => {
-  if (!isBranchStaff(req.user) && req.user.role !== 'super_admin' && req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Branch access required' });
+  try {
+    if (!isBranchStaff(req.user) && req.user.role !== 'super_admin' && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Branch access required' });
+    }
+    const isAdmin = req.user.role === 'super_admin' || req.user.role === 'admin';
+    const filter = { company: req.companyId };
+
+    const from = req.query.from ? new Date(req.query.from) : null;
+    const to = req.query.to ? new Date(req.query.to) : null;
+    const dateRange = {};
+    if (from && !isNaN(from)) dateRange.$gte = new Date(from.setHours(0, 0, 0, 0));
+    if (to && !isNaN(to)) dateRange.$lte = new Date(to.setHours(23, 59, 59, 999));
+    if (dateRange.$gte || dateRange.$lte) filter.createdAt = dateRange;
+
+    const branchParams = [];
+    if (req.query.branchId) {
+      branchParams.push({ sourceBranch: req.query.branchId }, { branch: req.query.branchId });
+    } else if (isAdmin) {
+      branchParams.push({ sourceBranch: { $exists: true, $ne: null } }, { branch: { $exists: true, $ne: null } });
+    } else if (req.user.branch) {
+      branchParams.push({ sourceBranch: req.user.branch }, { branch: req.user.branch });
+    }
+
+    const baseFilter = { ...filter };
+    let items = [];
+    if (branchParams.length) {
+      baseFilter.$or = branchParams;
+    }
+    if (req.query.status) baseFilter.status = req.query.status;
+    items = await OrderTracking.find(baseFilter)
+      .populate('driver', 'name phone')
+      .populate('customer', 'name phone')
+      .populate('branch', 'name address phone')
+      .populate('sourceBranch', 'name address phone')
+      .sort({ updatedAt: -1 });
+
+    const result = items.map(o => ({
+      ...o.toObject(),
+      direction: o.sourceBranch && o.branch && o.sourceBranch.toString() === o.branch.toString()
+        ? 'internal'
+        : (o.sourceBranch ? 'sent' : 'received'),
+    }));
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to load branch orders: ' + err.message });
   }
-  const isAdmin = req.user.role === 'super_admin' || req.user.role === 'admin';
-  const filter = { company: req.companyId };
-  if (!isAdmin && req.user.branch) filter.branch = req.user.branch;
-  if (req.query.status) filter.status = req.query.status;
-  const items = await OrderTracking.find(filter)
-    .populate('driver', 'name phone')
-    .populate('customer', 'name phone')
-    .populate('branch', 'name address phone')
-    .sort({ updatedAt: -1 });
-  res.json(items);
 });
 
 router.get('/branch-stats', protect, requireTrackingModule, async (req, res) => {
-  const isAdmin = req.user.role === 'super_admin' || req.user.role === 'admin';
-  const filter = { company: req.companyId };
-  if (!isAdmin && req.user.branch) filter.branch = req.user.branch;
+  try {
+    const isAdmin = req.user.role === 'super_admin' || req.user.role === 'admin';
 
-  const branches = await Branch.find({ company: req.companyId }).select('name address phone');
-  const allOrders = await OrderTracking.find({ company: req.companyId })
-    .populate('branch', 'name');
+    const from = req.query.from ? new Date(req.query.from) : null;
+    const to = req.query.to ? new Date(req.query.to) : null;
+    const dateRange = {};
+    if (from && !isNaN(from)) dateRange.$gte = new Date(from.setHours(0, 0, 0, 0));
+    if (to && !isNaN(to)) dateRange.$lte = new Date(to.setHours(23, 59, 59, 999));
 
-  const branchMap = {};
-  for (const b of branches) {
-    branchMap[b._id.toString()] = { _id: b._id, name: b.name, address: b.address, phone: b.phone, total: 0, pending: 0, processing: 0, shipped: 0, out_for_delivery: 0, delivered: 0, returned: 0 };
+    const branches = await Branch.find({ company: req.companyId }).select('name address phone');
+    const orderFilter = { company: req.companyId };
+    if (dateRange.$gte || dateRange.$lte) orderFilter.createdAt = dateRange;
+    const allOrders = await OrderTracking.find(orderFilter)
+      .populate('branch', 'name')
+      .populate('sourceBranch', 'name');
+
+    const branchMap = {};
+    for (const b of branches) {
+      branchMap[b._id.toString()] = {
+        _id: b._id, name: b.name, address: b.address, phone: b.phone,
+        total: 0, sent: 0, received: 0,
+        pending: 0, processing: 0, shipped: 0, out_for_delivery: 0, delivered: 0, returned: 0,
+      };
+    }
+
+    for (const o of allOrders) {
+      const srcId = o.sourceBranch?._id?.toString();
+      const dstId = o.branch?._id?.toString();
+
+      if (srcId && branchMap[srcId]) {
+        branchMap[srcId].total++;
+        branchMap[srcId].sent++;
+        if (branchMap[srcId][o.status] !== undefined) branchMap[srcId][o.status]++;
+      }
+      if (dstId && branchMap[dstId] && dstId !== srcId) {
+        branchMap[dstId].total++;
+        branchMap[dstId].received++;
+        if (branchMap[dstId][o.status] !== undefined) branchMap[dstId][o.status]++;
+      }
+    }
+
+    const stats = Object.values(branchMap).sort((a, b) => b.total - a.total);
+    res.json(stats);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to load branch stats: ' + err.message });
   }
-
-  for (const o of allOrders) {
-    const bId = o.branch?._id?.toString();
-    if (!bId || !branchMap[bId]) continue;
-    branchMap[bId].total++;
-    if (branchMap[bId][o.status] !== undefined) branchMap[bId][o.status]++;
-  }
-
-  const stats = Object.values(branchMap).sort((a, b) => b.total - a.total);
-  res.json(stats);
 });
 
 router.get('/track/:trackingNumber', async (req, res) => {
@@ -188,6 +245,7 @@ router.get('/:orderId', protect, requireTrackingModule, async (req, res) => {
   const item = await OrderTracking.findOne({ orderId: req.params.orderId, company: req.companyId })
     .populate('customer', 'name phone address')
     .populate('branch', 'name address phone')
+    .populate('sourceBranch', 'name address phone')
     .populate('driver', 'name phone')
     .populate('events.updatedBy', 'name');
   if (!item) return res.status(404).json({ message: 'No tracking record found' });

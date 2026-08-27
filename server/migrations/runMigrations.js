@@ -8,6 +8,8 @@ const Company = require('../models/Company');
 const User = require('../models/User');
 const Purchase = require('../models/Purchase');
 const Sale = require('../models/Sale');
+const CourierOrder = require('../models/CourierOrder');
+const OrderTracking = require('../models/OrderTracking');
 const { getChartOfAccounts } = require('../utils/chartOfAccounts');
 const { getBSFiscalYear } = require('../utils/dateUtils');
 const { DEFAULT_MODULES } = Company;
@@ -347,6 +349,29 @@ async function backfillInclusiveVatFlag() {
   console.log(`Backfill inclusiveVat: ${updated} sales marked as inclusive out of ${sales.length} with VAT`);
 }
 
+async function backfillBranchDeliverySource() {
+  // Propagate sourceBranch from CourierOrder -> OrderTracking where it exists.
+  // Old courier records were created without a source branch and cannot be
+  // reliably attributed to a source, so only genuine sourceBranch values are
+  // copied. Records without a source will still appear under their destination
+  // branch ("received") rather than being misattributed.
+  let trackingUpdated = 0;
+
+  const couriers = await CourierOrder.find({
+    sourceBranch: { $exists: true, $ne: null },
+  }).select('tracking sourceBranch').lean();
+  for (const c of couriers) {
+    if (!c.tracking) continue;
+    const res = await OrderTracking.updateOne(
+      { _id: c.tracking, sourceBranch: { $exists: false } },
+      { $set: { sourceBranch: c.sourceBranch } }
+    );
+    trackingUpdated += res.modifiedCount || 0;
+  }
+
+  console.log(`Branch delivery source backfill: ${couriers.length} courier orders with sourceBranch, ${trackingUpdated} tracking records updated.`);
+}
+
 const migrations = [
   { name: 'setupSuperAdminAndModules', run: setupSuperAdminAndModules },
   { name: 'seedMissingChartAccounts', run: seedMissingChartAccounts },
@@ -359,6 +384,7 @@ const migrations = [
   { name: 'fixTdsAccountNames', run: fixTdsAccountNames },
   { name: 'fixFiscalYearLabels', run: fixFiscalYearLabels },
   { name: 'backfillInclusiveVatFlag', run: backfillInclusiveVatFlag },
+  { name: 'backfillBranchDeliverySource', run: backfillBranchDeliverySource },
 ];
 
 async function runMigrations() {
