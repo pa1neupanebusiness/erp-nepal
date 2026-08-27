@@ -48,6 +48,20 @@ router.get('/', async (req, res) => {
   res.json(items);
 });
 
+router.get('/customers/search', async (req, res) => {
+  const { phone } = req.query;
+  if (!phone || !phone.trim()) return res.json([]);
+  const q = phone.trim();
+  const items = await Customer.find({
+    ...req.companyFilter,
+    $or: [
+      { phone: { $regex: q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
+      { name: { $regex: q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
+    ],
+  }).select('name phone address email pan').sort({ name: 1 }).limit(15);
+  res.json(items);
+});
+
 router.get('/by-tracking/:trackingNumber', async (req, res) => {
   const item = await CourierOrder.findOne({ trackingNumber: req.params.trackingNumber, ...req.companyFilter })
     .populate('sale', 'invoiceNumber grandTotal amountPaid paymentMethod')
@@ -61,7 +75,8 @@ router.get('/:id', async (req, res) => {
   const item = await CourierOrder.findOne({ _id: req.params.id, ...req.companyFilter })
     .populate('sale')
     .populate('tracking')
-    .populate('bank', 'name accountNumber');
+    .populate('bank', 'name accountNumber')
+    .populate('senderCustomer', 'name phone address email pan');
   if (!item) return res.status(404).json({ message: 'Courier order not found' });
   res.json(item);
 });
@@ -113,6 +128,15 @@ router.post('/', adminOnly, async (req, res) => {
     }
   }
 
+  let senderCustomer = null;
+  if (senderPhone) {
+    senderCustomer = await Customer.findOneAndUpdate(
+      { phone: senderPhone, ...req.companyFilter },
+      { name: senderName, phone: senderPhone, address: senderAddress || '', company: req.companyId },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+  }
+
   const saleDoc = new Sale({
     invoiceNumber,
     items: [{ quantity: weight || 1, price: salePrice, costPrice: 0, tax: vatAmount, subtotal: salePrice }],
@@ -156,6 +180,7 @@ router.post('/', adminOnly, async (req, res) => {
     sale: sale._id,
     tracking: tracking._id,
     sender: { name: senderName, address: senderAddress || '', phone: senderPhone || '' },
+    senderCustomer: senderCustomer?._id || null,
     receiver: { name: receiverName, address: receiverAddress || '', phone: receiverPhone || '' },
     instructions: instructions || '',
     deliveryLocation: deliveryLocation || '',
@@ -227,16 +252,47 @@ router.put('/:id', adminOnly, async (req, res) => {
   const item = await CourierOrder.findOne({ _id: req.params.id, ...req.companyFilter });
   if (!item) return res.status(404).json({ message: 'Courier order not found' });
   const allowed = ['sender', 'receiver', 'instructions', 'deliveryLocation', 'deliveryType', 'estimatedDelivery', 'remarks'];
+  let newSender = null;
   for (const key of allowed) {
     if (req.body[key] !== undefined) {
       if (key === 'sender' || key === 'receiver') {
         item[key] = { ...item[key].toObject(), ...req.body[key] };
+        if (key === 'sender') newSender = req.body[key];
       } else {
         item[key] = req.body[key];
       }
     }
   }
   await item.save();
+
+  if (newSender && (newSender.phone || item.senderCustomer)) {
+    try {
+      const senderId = item.senderCustomer;
+      if (senderId) {
+        const upd = { name: newSender.name, phone: newSender.phone, address: newSender.address || '' };
+        const customer = await Customer.findOneAndUpdate(
+          { _id: senderId, ...req.companyFilter },
+          { $set: upd },
+          { new: true }
+        );
+        if (customer && customer.phone && customer.phone !== item.sender.phone) {
+          item.senderCustomer = customer._id;
+          await item.save();
+        }
+      } else if (newSender.phone) {
+        const senderCustomer = await Customer.findOneAndUpdate(
+          { phone: newSender.phone, ...req.companyFilter },
+          { name: newSender.name, phone: newSender.phone, address: newSender.address || '', company: req.companyId },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+        item.senderCustomer = senderCustomer._id;
+        await item.save();
+      }
+    } catch (e) {
+      console.error('Courier sender customer update failed:', e.message);
+    }
+  }
+
   res.json(item);
 });
 

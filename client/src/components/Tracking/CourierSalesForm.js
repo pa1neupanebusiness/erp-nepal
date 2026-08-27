@@ -32,6 +32,10 @@ export default function CourierSalesForm() {
   const [list, setList] = useState([]);
   const [showList, setShowList] = useState(false);
   const [company, setCompany] = useState(null);
+  const [senderCustomer, setSenderCustomer] = useState(null);
+  const [senderMatches, setSenderMatches] = useState([]);
+  const [senderDropdownOpen, setSenderDropdownOpen] = useState(false);
+  const [senderSearching, setSenderSearching] = useState(false);
 
   useEffect(() => {
     api.get('/banks').then(r => setBanks(r.data)).catch(() => {});
@@ -40,6 +44,78 @@ export default function CourierSalesForm() {
   }, []);
 
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
+
+  const debounceRef = React.useRef(null);
+  const senderSearch = (value) => {
+    clearTimeout(debounceRef.current);
+    setSenderDropdownOpen(false);
+    if (!value || !value.trim()) { setSenderMatches([]); return; }
+    setSenderSearching(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const { data } = await api.get('/courier-orders/customers/search', { params: { phone: value.trim() } });
+        setSenderMatches(data);
+        setSenderDropdownOpen(true);
+      } catch (_) {
+        setSenderMatches([]);
+      } finally {
+        setSenderSearching(false);
+      }
+    }, 300);
+  };
+
+  const handleSenderPhoneChange = (val) => {
+    update('senderPhone', val);
+    setSenderCustomer(null);
+    senderSearch(val);
+  };
+
+  const selectSender = (c) => {
+    setSenderCustomer(c);
+    setForm(prev => ({
+      ...prev,
+      senderPhone: c.phone || prev.senderPhone,
+      senderName: c.name || prev.senderName,
+      senderAddress: c.address || prev.senderAddress,
+    }));
+    setSenderMatches([]);
+    setSenderDropdownOpen(false);
+  };
+
+  const editSenderDebounce = React.useRef(null);
+  const editSenderSearch = (value) => {
+    clearTimeout(editSenderDebounce.current);
+    setSenderDropdownOpen(false);
+    if (!value || !value.trim()) { setSenderMatches([]); return; }
+    setSenderSearching(true);
+    editSenderDebounce.current = setTimeout(async () => {
+      try {
+        const { data } = await api.get('/courier-orders/customers/search', { params: { phone: value.trim() } });
+        setSenderMatches(data);
+        setSenderDropdownOpen(true);
+      } catch (_) {
+        setSenderMatches([]);
+      } finally {
+        setSenderSearching(false);
+      }
+    }, 300);
+  };
+
+  const handleEditSenderPhoneChange = (val) => {
+    setEditForm({ ...editForm, senderPhone: val });
+    editSenderSearch(val);
+  };
+
+  const selectEditSender = (c) => {
+    setEditForm(prev => ({
+      ...prev,
+      senderPhone: c.phone || prev.senderPhone,
+      senderName: c.name || prev.senderName,
+      senderAddress: c.address || prev.senderAddress,
+    }));
+    setSenderMatches([]);
+    setSenderDropdownOpen(false);
+  };
 
   const handleCreate = async () => {
     if (!form.senderName) return addToast('Sender name is required', 'error');
@@ -72,6 +148,9 @@ export default function CourierSalesForm() {
         vatRate: '', inclusiveVat: false,
         paymentMethod: 'cash', bankId: '', remarks: '',
       });
+      setSenderCustomer(null);
+      setSenderMatches([]);
+      setSenderDropdownOpen(false);
     } catch (err) {
       addToast(err.response?.data?.message || 'Failed to create courier order', 'error');
     } finally {
@@ -108,7 +187,18 @@ export default function CourierSalesForm() {
   const saveEdit = async () => {
     setSaving(true);
     try {
-      const { data } = await api.put(`/courier-orders/${detail._id}`, editForm);
+      const payload = {
+        sender: {
+          name: editForm.senderName, phone: editForm.senderPhone, address: editForm.senderAddress,
+        },
+        receiver: {
+          name: editForm.receiverName, phone: editForm.receiverPhone, address: editForm.receiverAddress,
+        },
+        instructions: editForm.instructions, deliveryLocation: editForm.deliveryLocation,
+        deliveryType: editForm.deliveryType, estimatedDelivery: editForm.estimatedDelivery,
+        remarks: editForm.remarks,
+      };
+      const { data } = await api.put(`/courier-orders/${detail._id}`, payload);
       setDetail({ ...detail, ...data });
       setEditMode(false);
       addToast('Updated', 'success');
@@ -167,7 +257,22 @@ export default function CourierSalesForm() {
             <div style={{ padding: '0.75rem', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
               <h4 style={{ margin: '0 0 0.5rem', color: '#166534', fontSize: '0.9rem' }}>Sender Details</h4>
               <div className="form-group"><label>Name *</label><input value={form.senderName} onChange={e => update('senderName', e.target.value)} /></div>
-              <div className="form-group"><label>Phone</label><input value={form.senderPhone} onChange={e => update('senderPhone', e.target.value)} /></div>
+              <div className="form-group" style={{ position: 'relative' }}>
+                <label>Phone <span style={{ color: '#94a3b8', fontWeight: 400 }}>(search)</span></label>
+                <input value={form.senderPhone} onChange={e => handleSenderPhoneChange(e.target.value)} placeholder="Type phone to search" />
+                {senderSearching && <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>Searching...</div>}
+                {senderDropdownOpen && senderMatches.length > 0 && (
+                  <div style={{ position: 'absolute', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginTop: '0.25rem', maxHeight: '180px', overflowY: 'auto', zIndex: 20 }}>
+                    {senderMatches.map(c => (
+                      <div key={c._id} onMouseDown={() => selectSender(c)} style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{c.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{c.phone}{c.address ? ` | ${c.address}` : ''}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {senderCustomer && <div style={{ fontSize: '0.75rem', color: '#15803d', marginTop: '0.25rem' }}>Linked to customer: {senderCustomer.name}</div>}
+              </div>
               <div className="form-group"><label>Address</label><input value={form.senderAddress} onChange={e => update('senderAddress', e.target.value)} /></div>
             </div>
             <div style={{ padding: '0.75rem', background: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
@@ -304,7 +409,21 @@ export default function CourierSalesForm() {
                 <div>
                   <h4 style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>Sender</h4>
                   <div className="form-group"><label>Name</label><input value={editForm.senderName} onChange={e => setEditForm({ ...editForm, senderName: e.target.value })} /></div>
-                  <div className="form-group"><label>Phone</label><input value={editForm.senderPhone} onChange={e => setEditForm({ ...editForm, senderPhone: e.target.value })} /></div>
+                  <div className="form-group" style={{ position: 'relative' }}>
+                    <label>Phone <span style={{ color: '#94a3b8', fontWeight: 400 }}>(search)</span></label>
+                    <input value={editForm.senderPhone} onChange={e => handleEditSenderPhoneChange(e.target.value)} placeholder="Type phone to search" />
+                    {senderSearching && <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>Searching...</div>}
+                    {senderDropdownOpen && senderMatches.length > 0 && (
+                      <div style={{ position: 'absolute', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginTop: '0.25rem', maxHeight: '180px', overflowY: 'auto', zIndex: 20, width: '100%' }}>
+                        {senderMatches.map(c => (
+                          <div key={c._id} onMouseDown={() => selectEditSender(c)} style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }}>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{c.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{c.phone}{c.address ? ` | ${c.address}` : ''}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <div className="form-group"><label>Address</label><input value={editForm.senderAddress} onChange={e => setEditForm({ ...editForm, senderAddress: e.target.value })} /></div>
                 </div>
                 <div>

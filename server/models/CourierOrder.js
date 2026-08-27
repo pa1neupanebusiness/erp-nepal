@@ -10,6 +10,7 @@ const courierOrderSchema = new mongoose.Schema({
     address: { type: String, default: '' },
     phone: { type: String, default: '' },
   },
+  senderCustomer: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', default: null },
   receiver: {
     name: { type: String, default: '' },
     address: { type: String, default: '' },
