@@ -52,14 +52,36 @@ router.get('/customers/search', async (req, res) => {
   const { phone } = req.query;
   if (!phone || !phone.trim()) return res.json([]);
   const q = phone.trim();
-  const items = await Customer.find({
+  const esc = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = { $regex: esc, $options: 'i' };
+
+  const customerItems = await Customer.find({
     ...req.companyFilter,
-    $or: [
-      { phone: { $regex: q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
-      { name: { $regex: q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
-    ],
-  }).select('name phone address email pan').sort({ name: 1 }).limit(15);
-  res.json(items);
+    $or: [{ phone: regex }, { name: regex }],
+  }).select('name phone address email pan').sort({ name: 1 }).limit(20);
+
+  const senderItems = await CourierOrder.aggregate([
+    { $match: { ...req.companyFilter, 'sender.phone': { $regex: esc, $options: 'i' } } },
+    { $sort: { createdAt: -1 } },
+    { $group: { _id: '$sender.phone', name: { $first: '$sender.name' }, phone: { $first: '$sender.phone' }, address: { $first: '$sender.address' } } },
+    { $limit: 20 },
+  ]);
+
+  const seen = new Set();
+  const merged = [];
+  for (const c of senderItems) {
+    const key = (c.phone || '').trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    merged.push({ _id: c._id, name: c.name || '', phone: c.phone || '', address: c.address || '', fromHistory: true });
+  }
+  for (const c of customerItems) {
+    const key = (c.phone || '').trim().toLowerCase();
+    if (key && seen.has(key)) continue;
+    if (key) seen.add(key);
+    merged.push({ _id: c._id, name: c.name || '', phone: c.phone || '', address: c.address || '', fromHistory: false, email: c.email, pan: c.pan });
+  }
+  res.json(merged);
 });
 
 router.get('/by-tracking/:trackingNumber', async (req, res) => {

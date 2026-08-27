@@ -271,7 +271,7 @@ export default function CourierSalesForm() {
                     ))}
                   </div>
                 )}
-                {senderCustomer && <div style={{ fontSize: '0.75rem', color: '#15803d', marginTop: '0.25rem' }}>Linked to customer: {senderCustomer.name}</div>}
+                {senderCustomer && <div style={{ fontSize: '0.75rem', color: senderCustomer.fromHistory ? '#7c3aed' : '#15803d', marginTop: '0.25rem' }}>{senderCustomer.fromHistory ? `From previous courier order${senderCustomer.name ? `: ${senderCustomer.name}` : ''}` : `Linked to customer: ${senderCustomer.name}`}</div>}
               </div>
               <div className="form-group"><label>Address</label><input value={form.senderAddress} onChange={e => update('senderAddress', e.target.value)} /></div>
             </div>
