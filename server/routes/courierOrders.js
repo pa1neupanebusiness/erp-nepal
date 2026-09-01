@@ -6,6 +6,7 @@ const Sale = require('../models/Sale');
 const Account = require('../models/Account');
 const Bank = require('../models/Bank');
 const Customer = require('../models/Customer');
+const Branch = require('../models/Branch');
 const { protect, adminOnly, requireTrackingModule } = require('../middleware/auth');
 const { postJournalEntryAtomic } = require('../utils/postingEngine');
 const { adjustBankBalance } = require('../utils/bankService');
@@ -14,6 +15,13 @@ const { createNotification } = require('../utils/notifyService');
 const router = express.Router();
 
 router.use(protect, requireTrackingModule);
+
+function canCreateCourierSales(user) {
+  if (!user) return false;
+  if (user.role === 'super_admin' || user.role === 'admin' || user.role === 'hr') return true;
+  const groups = user.groups || [];
+  return groups.includes('branch') || groups.includes('pos');
+}
 
 async function generateInvoice(companyId) {
   const fy = getBSFiscalYear().label;
@@ -40,7 +48,10 @@ router.get('/companies/:id/banks', protect, async (req, res) => {
 });
 
 router.get('/', async (req, res) => {
-  const items = await CourierOrder.find({ ...req.companyFilter })
+  const isAdmin = req.user.role === 'super_admin' || req.user.role === 'admin';
+  const filter = { ...req.companyFilter };
+  if (!isAdmin && req.user.branch) filter.sourceBranch = req.user.branch;
+  const items = await CourierOrder.find(filter)
     .populate('sale', 'invoiceNumber grandTotal amountPaid paymentMethod')
     .populate('bank', 'name accountNumber')
     .sort({ createdAt: -1 })
@@ -84,6 +95,83 @@ router.get('/customers/search', async (req, res) => {
   res.json(merged);
 });
 
+router.get('/daily-report', protect, requireTrackingModule, async (req, res) => {
+  try {
+    const { date, cashierId } = req.query;
+    if (!date) return res.status(400).json({ message: 'date is required' });
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+
+    const isAdmin = req.user.role === 'super_admin' || req.user.role === 'admin';
+    const filter = { company: req.companyId, createdAt: { $gte: start, $lte: end } };
+    if (!isAdmin && req.user.branch) filter.sourceBranch = req.user.branch;
+
+    const orders = await CourierOrder.find(filter)
+      .populate('sale', 'invoiceNumber grandTotal paymentMethod paymentSplits amountPaid createdAt')
+      .populate('sale.cashier', 'name')
+      .sort({ createdAt: 1 });
+
+    const cashierMap = {};
+    let summary = { totalOrders: 0, cash: 0, qr: 0, bank: 0, credit: 0, total: 0, soldByCount: 0 };
+
+    const addAmount = (row, method, amount) => {
+      if (method === 'cash') row.cash += amount;
+      else if (method === 'qr') row.qr += amount;
+      else if (method === 'bank') row.bank += amount;
+      else if (method === 'credit') row.credit += amount;
+      else row.other += amount;
+      row.total += amount;
+    };
+
+    for (const o of orders) {
+      const sale = o.sale;
+      const cid = sale?.cashier?._id ? sale.cashier._id.toString() : 'unknown';
+      const cname = sale?.cashier?.name || 'Unknown';
+      if (!cashierMap[cid]) cashierMap[cid] = { cashier: { _id: cid, name: cname }, cash: 0, qr: 0, bank: 0, credit: 0, other: 0, total: 0, count: 0 };
+      const row = cashierMap[cid];
+      row.count += 1;
+
+      const method = sale?.paymentMethod || o.paymentMethod || 'cash';
+      const amount = Number(sale?.grandTotal ?? o.price) || 0;
+
+      if (Array.isArray(sale?.paymentSplits) && sale.paymentSplits.length) {
+        for (const sp of sale.paymentSplits) addAmount(row, sp.method, Number(sp.amount) || 0);
+      } else {
+        addAmount(row, method, amount);
+      }
+
+      summary.totalOrders += 1;
+      summary.total += amount;
+      if (method === 'cash') summary.cash += amount;
+      else if (method === 'qr') summary.qr += amount;
+      else if (method === 'bank') summary.bank += amount;
+      else if (method === 'credit') summary.credit += amount;
+    }
+
+    if (cashierId && cashierId !== 'all') {
+      const row = cashierMap[cashierId];
+      cashierMap[cashierId] = row || { cashier: { _id: cashierId, name: '' }, cash: 0, qr: 0, bank: 0, credit: 0, other: 0, total: 0, count: 0 };
+    }
+
+    const cashierRows = Object.values(cashierMap)
+      .filter(r => r.count > 0 || (cashierId && cashierId !== 'all'))
+      .map(r => ({ ...r, cashier: r.cashier }));
+    cashierRows.sort((a, b) => b.total - a.total);
+
+    let branchName = 'All Branches';
+    if (!isAdmin && req.user.branch) {
+      const branch = await Branch.findById(req.user.branch).select('name');
+      if (branch) branchName = branch.name;
+    }
+
+    res.json({ date, branchName, isAdmin, cashierRows, summary });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to load daily report: ' + err.message });
+  }
+});
+
 router.get('/by-tracking/:trackingNumber', async (req, res) => {
   const item = await CourierOrder.findOne({ trackingNumber: req.params.trackingNumber, ...req.companyFilter })
     .populate('sale', 'invoiceNumber grandTotal amountPaid paymentMethod')
@@ -103,7 +191,10 @@ router.get('/:id', async (req, res) => {
   res.json(item);
 });
 
-router.post('/', adminOnly, async (req, res) => {
+router.post('/', async (req, res) => {
+  if (!canCreateCourierSales(req.user)) {
+    return res.status(403).json({ message: 'Not authorized to create courier orders' });
+  }
   const {
     senderName, senderAddress, senderPhone,
     receiverName, receiverAddress, receiverPhone,

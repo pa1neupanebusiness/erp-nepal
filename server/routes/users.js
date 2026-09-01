@@ -1,6 +1,7 @@
 const express = require('express');
 const User = require('../models/User');
 const { protect, adminOnly } = require('../middleware/auth');
+const { groupsForPosition, syncEmployeeForUser } = require('../utils/branchStaff');
 const router = express.Router();
 
 router.get('/', protect, adminOnly, async (req, res) => {
@@ -25,11 +26,15 @@ router.post('/', protect, adminOnly, async (req, res) => {
     const exists = await User.findOne({ email, ...(req.user.role === 'super_admin' ? req.companyFilter : { company: req.companyId }) });
     if (exists) return res.status(400).json({ message: 'Email already exists' });
     const user = await User.create({
-      name, email, password, role: role || 'user', groups: groups || [],
+      name, email, password, role: role || 'user',
+      groups: groups && groups.length ? groups : groupsForPosition(branchPosition),
       company: req.companyId,
       branch: branch || null,
       branchPosition: branchPosition || '',
     });
+    if (user.branchPosition) {
+      try { await syncEmployeeForUser(user, user.branchPosition); } catch (e) { console.error('Staff salary record sync failed:', e.message); }
+    }
     res.status(201).json({ _id: user._id, name: user.name, email: user.email, role: user.role, groups: user.groups, branch: user.branch });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -55,8 +60,14 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     if (isActive !== undefined) user.isActive = isActive;
     if (password) user.password = password;
     if (branch !== undefined) user.branch = branch || null;
-    if (branchPosition !== undefined) user.branchPosition = branchPosition || '';
+    if (branchPosition !== undefined) {
+      user.branchPosition = branchPosition || '';
+      if (branchPosition && !groups) user.groups = groupsForPosition(branchPosition);
+    }
     await user.save();
+    if (user.branchPosition) {
+      try { await syncEmployeeForUser(user, user.branchPosition); } catch (e) { console.error('Staff salary record sync failed:', e.message); }
+    }
     const populated = await User.findById(user._id).select('-password').populate('branch', 'name');
     res.json(populated);
   } catch (err) {

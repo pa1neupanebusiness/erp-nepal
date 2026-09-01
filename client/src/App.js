@@ -27,6 +27,7 @@ import DriverDashboard from './components/Tracking/DriverDashboard';
 import BranchManagement from './components/Admin/BranchManagement';
 import CourierSalesForm from './components/Tracking/CourierSalesForm';
 import CourierSalesHistory from './components/Tracking/CourierSalesHistory';
+import CourierDailyReport from './components/Tracking/CourierDailyReport';
 import BranchDeliveryDetails from './components/Tracking/BranchDeliveryDetails';
 import TrackPublic from './components/Tracking/TrackPublic';
 import Refund from './components/Sales/Refund';
@@ -204,8 +205,9 @@ function AppContent() {
           <Route path="/tracking/branches" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('tracking') && (user?.role === 'super_admin' || user?.role === 'admin'))) ? <BranchManagement /> : <Navigate to="/" />} />
           <Route path="/tracking/driver" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('tracking') && (user?.groups || []).includes('driver'))) ? <DriverDashboard /> : <Navigate to="/" />} />
           <Route path="/tracking/branch" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('tracking') && (user?.groups || []).includes('branch'))) ? <BranchDashboard /> : <Navigate to="/" />} />
-          <Route path="/courier-sales" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('tracking') && (user?.role === 'super_admin' || user?.role === 'admin'))) ? <CourierSalesForm /> : <Navigate to="/" />} />
-          <Route path="/courier-sales/history" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('tracking') && (user?.role === 'super_admin' || user?.role === 'admin'))) ? <CourierSalesHistory /> : <Navigate to="/" />} />
+          <Route path="/courier-sales" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('tracking') && (user?.role === 'super_admin' || user?.role === 'admin' || ((user?.groups || []).includes('branch') || (user?.groups || []).includes('pos'))))) ? <CourierSalesForm /> : <Navigate to="/" />} />
+          <Route path="/courier-sales/history" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('tracking') && (user?.role === 'super_admin' || user?.role === 'admin' || ((user?.groups || []).includes('branch') || (user?.groups || []).includes('pos'))))) ? <CourierSalesHistory /> : <Navigate to="/" />} />
+          <Route path="/courier-sales/report" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('tracking') && (user?.role === 'super_admin' || user?.role === 'admin' || ((user?.groups || []).includes('branch') || (user?.groups || []).includes('pos'))))) ? <CourierDailyReport /> : <Navigate to="/" />} />
           <Route path="/branch-deliveries" element={(user?.role === 'super_admin' || user?.role === 'admin' || ((user?.company?.enabledModules || []).includes('tracking') && (user?.role === 'super_admin' || user?.role === 'admin' || (user?.groups || []).includes('branch')))) ? <BranchDeliveryDetails /> : <Navigate to="/" />} />
           <Route path="/track/:trackingNumber" element={<TrackPublic />} />
           <Route path="/refund" element={<Refund />} />
