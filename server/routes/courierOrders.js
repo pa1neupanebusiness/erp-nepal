@@ -109,8 +109,7 @@ router.get('/daily-report', protect, requireTrackingModule, async (req, res) => 
     if (!isAdmin && req.user.branch) filter.sourceBranch = req.user.branch;
 
     const orders = await CourierOrder.find(filter)
-      .populate('sale', 'invoiceNumber grandTotal paymentMethod paymentSplits amountPaid createdAt')
-      .populate('sale.cashier', 'name')
+      .populate({ path: 'sale', select: 'invoiceNumber grandTotal paymentMethod paymentSplits amountPaid createdAt cashier', populate: { path: 'cashier', select: 'name' } })
       .sort({ createdAt: 1 });
 
     const cashierMap = {};
@@ -262,7 +261,7 @@ router.post('/', async (req, res) => {
     paymentStatus: 'paid',
     paymentMethod: paymentMethod || 'cash',
     bank: paymentMethod === 'qr' ? bankId : undefined,
-    customer: customerDoc?._id,
+    customer: senderCustomer?._id || null,
     cashier: req.user._id,
     status: 'completed',
     notes: `Courier delivery: ${trackingNumber}`,
@@ -342,7 +341,7 @@ router.post('/', async (req, res) => {
         salesLines[0] = { account: bankAccount._id, debit: grandTotal, credit: 0, bank: bankId || null };
       }
 
-      const partyLine = { partyType: 'customer', partyId: customerDoc?._id || null, partyName: customerDoc?.name || 'Walk-in' };
+      const partyLine = { partyType: 'customer', partyId: senderCustomer?._id || null, partyName: senderCustomer?.name || senderName || 'Walk-in' };
       await postJournalEntryAtomic({
         companyId: req.companyId, date: jeDate, reference: invoiceNumber,
         description: `Courier Sale ${invoiceNumber}`,

@@ -483,10 +483,6 @@ export default function POS() {
           {lastSale && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', padding: '0.5rem', background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0' }}>
               <span style={{ color: '#15803d', fontWeight: 600, fontSize: '0.85rem' }}>Invoice {lastSale.invoiceNumber} created</span>
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.35rem' }}>
-                <button className="btn btn-sm btn-secondary" onClick={() => setLastSale(null)}>Close</button>
-                <button className="btn btn-sm btn-primary" onClick={() => { printInvoice(lastSale, company); setLastSale(null); }}>Print Invoice</button>
-              </div>
             </div>
           )}
           <div style={{ display: 'flex', gap: '0.35rem' }}>
@@ -499,8 +495,25 @@ export default function POS() {
             </button>
           </div>
         </div>
-        </div>
       </div>
+      </div>
+      {lastSale && (
+        <div className="modal-overlay" onClick={() => setLastSale(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420, textAlign: 'center' }}>
+            <div className="modal-header"><h3>Success</h3><button className="btn btn-sm modal-close-x" onClick={() => setLastSale(null)}>x</button></div>
+            <div className="modal-body">
+              <div style={{ fontSize: '2rem', color: '#16a34a' }}>&#10003;</div>
+              <h3>Invoice {lastSale.invoiceNumber} created!</h3>
+              <p className="text-muted">Total: {formatNPR(lastSale.grandTotal)}</p>
+            </div>
+            <div className="modal-footer" style={{ justifyContent: 'center' }}>
+              <button className="btn btn-primary" onClick={() => { printInvoice(lastSale, company); setLastSale(null); }}>Print Invoice</button>
+              <button className="btn btn-secondary" onClick={() => setLastSale(null)}>New Sale</button>
+              <button className="btn btn-secondary" onClick={() => setLastSale(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
       <ConfirmModal open={!!confirmDelete} title="Confirm" message={confirmDelete?.message}
         onConfirm={async () => {
           await api.delete(`/heldbills/${confirmDelete.id}`);

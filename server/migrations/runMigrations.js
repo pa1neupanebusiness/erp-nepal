@@ -372,6 +372,26 @@ async function backfillBranchDeliverySource() {
   console.log(`Branch delivery source backfill: ${couriers.length} courier orders with sourceBranch, ${trackingUpdated} tracking records updated.`);
 }
 
+async function backfillCourierSaleCustomer() {
+  // For courier orders the person paying for the service is the SENDER, so the
+  // generated sale must reference the sender as its customer (shown on invoices
+  // and recent-transactions). Older records stored the receiver instead.
+  const couriers = await CourierOrder.find({ sale: { $exists: true, $ne: null } })
+    .select('sale sender senderCustomer').lean();
+  let updated = 0;
+  for (const c of couriers) {
+    const senderId = c.senderCustomer || null;
+    if (!senderId) continue;
+    const sale = await Sale.findById(c.sale).select('customer').lean();
+    if (!sale) continue;
+    if (!sale.customer || sale.customer.toString() !== senderId.toString()) {
+      await Sale.updateOne({ _id: sale._id }, { $set: { customer: senderId } });
+      updated++;
+    }
+  }
+  console.log(`Courier sale customer backfill: ${updated} sale(s) updated to sender customer out of ${couriers.length} courier orders`);
+}
+
 const migrations = [
   { name: 'setupSuperAdminAndModules', run: setupSuperAdminAndModules },
   { name: 'seedMissingChartAccounts', run: seedMissingChartAccounts },
@@ -385,6 +405,7 @@ const migrations = [
   { name: 'fixFiscalYearLabels', run: fixFiscalYearLabels },
   { name: 'backfillInclusiveVatFlag', run: backfillInclusiveVatFlag },
   { name: 'backfillBranchDeliverySource', run: backfillBranchDeliverySource },
+  { name: 'backfillCourierSaleCustomer', run: backfillCourierSaleCustomer },
 ];
 
 async function runMigrations() {
