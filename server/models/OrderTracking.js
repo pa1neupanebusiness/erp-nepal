@@ -15,6 +15,12 @@ const orderTrackingSchema = new mongoose.Schema({
   orderNumber: { type: String, required: true },
   customer: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer' },
   customerName: { type: String, default: '' },
+  senderName: { type: String, default: '' },
+  senderPhone: { type: String, default: '' },
+  senderAddress: { type: String, default: '' },
+  receiverName: { type: String, default: '' },
+  receiverPhone: { type: String, default: '' },
+  receiverAddress: { type: String, default: '' },
   status: {
     type: String,
     enum: ['pending', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'returned'],

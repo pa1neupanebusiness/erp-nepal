@@ -4,6 +4,7 @@ import api from '../../api';
 import { useToast } from '../UI/Toast';
 import SearchableSelect from '../UI/SearchableSelect';
 import NepaliDatePicker, { adToBsStr, bsToADStr } from '../UI/NepaliDatePicker';
+import { printInvoice } from '../POS/PrintInvoice';
 
 const BS_MONTHS = ['Bai', 'Jes', 'Asa', 'Shr', 'Bha', 'Ash', 'Kar', 'Man', 'Pou', 'Mag', 'Fal', 'Cha'];
 
@@ -803,7 +804,8 @@ export default function CreateSalesInvoice() {
               <p className="text-muted">Total: {formatMoney(lastSale.grandTotal)}</p>
             </div>
             <div className="modal-footer" style={{ justifyContent: 'center' }}>
-              <button className="btn btn-secondary" onClick={() => { setLastSale(null); navigate('/sales'); }}>Sales History</button>
+              <button className="btn btn-secondary" onClick={() => { printInvoice(lastSale, company); }}>Print Invoice</button>
+              <button className="btn btn-secondary" onClick={() => { setLastSale(null); navigate('/sales'); }}>Close</button>
               <button className="btn btn-primary" onClick={() => { setLastSale(null); setRows([emptyRow()]); setImages([]); setNotes(''); setTerms(''); setInvoiceNo(''); setDiscountValue(0); setApplyVat(false); setInclusiveVat(false); setAmountPaid(''); setBank(''); setPaymentMethod('cash'); setSplits([{ method: 'cash', amount: 0, bank: '' }]); }}>New Sale</button>
             </div>
           </div>

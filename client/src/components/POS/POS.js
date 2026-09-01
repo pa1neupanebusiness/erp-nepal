@@ -483,7 +483,10 @@ export default function POS() {
           {lastSale && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', padding: '0.5rem', background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0' }}>
               <span style={{ color: '#15803d', fontWeight: 600, fontSize: '0.85rem' }}>Invoice {lastSale.invoiceNumber} created</span>
-              <button className="btn btn-sm btn-primary" onClick={() => { printInvoice(lastSale, company); setLastSale(null); }}>Print Invoice</button>
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.35rem' }}>
+                <button className="btn btn-sm btn-secondary" onClick={() => setLastSale(null)}>Close</button>
+                <button className="btn btn-sm btn-primary" onClick={() => { printInvoice(lastSale, company); setLastSale(null); }}>Print Invoice</button>
+              </div>
             </div>
           )}
           <div style={{ display: 'flex', gap: '0.35rem' }}>

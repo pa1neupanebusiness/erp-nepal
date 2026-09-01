@@ -1,12 +1,18 @@
 import JsBarcode from 'jsbarcode';
 
 export function printTrackingLabel(tracking, company) {
-  const trackingNum = tracking.trackingNumber || 'N/A';
+  const trackingNum = (tracking.tracking?.trackingNumber || tracking.trackingNumber) || 'N/A';
   const barcodeId = 'barcode-' + Date.now();
 
   const fromBranch = tracking.sourceBranch?.name || '';
   const toBranch = tracking.branch?.name || '';
   const routeText = [fromBranch, toBranch].filter(Boolean).map(escape).join('  ->  ');
+
+  const senderName = tracking.senderName || tracking.sender?.name || company?.name || '';
+  const senderPhone = tracking.senderPhone || tracking.sender?.phone || company?.phone || '';
+  const receiverName = tracking.receiverName || tracking.receiver?.name || tracking.customerName || tracking.customer?.name || '';
+  const receiverPhone = tracking.receiverPhone || tracking.receiver?.phone || tracking.customer?.phone || '';
+  const receiverAddress = tracking.receiverAddress || tracking.receiver?.address || tracking.customer?.address || '';
 
   const html = `<!DOCTYPE html><html><head>
   <meta charset="UTF-8">
@@ -30,6 +36,8 @@ export function printTrackingLabel(tracking, company) {
     .detail-row { display: flex; }
     .lbl { color: #666; flex-shrink: 0; }
     .val { font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .detail-section { border: 1px solid #000; padding: 1mm 1.5mm; }
+    .section-title { font-size: 7px; font-weight: bold; letter-spacing: 1px; border-bottom: 1px solid #000; margin-bottom: 0.5mm; }
     .route { font-size: 8px; text-align: center; margin-top: 1.5mm; border: 1px solid #000; padding: 1mm 2mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .footer { text-align: center; font-size: 7px; border-top: 1.5px dashed #000; padding-top: 1mm; margin-top: auto; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   </style></head><body>
@@ -42,9 +50,18 @@ export function printTrackingLabel(tracking, company) {
       <div class="barcode-wrap"><svg id="${barcodeId}"></svg></div>
       <div class="details">
         <div class="detail-row"><span class="lbl">Order:&nbsp;</span><span class="val">${escape(tracking.orderNumber)}</span></div>
-        <div class="detail-row"><span class="lbl">Status:&nbsp;</span><span class="val">${escape(tracking.status?.replace(/_/g, ' ').toUpperCase())}</span></div>
-        <div class="detail-row"><span class="lbl">To:&nbsp;</span><span class="val">${escape(tracking.customerName || tracking.customer?.name || '-')}</span></div>
         <div class="detail-row"><span class="lbl">Carrier:&nbsp;</span><span class="val">${escape((tracking.carrier || 'N/A').toUpperCase())}</span></div>
+        <div class="detail-section">
+          <div class="section-title">SENDER</div>
+          <div class="detail-row"><span class="lbl">Name:&nbsp;</span><span class="val">${escape(senderName)}</span></div>
+          <div class="detail-row"><span class="lbl">Mobile:&nbsp;</span><span class="val">${escape(senderPhone)}</span></div>
+        </div>
+        <div class="detail-section">
+          <div class="section-title">RECEIVER</div>
+          <div class="detail-row"><span class="lbl">Name:&nbsp;</span><span class="val">${escape(receiverName)}</span></div>
+          <div class="detail-row"><span class="lbl">Mobile:&nbsp;</span><span class="val">${escape(receiverPhone)}</span></div>
+          <div class="detail-row"><span class="lbl">Addr:&nbsp;</span><span class="val">${escape(receiverAddress)}</span></div>
+        </div>
       </div>
       ${routeText ? `<div class="route">${routeText}</div>` : ''}
       <div class="footer">Track: ${escape(window.location.origin)}/track/${escape(trackingNum)}</div>

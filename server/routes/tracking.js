@@ -216,7 +216,7 @@ router.post('/', protect, adminOnly, requireTrackingModule, async (req, res) => 
   if (!orderId) return res.status(400).json({ message: 'orderId is required' });
   const existing = await OrderTracking.findOne({ orderId, company: req.companyId });
   if (existing) return res.status(400).json({ message: 'Tracking already exists for this order' });
-  const sale = await Sale.findOne({ _id: orderId, ...req.companyFilter }).populate('customer', 'name');
+  const sale = await Sale.findOne({ _id: orderId, ...req.companyFilter }).populate('customer', 'name phone address');
   if (!sale) return res.status(404).json({ message: 'Sale not found' });
 
   const company = await Company.findById(req.companyId);
@@ -231,6 +231,12 @@ router.post('/', protect, adminOnly, requireTrackingModule, async (req, res) => 
     orderNumber: sale.invoiceNumber,
     customer: sale.customer?._id,
     customerName: sale.customer?.name || '',
+    senderName: company.name || '',
+    senderPhone: company.phone || '',
+    senderAddress: company.address || '',
+    receiverName: sale.customer?.name || '',
+    receiverPhone: sale.customer?.phone || '',
+    receiverAddress: sale.customer?.address || '',
     status: 'pending',
     carrier: carrier || '',
     trackingNumber,
