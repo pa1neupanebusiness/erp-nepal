@@ -20,6 +20,11 @@ export default function BranchManagement() {
   const [showAddStaff, setShowAddStaff] = useState(false);
   const [newStaffUser, setNewStaffUser] = useState('');
   const [newStaffPosition, setNewStaffPosition] = useState('Staff');
+  const [staffSearch, setStaffSearch] = useState('');
+  const [staffDropdownOpen, setStaffDropdownOpen] = useState(false);
+  const [createStaff, setCreateStaff] = useState(false);
+  const [createStaffForm, setCreateStaffForm] = useState({ name: '', email: '', password: '', position: 'Staff' });
+  const [creatingStaff, setCreatingStaff] = useState(false);
   const [addingStaff, setAddingStaff] = useState(false);
   const [confirmRemoveStaff, setConfirmRemoveStaff] = useState(null);
 
@@ -113,7 +118,31 @@ export default function BranchManagement() {
     setConfirmRemoveStaff(null);
   };
 
+  const handleCreateStaff = async () => {
+    if (!createStaffForm.name || !createStaffForm.email || !createStaffForm.password) return addToast('Name, email and password are required', 'error');
+    setCreatingStaff(true);
+    try {
+      const { data } = await api.post(`/branches/${detail._id}/add-staff-user`, createStaffForm);
+      setDetail(data);
+      setShowAddStaff(false);
+      setCreateStaff(false);
+      setCreateStaffForm({ name: '', email: '', password: '', position: 'Staff' });
+      setStaffSearch('');
+      setNewStaffUser('');
+      load();
+      loadUsers();
+      addToast('New staff created and added', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Failed to create staff', 'error');
+    } finally { setCreatingStaff(false); }
+  };
+
   const unassignedUsers = users.filter(u => !u.branch || (detail && (detail.users || []).some(bu => (bu._id || bu) === u._id)));
+  const staffKeyword = staffSearch.trim().toLowerCase();
+  const matchedUsers = staffKeyword
+    ? unassignedUsers.filter(u => (u.name || '').toLowerCase().includes(staffKeyword) || (u.email || '').toLowerCase().includes(staffKeyword))
+    : unassignedUsers;
+  const noUserMatch = staffKeyword && matchedUsers.length === 0;
 
   return (
     <div>
@@ -179,7 +208,7 @@ export default function BranchManagement() {
             <div className="modal-header">
               <h3 style={{ margin: 0 }}>{detail.name}</h3>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                {isAdmin && <button className="btn btn-sm btn-primary" onClick={() => { setShowAddStaff(!showAddStaff); setNewStaffUser(''); setNewStaffPosition('Staff'); }}>{showAddStaff ? 'Cancel' : '+ Add Staff'}</button>}
+                {isAdmin && <button className="btn btn-sm btn-primary" onClick={() => { setShowAddStaff(!showAddStaff); setNewStaffUser(''); setNewStaffPosition('Staff'); setStaffSearch(''); setStaffDropdownOpen(false); setCreateStaff(false); setCreateStaffForm({ name: '', email: '', password: '', position: 'Staff' }); }}>{showAddStaff ? 'Cancel' : '+ Add Staff'}</button>}
                 <button className="btn btn-sm modal-close-x" onClick={() => setDetail(null)}>&times;</button>
               </div>
             </div>
@@ -194,14 +223,42 @@ export default function BranchManagement() {
                 <div style={{ padding: '0.75rem', background: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe', marginBottom: '1rem' }}>
                   <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem' }}>Add Staff to {detail.name}</h4>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                    <div className="form-group" style={{ flex: 1, minWidth: 180, marginBottom: 0 }}>
+                    <div className="form-group" style={{ flex: 1, minWidth: 220, marginBottom: 0, position: 'relative' }}>
                       <label>Select User</label>
-                      <select value={newStaffUser} onChange={e => setNewStaffUser(e.target.value)}>
-                        <option value="">Choose user...</option>
-                        {unassignedUsers.map(u => (
-                          <option key={u._id} value={u._id}>{u.name} ({u.email}){u.branch ? ' — in another branch' : ''}</option>
-                        ))}
-                      </select>
+                      <input
+                        type="text"
+                        placeholder="Type to search user or create new..."
+                        value={staffSearch}
+                        onChange={e => { setStaffSearch(e.target.value); setStaffDropdownOpen(true); }}
+                        onFocus={() => setStaffDropdownOpen(true)}
+                        onBlur={() => setTimeout(() => setStaffDropdownOpen(false), 150)}
+                      />
+                      {staffDropdownOpen && (
+                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, background: '#fff', border: '1px solid #cbd5e1', borderRadius: 6, marginTop: 4, maxHeight: 200, overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }}>
+                          {matchedUsers.length === 0 && !noUserMatch && (
+                            <div style={{ padding: '0.6rem 0.75rem', color: '#94a3b8' }}>No users available</div>
+                          )}
+                          {matchedUsers.map(u => (
+                            <div
+                              key={u._id}
+                              onMouseDown={() => { setNewStaffUser(u._id); setStaffSearch(u.name); setStaffDropdownOpen(false); }}
+                              style={{ padding: '0.6rem 0.75rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }}
+                              onMouseEnter={e => e.currentTarget.style.background = '#eff6ff'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                              <strong>{u.name}</strong> <span style={{ color: '#64748b', fontSize: '0.8rem' }}>({u.email})</span>
+                            </div>
+                          ))}
+                          {noUserMatch && (
+                            <div
+                              onMouseDown={() => { setCreateStaff(true); setCreateStaffForm(f => ({ ...f, name: staffSearch.trim() })); setStaffDropdownOpen(false); }}
+                              style={{ padding: '0.6rem 0.75rem', cursor: 'pointer', color: '#1d4ed8', background: '#eff6ff' }}
+                            >
+                              + Create new staff &quot;{staffSearch.trim()}&quot;
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="form-group" style={{ minWidth: 140, marginBottom: 0 }}>
                       <label>Position</label>
@@ -209,8 +266,20 @@ export default function BranchManagement() {
                         {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
                       </select>
                     </div>
-                    <button className="btn btn-sm btn-primary" onClick={handleAddStaff} disabled={addingStaff}>{addingStaff ? 'Adding...' : 'Add'}</button>
+                    <button className="btn btn-sm btn-primary" onClick={handleAddStaff} disabled={addingStaff || !newStaffUser}>{addingStaff ? 'Adding...' : 'Add'}</button>
                   </div>
+                  {createStaff && (
+                    <div style={{ marginTop: '0.75rem', borderTop: '1px dashed #bfdbfe', paddingTop: '0.75rem' }}>
+                      <strong style={{ fontSize: '0.85rem' }}>Create new user</strong>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                        <div className="form-group" style={{ flex: 1, minWidth: 150, marginBottom: 0 }}><label>Full Name</label><input value={createStaffForm.name} onChange={e => setCreateStaffForm({ ...createStaffForm, name: e.target.value })} /></div>
+                        <div className="form-group" style={{ flex: 1, minWidth: 180, marginBottom: 0 }}><label>Email</label><input type="email" value={createStaffForm.email} onChange={e => setCreateStaffForm({ ...createStaffForm, email: e.target.value })} /></div>
+                        <div className="form-group" style={{ minWidth: 140, marginBottom: 0 }}><label>Password</label><input type="password" value={createStaffForm.password} onChange={e => setCreateStaffForm({ ...createStaffForm, password: e.target.value })} /></div>
+                        <div className="form-group" style={{ minWidth: 120, marginBottom: 0 }}><label>Position</label><select value={createStaffForm.position} onChange={e => setCreateStaffForm({ ...createStaffForm, position: e.target.value })}>{POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}</select></div>
+                        <button className="btn btn-sm btn-primary" onClick={handleCreateStaff} disabled={creatingStaff}>{creatingStaff ? 'Creating...' : 'Create & Add'}</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
