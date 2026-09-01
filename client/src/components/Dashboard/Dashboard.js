@@ -5,16 +5,19 @@ import { useFiscalYear } from '../../context/FiscalYearContext';
 import { Icon } from '../Layout/Layout';
 import EntryDetailsModal from '../UI/EntryDetailsModal';
 import SaleDetailModal from '../UI/SaleDetailModal';
+import PurchaseDetailModal from '../UI/PurchaseDetailModal';
 import { printInvoice } from '../POS/PrintInvoice';
+import { printPurchaseVoucher } from '../UI/printPurchase';
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
-  const [recentSales, setRecentSales] = useState([]);
+  const [recentTx, setRecentTx] = useState([]);
   const [chart, setChart] = useState([]);
   const [lowStock, setLowStock] = useState([]);
   const [branchStats, setBranchStats] = useState([]);
   const [timeGreeting, setTimeGreeting] = useState('');
-  const [detail, setDetail] = useState(null);
+  const [saleDetailId, setSaleDetailId] = useState(null);
+  const [purchaseDetailId, setPurchaseDetailId] = useState(null);
   const [showBanks, setShowBanks] = useState(false);
   const [company, setCompany] = useState(null);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -34,7 +37,7 @@ export default function Dashboard() {
     else setTimeGreeting('Good Evening');
 
     api.get('/dashboard/summary').then(r => setData(r.data)).catch(() => {});
-    api.get('/dashboard/recent-sales').then(r => setRecentSales(r.data)).catch(() => {});
+    api.get('/dashboard/recent-transactions').then(r => setRecentTx(r.data)).catch(() => {});
     api.get('/dashboard/sales-chart').then(r => setChart(r.data)).catch(() => {});
     api.get('/products/low-stock').then(r => setLowStock(r.data)).catch(() => {});
     api.get('/company').then(r => setCompany(r.data)).catch(() => {});
@@ -368,19 +371,21 @@ export default function Dashboard() {
         <div className="db-card-body">
           <table className="table">
             <thead>
-              <tr><th>Invoice</th><th>Amount</th><th>Payment</th><th>Time</th></tr>
+              <tr><th>Type</th><th>Invoice</th><th>Party</th><th>Amount</th><th>Payment</th><th>Time</th></tr>
             </thead>
             <tbody>
-              {recentSales.map(s => (
-                <tr key={s._id} style={{ cursor: 'pointer' }} onClick={() => setDetail(s)}>
-                  <td><span className="invoice-link">{s.invoiceNumber}</span></td>
-                  <td className="text-success">{formatNPR(s.grandTotal)}</td>
-                  <td><span className="badge badge-success">{s.paymentMethod}</span></td>
-                  <td className="text-muted">{new Date(s.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</td>
+              {recentTx.map(t => (
+                <tr key={t._id} style={{ cursor: 'pointer' }} onClick={() => t.kind === 'sale' ? setSaleDetailId(t._id) : setPurchaseDetailId(t._id)}>
+                  <td><span className={`badge ${t.kind === 'sale' ? 'badge-success' : 'badge-info'}`}>{t.kind === 'sale' ? 'Sale' : 'Purchase'}</span></td>
+                  <td><span className="invoice-link">{t.number}</span></td>
+                  <td>{t.party}</td>
+                  <td className="text-success">{formatNPR(t.amount)}</td>
+                  <td><span className="badge badge-success">{t.paymentMethod}</span></td>
+                  <td className="text-muted">{new Date(t.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</td>
                 </tr>
               ))}
-              {recentSales.length === 0 && (
-                <tr><td colSpan="4" className="text-center">No sales yet. Start selling!</td></tr>
+              {recentTx.length === 0 && (
+                <tr><td colSpan="6" className="text-center">No transactions yet</td></tr>
               )}
             </tbody>
           </table>
@@ -524,8 +529,11 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-      {detail && (
-        <SaleDetailModal saleId={detail._id} onClose={() => setDetail(null)} onPrint={(d) => printInvoice(d, company)} />
+      {saleDetailId && (
+        <SaleDetailModal saleId={saleDetailId} onClose={() => setSaleDetailId(null)} onPrint={(d) => printInvoice(d, company)} />
+      )}
+      {purchaseDetailId && (
+        <PurchaseDetailModal purchaseId={purchaseDetailId} onClose={() => setPurchaseDetailId(null)} onPrint={(d) => printPurchaseVoucher(d, company)} />
       )}
       {showBanks && (
         <EntryDetailsModal

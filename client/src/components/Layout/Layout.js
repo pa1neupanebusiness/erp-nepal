@@ -224,6 +224,16 @@ export default function Layout({ user, onLogout, children }) {
             {v.posAdmin && <NavLink to="/refund" className={linkClass} onClick={closeSidebar}><Icon name="refund" /><span className="nav-text">Direct Refund</span></NavLink>}
           </NavSection>}
 
+          {courierVisible && <NavSection title="Courier" paths={['/tracking', '/courier-sales', '/branch-deliveries']} activeSection={activeSection} onToggle={toggleSection}>
+            {(isAdmin || isBranchStaff || (user?.groups || []).includes('pos')) && <NavLink to="/courier-sales" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Courier Sales</span></NavLink>}
+            {(isAdmin || isBranchStaff || (user?.groups || []).includes('pos')) && <NavLink to="/courier-sales/report" className={linkClass} onClick={closeSidebar}><Icon name="daybook" /><span className="nav-text">Daily Report</span></NavLink>}
+            {(isAdmin || isBranchStaff || (user?.groups || []).includes('pos')) && <NavLink to="/courier-sales/history" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Sales History</span></NavLink>}
+            <NavLink to="/tracking" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Order Tracking</span></NavLink>
+            {(isAdmin || isBranchStaff) && <NavLink to="/branch-deliveries" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Deliveries</span></NavLink>}
+            {(user?.groups || []).includes('branch') && <NavLink to="/tracking/branch" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Orders</span></NavLink>}
+            {(user?.groups || []).includes('driver') && <NavLink to="/tracking/driver" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">My Deliveries</span></NavLink>}
+          </NavSection>}
+
           {purchaseVisible && <NavSection title="Purchase" paths={['/purchases', '/purchases/payment-out', '/purchases/returns']} activeSection={activeSection} onToggle={toggleSection}>
             <NavLink to="/purchases" className={linkClass} onClick={closeSidebar}><Icon name="purchase" /><span className="nav-text">Purchase</span></NavLink>
             <NavLink to="/purchases/payment-out" className={linkClass} onClick={closeSidebar}><Icon name="paymentout" /><span className="nav-text">Payment Out</span></NavLink>
@@ -259,16 +269,6 @@ export default function Layout({ user, onLogout, children }) {
             <NavLink to="/accounts/daybook" className={linkClass} onClick={closeSidebar}><Icon name="daybook" /><span className="nav-text">Daybook</span></NavLink>
             <NavLink to="/fixed-assets" className={linkClass} onClick={closeSidebar}><Icon name="accounts" /><span className="nav-text">Fixed Assets</span></NavLink>
             <NavLink to="/reports/monthly-sales-register" className={linkClass} onClick={closeSidebar}><Icon name="voucher" /><span className="nav-text">Monthly Sales Register</span></NavLink>
-          </NavSection>}
-
-          {courierVisible && <NavSection title="Courier" paths={['/tracking', '/courier-sales', '/branch-deliveries']} activeSection={activeSection} onToggle={toggleSection}>
-            {(isAdmin || isBranchStaff || (user?.groups || []).includes('pos')) && <NavLink to="/courier-sales" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Courier Sales</span></NavLink>}
-            {(isAdmin || isBranchStaff || (user?.groups || []).includes('pos')) && <NavLink to="/courier-sales/report" className={linkClass} onClick={closeSidebar}><Icon name="daybook" /><span className="nav-text">Daily Report</span></NavLink>}
-            {(isAdmin || isBranchStaff || (user?.groups || []).includes('pos')) && <NavLink to="/courier-sales/history" className={linkClass} onClick={closeSidebar}><Icon name="sales" /><span className="nav-text">Sales History</span></NavLink>}
-            <NavLink to="/tracking" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Order Tracking</span></NavLink>
-            {(isAdmin || isBranchStaff) && <NavLink to="/branch-deliveries" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Deliveries</span></NavLink>}
-            {(user?.groups || []).includes('branch') && <NavLink to="/tracking/branch" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">Branch Orders</span></NavLink>}
-            {(user?.groups || []).includes('driver') && <NavLink to="/tracking/driver" className={linkClass} onClick={closeSidebar}><Icon name="tracking" /><span className="nav-text">My Deliveries</span></NavLink>}
           </NavSection>}
 
           {reportsVisible && <NavSection title={tax.label} paths={['/reports']} activeSection={activeSection} onToggle={toggleSection}>

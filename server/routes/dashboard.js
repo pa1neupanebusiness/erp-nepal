@@ -1,5 +1,6 @@
 const express = require('express');
 const Sale = require('../models/Sale');
+const Purchase = require('../models/Purchase');
 const Product = require('../models/Product');
 const Customer = require('../models/Customer');
 const Account = require('../models/Account');
@@ -77,6 +78,20 @@ router.get('/recent-sales', protect, async (req, res) => {
     .populate('items.product', 'name')
     .sort({ createdAt: -1 }).limit(10);
   res.json(sales);
+});
+
+router.get('/recent-transactions', protect, async (req, res) => {
+  const saleFilter = { status: 'completed', ...req.fyFilter, ...req.companyFilter };
+  const purchaseFilter = { status: { $ne: 'cancelled' }, ...req.fyFilter, ...req.companyFilter };
+  const [sales, purchases] = await Promise.all([
+    Sale.find(saleFilter).populate('customer', 'name').sort({ createdAt: -1 }).limit(10),
+    Purchase.find(purchaseFilter).populate('supplier', 'name').sort({ createdAt: -1 }).limit(10),
+  ]);
+  const tx = [
+    ...sales.map(s => ({ kind: 'sale', _id: s._id, number: s.invoiceNumber, amount: s.grandTotal, paymentMethod: s.paymentMethod || 'cash', party: s.customer?.name || 'Walk-in', createdAt: s.createdAt })),
+    ...purchases.map(p => ({ kind: 'purchase', _id: p._id, number: p.purchaseNumber, amount: p.grandTotal, paymentMethod: p.paymentMethod || 'cash', party: p.supplier?.name || 'Cash Purchase', createdAt: p.date || p.createdAt })),
+  ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 10);
+  res.json(tx);
 });
 
 router.get('/sales-chart', protect, async (req, res) => {
